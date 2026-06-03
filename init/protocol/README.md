@@ -14,6 +14,8 @@
 6. `50-engineering-constraints.md`
 7. `60-initialization-flow.md`
 8. `70-adoption-flow.md`
+9. `80-execution-patterns.md`
+10. `90-collaboration-profile.md`
 
 `profiles/` 下的文件是可选的项目类型 profile。
 
@@ -28,6 +30,8 @@
 - `README.md`
 - `vault/`
 - `skills/`
+- Agentic 执行模式
+- 可演化协作画像
 - 源码和测试文件
 - 依赖配置文件
 

@@ -27,6 +27,8 @@
 6. `init/protocol/50-engineering-constraints.md`
 7. `init/protocol/60-initialization-flow.md`
 8. `init/protocol/70-adoption-flow.md`
+9. `init/protocol/80-execution-patterns.md`
+10. `init/protocol/90-collaboration-profile.md`
 
 如果项目类型已明确，还要读取对应 profile。当前脚手架使用：
 
@@ -41,6 +43,8 @@
 - `vault/governance.md` 协作治理规则；
 - `vault/tasks/` 任务契约规则；
 - `skills/` 可复用 Agent 工作流；
+- Agentic 执行模式；
+- 可演化协作画像；
 - 仅在所选 profile 需要时创建项目源码、测试和依赖文件；
 - `README.md`；
 - 记录最终初始化状态的 `vault/runtime.md`。
@@ -69,6 +73,8 @@
 - 生成的 Agent 入口文件会路由到 `vault/index.md`、`vault/runtime.md` 和 `vault/governance.md`；
 - 必需的 vault 文件存在；
 - governance 定义任务等级、授权等级、任务契约、验收门、升级规则和多 Agent 接力规则；
+- 执行模式定义计划先行、上下文扎根、检查点化工作、人工判断信号和 skill 复利；
+- collaboration profile 定义协作偏好的生成、更新、优先级和禁止边界；
 - `vault/tasks/` 下存在追踪任务和治理任务规则；
 - 必要检查已运行并记录结果；
 - `vault/runtime.md` 反映当前状态；
