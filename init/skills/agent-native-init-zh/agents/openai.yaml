@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Native Init 中文版"
+  short_description: "安装 Agent 协作治理"
+  default_prompt: "Use $agent-native-init-zh 为这个项目添加 Agent-Native 协作治理。"

@@ -37,6 +37,15 @@ init/
 
 仓库根目录中的 `AGENTS.md`、`vault/`、`skills/`、`app/`、`tests/` 等，是当前沙盒根据协议生成出来的验证产物，不是迁移源。
 
+如果只想安装一个自包含 Skill，而不是迁移完整协议源，可以使用：
+
+```text
+init/skills/agent-native-init/
+init/skills/agent-native-init-zh/
+```
+
+这是从 `init/` 协议收敛出的开源 Skill 包，内含主工作流、协议精华 reference 和可复制模板，不依赖本仓库本地路径。`agent-native-init` 是英文版，`agent-native-init-zh` 是中文版。
+
 ## 目录结构
 
 ```text
@@ -56,6 +65,9 @@ init/
     90-collaboration-profile.md   # 可演化协作画像
     profiles/
       python-backend.md           # Python 后端最小 profile
+  skills/
+    agent-native-init/             # 自包含开源 Skill 包
+    agent-native-init-zh/          # 自包含开源 Skill 包中文版
 ```
 
 ## 使用方式
@@ -103,6 +115,25 @@ init/protocol/70-adoption-flow.md
 - 可选的极短 README 协作说明。
 
 除非用户明确授权，否则不要修改业务源码、依赖、测试、构建、部署或 CI 配置。
+
+### 使用开源 Skill 包
+
+如果你的 Agent 环境支持安装 Skills，可以将以下目录作为 Skill 包安装或复制：
+
+```text
+init/skills/agent-native-init/
+init/skills/agent-native-init-zh/
+```
+
+使用该 Skill 时，Agent 会按包内 reference 和 templates 在目标项目中生成或合并：
+
+- Agent 入口文件；
+- `vault/` 项目记忆；
+- 任务契约治理；
+- handoff 和 collaboration profile；
+- `skills/agent-task/SKILL.md` starter workflow。
+
+该 Skill 适合跨项目复用；完整 `init/protocol/` 更适合继续设计和维护协议本身。
 
 ### 修订协议
 

@@ -43,6 +43,8 @@
 
 当前不抽取 `templates/`。当协议稳定并需要跨多个项目重复初始化时，再考虑将生成物模板独立出来。
 
+`init/skills/agent-native-init/` 和 `init/skills/agent-native-init-zh/` 是从协议源收敛出的自包含开源 Skill 包。它们面向直接安装和复用，不要求目标项目携带完整 `init/` 目录。修改核心协议设计时，应检查这些 Skill 是否仍与协议源对齐。
+
 ## 使用模式
 
 本协议支持两种模式：
