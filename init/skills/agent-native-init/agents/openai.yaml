@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Native Init"
+  short_description: "Install Agent collaboration governance"
+  default_prompt: "Use $agent-native-init to add Agent-Native collaboration governance to this project."

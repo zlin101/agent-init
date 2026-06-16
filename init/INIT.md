@@ -49,6 +49,17 @@
 - `README.md`；
 - 记录最终初始化状态的 `vault/runtime.md`。
 
+## 开源 Skill 包
+
+如果目标是发布或安装一个自包含 Skill，而不是携带完整 `init/` 协议源目录，使用：
+
+```text
+init/skills/agent-native-init/
+init/skills/agent-native-init-zh/
+```
+
+该 Skill 包提炼了本协议的核心设计，包括 Agent 入口规则、vault 记忆、任务契约治理、既有项目接入边界、review/reflection 和最小模板。它不要求目标项目存在 `init/`。`agent-native-init` 是英文版，`agent-native-init-zh` 是中文版。
+
 既有项目接入时，只创建或更新 Agent 协作层：
 
 - Agent 入口文件；
