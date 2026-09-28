@@ -62,7 +62,7 @@ vault/
 
 `trellium-task-state` 位于 Level B/C 任务标题之后。必填字段：`schema_version`（整数 `1`）、`task_id`（`TASK-NNNN`，与文件名一致）、`level`（`B | C`）、`authority_level`（整数 0..4）、`lifecycle`。可选：`current_slice`（非空字符串）与 `gates`（开放 Gate ID → `pending | in_progress | passed | partial | blocked | not_authorized | not_applicable`）。未定义字段非法。它是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner，不授予批准。没有状态块的任务文件是 legacy（报告、不猜测）；review 台账与 `tasks/archive/` 不带状态块。
 
-`trellium-policy` 位于 `vault/index.md` 开头。必填：`schema_version` 与 `task_storage`（`tracked | local`）；可选 `budgets`（各热文件一项）。它是项目预算与 TASK storage 的唯一来源。`local` 表示任务文件、review 台账与 archive 不进 Git，Accepted 结论必须蒸馏进公开位置。storage 由项目 owner 决定，工具不自动 untrack、不修改 `.gitignore`。local 任务进入 `accepted` 前在 Memory Updates 记录 Durable knowledge disposition（`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review`/`accepted`）。fresh clone 中被忽略的 local 任务文件不存在：runtime 行只是未验证线索，不授予 Authority；已关闭的 local 任务不保留 runtime 行。
+`trellium-policy` 位于 `vault/index.md` 开头。必填：`schema_version` 与 `task_storage`（`tracked | local`）；可选 `budgets`（各热文件一项）。它是项目预算与 TASK storage 的唯一来源。首次接入询问 owner 并推荐/默认 `local`；只有任务文件、review 台账与 archive 不进 Git，协作核心仍 tracked，Accepted 结论必须蒸馏进公开位置。需要共享完整流水时选择 `tracked`。local 接入生成窄范围 `vault/tasks/.gitignore`；工具不自动迁移或 untrack。local 任务进入 `accepted` 前在 Memory Updates 记录 Durable knowledge disposition（`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review`/`accepted`）。fresh clone 中被忽略的 local 任务文件不存在：runtime 行只是未验证线索，不授予 Authority；已关闭的 local 任务不保留 runtime 行。
 
 ## 任务生命周期
 

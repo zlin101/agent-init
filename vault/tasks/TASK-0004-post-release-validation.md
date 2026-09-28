@@ -6,7 +6,7 @@
   "task_id": "TASK-0004",
   "level": "B",
   "authority_level": 2,
-  "lifecycle": "active"
+  "lifecycle": "superseded"
 }
 -->
 
@@ -268,6 +268,18 @@ Decision boundary:
 Next action:
 
 - 先完成 TASK-0013；发布后升级 Orion，再完成 runtime 清理、tracked core/stamp 与 fresh-clone 0/0 验证。
+
+### 2026-09-28 - Agent: Codex — owner 终止剩余跨 repo 收尾
+
+Decision:
+
+- Owner 明确要求闭环长期活跃任务。Context M3 No-Go 已由 D-0004 长期生效；Orion 已提供第二真实 local 项目的真实使用与 checker finding，剩余 fresh-clone/0-0 收尾不再要求 Trellium 跨 repo 操作。
+- 本任务以 `superseded` 关闭而非伪造 `accepted`：M1 与 M3 完成，M2 保持 Partial 的历史事实不改写。TASK-0013/0014 已独立解决由该样本暴露的持久性与 profile 问题。
+
+Review and reflection:
+
+- 未完成的 Orion 现场验收不再是当前产品路线的 blocker；未来如 owner 重新要求跨项目验证，应创建新的明确任务与授权，不恢复本任务的旧契约。
+- 未实现任何 Context 功能，D-0004 的重开条件保持不变。
 
 ## Memory Updates
 

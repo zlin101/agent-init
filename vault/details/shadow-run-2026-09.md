@@ -15,7 +15,7 @@
 | A1（辅助） | runtime 投影值得保留 | 初版 K2（同名异义） | 降为辅助指标 A1；初版 K2 表继续记录，不冒充 canonical K2 |
 | A2（辅助） | 预算测量确有价值 | 初版 K4（同名异义） | 降为辅助指标 A2；初版 K4 表继续记录，不冒充 canonical K4 |
 
-覆盖计数核对（**derived snapshot，截至 2026-09-28（TASK-0016 accepted；TASK-0013/0014/0015 accepted），审计基准（固定锚点）：TASK-0006 的 rfr 提交为 `bf3f84b`（2026-09-08）、TASK-0007 的 rfr 提交为 `430de35`（2026-09-09）、TASK-0011 的 rfr 提交为 `aa8038e`（2026-09-16）、TASK-0012 的实现提交为 `bbae794`（2026-09-16）、TASK-0013 的修复提交为 `bcbc480`（2026-09-18）、TASK-0013/0014/0015 的合并实现提交为 `7582e7c`（2026-09-20）、TASK-0016 的发布提交为 `f9df065`（2026-09-28）；对账补记提交为 `703b140`**；事实源为本文件下方 append-only lifecycle 事件行与实际任务文件，本段仅为派生汇总，不得在他处复制维护——D-0005）：真实 TASK 共 16 个（TASK-0001…0016；review ledger 非 TASK 实体）。计数规则：有 owner 立项且非演示交付的 Level B/C 任务计入；纯演示、纯为实验构造的 TASK 与一切 synthetic 实验样本不计入；TASK-0014/0015/0016 由 owner 直接创建为 active，没有发生创建转换；TASK-0013 初建 draft，2026-09-18 接手实施时 draft→active（见事件行）。观测到 lifecycle 转换 44 次（TASK-0016 blocker 解除后依次 blocked→active→ready_for_review→accepted；历史明细保留在下方 K1 append-only 事件行），blocked→active 3 次。handoff 现存条目数 ≠ 历史跨 Agent handoff 次数；**已完成的跨 Agent handoff 事件 2 次，均有交接前 check 留档**。TASK-0001 的 coverage gate（5 TASK / 6 转换 / 2 handoff / 1 blocked→active）已达到，但不替代 canonical K1-K4 的跨项目证据要求。
+覆盖计数核对（**derived snapshot，截至 2026-09-28（TASK-0001/0017 accepted；TASK-0004 superseded），审计基准（固定锚点）：TASK-0006 的 rfr 提交为 `bf3f84b`（2026-09-08）、TASK-0007 的 rfr 提交为 `430de35`（2026-09-09）、TASK-0011 的 rfr 提交为 `aa8038e`（2026-09-16）、TASK-0012 的实现提交为 `bbae794`（2026-09-16）、TASK-0013 的修复提交为 `bcbc480`（2026-09-18）、TASK-0013/0014/0015 的合并实现提交为 `7582e7c`（2026-09-20）、TASK-0016 的发布提交为 `f9df065`（2026-09-28）；对账补记提交为 `703b140`**；事实源为本文件下方 append-only lifecycle 事件行与实际任务文件，本段仅为派生汇总，不得在他处复制维护——D-0005）：真实 TASK 共 17 个（TASK-0001…0017；review ledger 非 TASK 实体）。计数规则：有 owner 立项且非演示交付的 Level B/C 任务计入；纯演示、纯为实验构造的 TASK 与一切 synthetic 实验样本不计入；TASK-0014/0015/0016/0017 由 owner 直接创建为 active，没有发生创建转换；TASK-0013 初建 draft，2026-09-18 接手实施时 draft→active（见事件行）。观测到 lifecycle 转换 48 次（含 TASK-0017 ready_for_review→accepted；历史明细保留在下方 K1 append-only 事件行），blocked→active 3 次。handoff 现存条目数 ≠ 历史跨 Agent handoff 次数；**已完成的跨 Agent handoff 事件 2 次，均有交接前 check 留档**。TASK-0001 的 coverage gate 已达到；canonical K2 的 Orion 证据保持 Partial，不被试点关闭改写为完整证明。
 
 ### Canonical K3 — 不解析任意 Markdown 也能产生高价值检查（2026-09-08 起）
 
@@ -98,6 +98,10 @@ Kill criterion：状态准确率已接近 100%，checker 零有效发现，但�
 | 2026-09-28 | blocked → active（owner 已创建 GitHub Release，认证阻塞解除） | TASK-0016 | 2（状态块 + runtime 行） | 0 | Release id 398079786；进入最终元数据与 latest 验证 |
 | 2026-09-28 | active → ready_for_review（Release 元数据、tag 与 latest 验证通过） | TASK-0016 | 2（状态块 + runtime 行） | 0 | 非 draft、非 prerelease，name/body 为空；latest=2026.09.8 |
 | 2026-09-28 | ready_for_review → accepted（owner 已完成低调发布，全部 Gate 关闭） | TASK-0016 | 2（状态块 + runtime 行） | 0 | Focus 转回 TASK-0004；下一步为 Orion 的跨项目验证 |
+| 2026-09-28 | active → ready_for_review（默认 local 收缩为 Agent-native Skill/协议工作流） | TASK-0017 | 2（状态块 + runtime 行） | 1 | owner 指出不应把一句 prompt 下沉为 CLI；脚本方案全部撤回，177 tests 与 snapshot 通过 |
+| 2026-09-28 | active → superseded（owner 终止剩余跨 repo 收尾） | TASK-0004 | 2（状态块 + runtime 行） | 0 | M1/M3 完成，M2 保持 Partial；D-0004 Context No-Go 不变，不再操作 Orion |
+| 2026-09-28 | active → accepted（owner 批准自托管试点闭环） | TASK-0001 | 2（状态块 + runtime 行） | 0 | 五问复盘写入任务；后续缺陷、发布与压缩使用独立任务，不再保留常驻试点 |
+| 2026-09-28 | ready_for_review → accepted（owner 验收默认 local 的 Agent-native 契约） | TASK-0017 | 2（状态块 + runtime 行） | 0 | 授权提交与 2026.09.9 tag-only 发布；不创建 GitHub Release |
 
 成功标准：不再出现静默状态冲突；每个 TASK 人工修正不超过 1 次。
 
@@ -162,3 +166,4 @@ Trellium 本仓库 = tracked 样本；另一个真实私有项目 = local 样本
 | 2026-09-16 | TASK-0012 accepted push / 2026.09.7 发布门禁 | 0 | 0 / 0 | develop `cf7e06a` 对应 GitHub Actions run 35076645891 success；tag 与 Release 已发布；Release 非 draft/非 prerelease、正文为空，latest 解析 2026.09.7 |
 | 2026-09-18 | TASK-0004 M2：Orion 首次真实 local 项目检查 | 2 | 1 / 0 | `TASK_RUNTIME_CLOSED_LOCAL`：accepted local TASK-0001 仍在 runtime 与 Focus；修复待在 Orion 仓库执行，完成后需复跑至 0/0 |
 | 2026-09-20 | TASK-0013/0014 第二轮安全终验（提交前） | 2 | 2 / 1 | 177/177、双语 snapshots 与 whitespace 通过；2 errors 仅为 owner 排除的 code-comments/stamp 现场，1 warning 为未提交 tracked TASK-0014；status 无 unresolved |
+| 2026-09-28 | TASK-0001/0004 长期任务闭环（提交前） | 2 | 2 / 1 | 177/177、双语 snapshots 与 whitespace 通过；status active=0、ready_for_review=1、unresolved=0。2 errors 为 owner 排除的 code-comments/stamp，warning 为未提交 TASK-0017，均如实保留 |

@@ -6,7 +6,7 @@ Self-hosting pilot: the collaboration layer now maintains the Trellium repositor
 
 ## Focus
 
-- TASK-0004
+- None
 
 ## Active Tasks
 
@@ -15,10 +15,10 @@ table holds pointers only.
 
 | Task | Objective | Status | Next Action |
 | --- | --- | --- | --- |
-| TASK-0001 | Run the self-hosting pilot and collect K1-K4 shadow evidence. | active | Next Agent continues pilot work; log transitions in `vault/details/shadow-run-2026-09.md`. |
+| TASK-0001 | Run the self-hosting pilot and collect K1-K4 shadow evidence. | accepted | Closed 2026-09-28 after owner-approved five-question retrospective; future findings use scoped tasks. |
 | TASK-0002 | Publish the existing 2026.09.3 tag as a GitHub Release. | accepted | Closed 2026-09-08: release is live and latest resolves; title/notes demoted to optional by owner decision (D-0003). |
 | TASK-0003 | Execute the 2026-09-08 next-cycle plan: calibrate K1-K4 and add the self-hosting CI check. | accepted | Closed 2026-09-08 after review round 2 and a green first CI run (34181086563). |
-| TASK-0004 | Post-release validation: cold-start baseline, second-project pilot, Context Go/No-Go. | active | Orion supplied the first real local-project observation; close its local runtime row and tracked durability boundary, rerun check 0/0, then decide M2. |
+| TASK-0004 | Post-release validation: cold-start baseline, second-project pilot, Context Go/No-Go. | superseded | Closed 2026-09-28: D-0004 No-Go stands; M2 remains Partial and no further Orion work is authorized. |
 | TASK-0007 | Local TASK lifecycle close-out and clone-safe projection (2026.09.4). | accepted | Closed 2026-09-09; 2026.09.4 tag and Release published. |
 | TASK-0005 | Vault evidence quality: converge coverage counts to a single source and fix cold-start methodology. | accepted | Closed 2026-09-09 after owner review round 2 (final gate closed, six findings fixed). |
 | TASK-0006 | Non-Context optimization: ablation experiments and per-candidate Go/No-Go; Evidence Receipt v0 only if M2 experiments pass. | accepted | Closed 2026-09-09 with strictly scoped conclusions: E2 No-Go, E1 Inconclusive, v0 not implemented this cycle (direction not falsified). |
@@ -31,6 +31,7 @@ table holds pointers only.
 | TASK-0014 | Persist complete selected language profiles inside adopted projects with one-hop scoped routing. | accepted | Closed 2026-09-20 after tracked implementation commit `7582e7c` and owner approval. |
 | TASK-0015 | Unify Claude Code project instructions on AGENTS.md and retire the CLAUDE.md convention. | accepted | Closed 2026-09-20 after focused checks, implementation commit `7582e7c` and owner approval. |
 | TASK-0016 | Publish Trellium 2026.09.8 with minimal release metadata. | accepted | Closed 2026-09-28: tag and empty-metadata GitHub Release are live; latest resolves to 2026.09.8. |
+| TASK-0017 | Make first adoption choose TASK storage and default to local without weakening tracked core durability. | accepted | Closed 2026-09-28 by owner acceptance; publish 2026.09.9 as tag-only after final gates. |
 
 Status values: draft | active | blocked | ready_for_review | accepted |
 superseded. For a task with a task file, the status here is a projection of
@@ -40,6 +41,10 @@ the matching row. Demote paused-and-shelved tasks to `vault/parked.md`.
 
 ## Current Progress
 
+- TASK-0017 accepted 2026-09-28 — owner approved the Agent-native default-local contract and authorized the 2026.09.9 tag-only release; final commit/clone/tag verification is in progress.
+- TASK-0001 accepted / TASK-0004 superseded 2026-09-28 — owner closed both long-running pilots; five-question retrospective is recorded, Context remains No-Go, and no further cross-repo Orion action is required.
+- Release policy 2026-09-28: owner replaced GitHub Releases with tag-only publishing; `--fetch` already resolves the highest version tag and explicit installer `--version` is unaffected, while unversioned install remains pinned to the last Release and must not be advertised as latest-tag resolution.
+- TASK-0017: ready_for_review 2026-09-28 — CLI/renderer changes were withdrawn; bilingual Skill/protocol now asks once and recommends/defaults local, 177 tests and sync pass, with no open P0/P1/P2.
 - TASK-0016: accepted and released 2026-09-28 — release id 398079786 is live with empty name/body; latest resolves to 2026.09.8.
 - TASK-0015: accepted 2026-09-20 — Claude Code project instructions use AGENTS.md only; Skill installation support remains unchanged.
 - TASK-0014: accepted 2026-09-20 — complete selected profiles, explicit locale, external-link rejection and selected-profile-only authorization shipped in `7582e7c`.

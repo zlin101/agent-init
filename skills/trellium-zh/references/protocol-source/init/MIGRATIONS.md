@@ -7,6 +7,13 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
+## 2026.09.9 — 首次接入默认 local TASK storage
+
+- Changed: Skill/Agent 首次接入前询问 owner 选择 TASK storage，推荐 `local`；owner 未指定时按 local 执行。需要共享完整任务流水时选择 `tracked`。这不新增 CLI 参数或交互式脚本流程。
+- Added: Agent 在 local 接入时创建 `vault/tasks/.gitignore`，规则仅覆盖 `TASK-*.md`、`*-review.md` 与 `archive/`；协作核心仍进入 Git。tracked 接入不添加这些 ignore 规则。
+- Safety: 重复接入与升级保持既有 policy，不因新默认静默切换 storage。
+- Agent migration: 既有项目不自动迁移、不自动 untrack，也不改项目根 `.gitignore`。若 owner 决定在 tracked/local 间切换，需单独评审 policy、窄范围 ignore 规则和 Git index 变更后再执行。
+
 ## 2026.09.8 — 接入持久性 Gate 与 local Git 边界
 
 - Changed（TASK-0015）: Claude Code 项目入口统一为 `AGENTS.md`，协议不再生成、同步或要求独立 `CLAUDE.md`；其他工具专属兼容入口仍只在目标工具明确需要时保留。Claude Code 的用户级 Skill 安装支持不变。

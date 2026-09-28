@@ -10,11 +10,13 @@
 
 - D-0001 · Canonical K1-K4 实验契约 · Active · shadow 观测以 2026-09-04 计划第 2 节为唯一定义，旧标签映射为 A1/A2/canonical K2，历史不改写 · 2026-09-08
 - D-0002 · Self-hosting vault check 进入 CI 门禁 · Active · PR 与 main/develop push 运行只读 check；写权限仅限 PR self-heal job，push 任务严格只读 · 2026-09-08
-- D-0003 · Release 元数据降为可选改进 · Active · Release 验收 Gate = 既有 tag 正确、非 draft/prerelease、`releases/latest` 解析正确；标题与 notes 不阻塞 · 2026-09-08
+- D-0003 · Release 元数据降为可选改进 · Superseded by D-0013 · 历史版本曾要求 GitHub Release；2026-09-28 起 Trellium 改为只发布 tag · 2026-09-08
 - D-0004 · Context 功能 No-Go · Active · M4/`trellium.py context` 未授权不实现；AGENTS.md→vault 必读路径为默认；重开仅限 D-0004 三条件 · 2026-09-08
 - D-0005 · 覆盖计数单源 · Active · 覆盖事件以 shadow ledger append-only 行为唯一事实源；数字汇总仅为 dated derived snapshot；runtime/handoff 只引用不维护副本 · 2026-09-08
 - D-0006 · Local TASK 私有边界 · Active · local TASK 是私有可丢弃工作日志，只有长期约束蒸馏进 canonical 文件；missing-local warning 不授予恢复权限；tracked 校验保持严格 · 2026-09-09
 - D-0007 · 只读 status 摘要命令 · Active · `trellium.py status`（text/JSON v1）编译 check 已校验的状态层：lifecycle/authority 只来自有效状态块，closed 只计数，unresolved 原因按 finding phase 结构化推导且不伪造；不扩 schema、不是 approval inbox · 2026-09-09
+- D-0012 · 首次接入默认 local TASK storage · Active · Skill/Agent 先询问并推荐 local，未指定时按 local 执行；只有 TASK/review/archive 留在本地，核心仍 tracked；不新增 CLI API，存量策略不自动迁移 · 2026-09-28 · 正文见 `vault/decisions/D-0012-local-default-task-storage.md`
+- D-0013 · Trellium 静默发布仅推送 tag · Active · 后续版本不创建 GitHub Release，也不生成 release 文本；`--fetch` 与显式 `install.sh --version` 已支持 tag，未指定版本的安装只会停留在最后一个 Release · 2026-09-28 · 正文见 `vault/decisions/D-0013-tag-only-releases.md`
 
 ## D-0001 - Canonical K1-K4 实验契约（2026-09-08）
 
@@ -65,7 +67,7 @@ Status: Active
 
 ## D-0003 - GitHub Release 元数据降为可选改进（2026-09-08）
 
-Status: Active
+Status: Superseded by D-0013
 
 ### Background
 

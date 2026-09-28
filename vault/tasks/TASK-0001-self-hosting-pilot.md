@@ -6,7 +6,7 @@
   "task_id": "TASK-0001",
   "level": "B",
   "authority_level": 2,
-  "lifecycle": "active"
+  "lifecycle": "accepted"
 }
 -->
 
@@ -65,13 +65,13 @@ Forbidden:
 
 ## Acceptance Criteria
 
-- [ ] 试点累计覆盖 5 个真实 TASK（不含纯演示任务）。——审计基准 fd4287b 时为 4/5；TASK-0005 立项后名义上 5/5，但 TASK-0005 是否计入本 Gate 由 owner 在 review 时确认（计数规则见 D-0005 与 ledger 的 derived snapshot）。
+- [x] 试点累计覆盖 5 个真实 TASK（不含纯演示任务）。——owner 于 2026-09-28 批准闭环；ledger 按 D-0005 口径已覆盖 17 个真实 TASK，远超门槛。
 - [x] 试点累计 6 次 lifecycle 转换，全部有对应观测条目。——证据：shadow ledger 初版 K1 表 9 行事件观测（含 TASK-0005 自身 draft→active），每行含修改位置数与人工修正数。
 - [x] 试点累计 2 次跨 Agent handoff，每次交接前 `check --format json` 已运行且结论留档。——证据：事件①09-04 adopt 会话→Codex（TASK-0001 handoff 条目 + check 台账「adopt 后基线」0/0）；事件②09-04 Codex→09-08 GLM（TASK-0002 handoff 条目已按压缩规则并入任务文件 + check 台账「TASK-0002 发布前门禁」0/0）。Agent 署名见各任务文件 Execution Record。
 - [x] 出现过至少 1 次 blocked → active 转换，阻塞原因与解除条件有记录。——证据：TASK-0002 blocked→active（ledger K1 行；阻塞原因"环境无 gh/无凭据"，解除条件"Release 发布且 latest 解析正确"，见 TASK-0002 执行记录）。
 - [x] K1-K4 四个实验按 canonical 契约填写观测：指标定义唯一来源为 `docs/superpowers/plans/2026-09-04-agent-native-vault-check-plan.md` 第 2 节；初版标签到 canonical/辅助指标（A1/A2）的映射以 `vault/details/shadow-run-2026-09.md` 顶部 2026-09-08 `Experiment contract reconciliation` 为准；不追加新指标。——证据：canonical K1（6 行）、canonical K2（初版 K3 表）、canonical K3（2 行）、canonical K4（2 行）均已有观测。
-- [ ] 上方 coverage gate（5 TASK / 6 转换 / 2 handoff / 1 blocked→active）仅为本仓库 self-hosting 覆盖门槛，不替代 canonical K1-K4 要求的跨项目证据（两个真实项目、至少 10 次状态变化等）。
-- [ ] 复盘五问（check 真正捕获了什么 / 哪些字段没人用 / 投影维护成本 / 哪些规则需频繁解释 / 哪些预算只是理论值）逐条回答并形成结论。
+- [x] 上方 coverage gate（5 TASK / 6 转换 / 2 handoff / 1 blocked→active）仅为本仓库 self-hosting 覆盖门槛，不替代 canonical K1-K4 要求的跨项目证据；Orion 提供了第二真实项目的定性样本，未完成部分不外推为已证明结论。
+- [x] 复盘五问已于 2026-09-28 完成并形成关闭结论。
 
 ## Verification
 
@@ -139,6 +139,31 @@ Review and reflection:
 
 - 升级仅触及协作层；未替换 runtime、tasks、decisions、handoff 等项目事实，未修改业务源码、依赖、测试或 CI。
 - 2026.09.4 migration 的 local 数据动作对当前 `tracked` 策略不适用，未做批量回填。
+
+### 2026-09-28 - Agent: Codex — 五问复盘与试点关闭
+
+Owner decision:
+
+- 自托管试点不再长期保持 active；补齐五问后关闭，未完成的新问题改由独立任务承载。
+
+Five-question retrospective:
+
+1. **check 真正捕获了什么**：结构化状态块/runtime 漂移、closed local 行残留、tracked/local Git 状态错误、核心未进入 Git HEAD、stamp/policy/state 非法以及 local ignore 越界都产生过可执行结果；其中 Orion 的 `TASK_RUNTIME_CLOSED_LOCAL` 与 TASK-0013 的 fresh-clone 假健康复现是最有价值的真实样本。
+2. **哪些字段没人用**：`current_slice` 与细粒度 `gates` 只在少数复杂任务出现，普通任务长期为空；预算阈值在本仓库一直未配置。它们可选是正确的，不应升级为每个任务的强制填写负担。
+3. **投影维护成本**：状态块到 runtime 的双写在正常转换中成本低，但长周期内确实出现漏记 lifecycle 事件、自然语言计数过期与 closed-local runtime 残留；checker/status 能捕获结构化漂移，却不能维护 prose 汇总。因此 runtime 应保持短指针，不再承载累计统计。
+4. **哪些规则需频繁解释**：local 只包含 TASK/review/archive、协作核心仍 tracked；runtime 只是投影且不授予 Authority；`accepted` 必须由 owner 决定；local 任务关闭前要蒸馏长期结论。这些边界已分别固化到 D-0006、D-0010 与当前 Skill/协议。
+5. **哪些预算只是理论值**：runtime/decisions/tasks 的初始化数字未在本仓库 policy 启用，实际文件已经超过模板建议值而 checker 只测量、不报阈值错误。当前真实问题是默认读取成本与历史堆积，应做一次内容压缩，而不是倒推未经验证的硬阈值。
+
+Conclusion:
+
+- 试点证明最小状态层与只读 checker 有实际价值，同时暴露 runtime prose、跨文件累计计数和长期 active 试点的维护成本。canonical K2 的 Orion 样本仍为 Partial，不伪装成完整证明；这不再阻塞试点关闭。后续产品缺陷与压缩分别立独立任务，不继续把 TASK-0001 当作常驻背景任务。
+
+Checks run:
+
+- `python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh` → 177/177 passed。
+- `python3 scripts/sync-skills.py --check` → 双语 snapshot in sync；`git diff --check` passed。
+- `status` → active 0、ready_for_review 1、unresolved 0；TASK-0001 accepted、TASK-0004 superseded 投影一致。
+- self-check → 2 error / 1 warning，均为已知未提交边界：owner 排除的 `docs/engineering/code-comments.md` 与 `vault/.agent-init.json`，以及当前 tracked TASK-0017 未提交；不伪造为 0/0。
 
 ## Memory Updates
 

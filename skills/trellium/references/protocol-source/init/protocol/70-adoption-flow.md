@@ -70,6 +70,7 @@ Agent 执行接入前，应只做只读扫描：
 5. 识别项目类型和技术栈，但不改依赖或代码。
 6. 如需语言工程规范，明确 profile 与适用根目录；多语言或同语言多根目录使用重复选择，不自动猜测。
 7. 检查工作区是否已有未说明的变更。
+8. 首次接入由 Agent 询问 owner 选择 TASK storage；推荐 `local`，owner 未指定时按 local 执行，需要共享完整任务流水时选 `tracked`。
 
 扫描后，Agent 应给出接入计划，列出将创建或修改的协作层文件。
 
@@ -126,7 +127,7 @@ Agent 执行接入前，应只做只读扫描：
 7. 执行接入前扫描。
 8. 输出接入计划，说明将创建或修改哪些协作层文件。
 9. 合并或创建 Agent 入口文件。
-10. 合并或创建 `vault/`。
+10. 合并或创建 `vault/`；local 模式由 Agent 生成窄范围 `vault/tasks/.gitignore`，只忽略 `TASK-*.md`、`*-review.md` 与 `archive/`，不修改项目根 `.gitignore`。
 11. 合并或创建 `skills/`。
 12. 在 `vault/project.md` 记录“这是既有项目接入，不是新项目初始化”。
 13. 在 `vault/runtime.md` 记录接入状态、风险和下一步。
@@ -143,6 +144,7 @@ Agent 执行接入前，应只做只读扫描：
 - 未修改测试、构建、部署或 CI 配置。
 - Agent 入口文件会路由到 `vault/index.md` 和 `vault/runtime.md`，并在 Level B 或 Level C、判定模糊或涉及治理规则时路由到 `vault/governance.md`。
 - `vault/` 必备文件存在。
+- policy 中的 TASK storage 与 owner 选择一致；local 边界只覆盖 TASK/review/archive，tracked 不忽略这些路径。
 - `vault/governance.md` 定义任务等级、授权等级、任务契约、验收门和接力规则。
 - `skills/agent-task/SKILL.md` 存在。
 - `vault/runtime.md` 明确记录接入完成状态。
@@ -152,6 +154,8 @@ Agent 执行接入前，应只做只读扫描：
 ## 协作层升级
 
 接入之后，协议源仍会演进。升级的目标是：协议文件跟进新版，项目数据零损失，项目发展路线不中断。
+
+重复 adopt 和 upgrade 必须保持既有 `task_storage`。显式选择与既有 policy 冲突时，在写入前失败；tracked/local 迁移属于 owner 单独评审动作，工具不自动迁移、不自动 untrack。
 
 升级器是 `trellium.py`，有两种运行位置：仓库 checkout 的 `scripts/trellium.py`（协议开发维护用），或已安装 Skill 包内的 `assets/trellium.py`（最终用户的常规路径，由 `sync-skills.py` 自动分发并与 `scripts/trellium.py` 保持一致）。下文命令中的 `trellium.py` 指两者任一。
 

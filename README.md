@@ -155,7 +155,7 @@ skills/trellium-zh/
 ### 一行安装（任意 Agent）
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zlin101/trellium/develop/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/zlin101/trellium/develop/scripts/install.sh | sh -s -- --version 2026.09.9
 ```
 
 安装英文 Skill 包到自动探测的 agent 目录（`$CODEX_HOME`/`~/.codex` → Codex；`~/.claude` → Claude Code）。常用参数：
@@ -165,11 +165,11 @@ curl -fsSL https://raw.githubusercontent.com/zlin101/trellium/develop/scripts/in
 ... | sh -s -- --agent all            # 同时装 Codex 与 Claude Code
                                      # 不指定时自动探测：$CODEX_HOME/~/.codex → codex，~/.claude → claude
 ... | sh -s -- --project              # 装到当前项目 ./.claude/skills/
-... | sh -s -- --version 2026.09.2    # 固定版本（默认自动解析 GitHub 最新 release）
+... | sh -s -- --version 2026.09.9    # tag-only 发布必须显式指定版本
 ... | sh -s -- --dir <路径>           # 任意目标目录
 ```
 
-重复执行即原地升级（替换整个包目录）。脚本只做三件事：经 `releases/latest` 重定向解析最新版本、从 GitHub 下载 release tarball、拷贝一个目录——可先 `curl -fsSL <url> | less` 审计再执行。
+重复执行即原地升级（替换整个包目录）。脚本按 `--version` 从 GitHub tag 下载 tarball 并拷贝一个目录，可先 `curl -fsSL <url> | less` 审计再执行。不传版本的 legacy fallback 仍解析 `releases/latest`，在 tag-only 发布策略下不会发现 2026.09.8 之后的新版本，因此不再作为推荐安装方式。
 
 ### 使用 Codex 安装 Skill
 
@@ -206,6 +206,8 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
 ```bash
 python3 scripts/trellium.py adopt /path/to/project
 ```
+
+首次使用 Skill 时，Agent 会询问 TASK storage，并推荐/默认 `local`：只有 `vault/tasks/TASK-*.md`、review 台账和 archive 留在本地，协作核心仍进入 Git；需要共享完整任务流水时选择 `tracked`。这是 Agent 工作流，不新增 CLI 参数：Agent 在 adopt 后把选择写入 policy，并在 local 模式补充窄范围 `vault/tasks/.gitignore`。重复接入与升级保持已有选择，storage 迁移不会自动执行。
 
 项目语言已明确时，用可重复的 `--profile PROFILE[=ROOT]` 显式声明作用域；同语言可有多个 root，多语言各自使用独立项目文档：
 
@@ -266,7 +268,7 @@ python3 scripts/trellium.py check /path/to/project --format json  # 稳定 JSON
 - 预算测量：热文件行数、UTF-8 字节、最大单行、条目数始终报告；只有策略块显式配置的阈值会触发超限错误；
 - TASK storage：按策略对比 Git 实际状态（tracked/local）；
 - 接入持久性（2026.09.8）：从安装版本戳派生协作核心集合（含 stamp 自身）并逐路径核对 Git `HEAD`——当前 stamp 损坏报 `CORE_STORAGE_INVALID` error，未提交或 HEAD stamp 与当前协议版本/核心集合不相容报 `CORE_STORAGE_UNCOMMITTED` error，被 ignore 规则误伤报 `CORE_STORAGE_IGNORED` error（附命中规则）；Git 验证失败报 `CORE_STORAGE_UNVERIFIED` error，非 Git 目标报同码 warning。fresh clone 是 local/生产接入的一次性验收动作，不进入日常 check；
-- local 边界（2026.09.8）：`task_storage=local` 时用无写入 sentinel 验证未来 TASK/review/archive 会被忽略（未覆盖报 `LOCAL_BOUNDARY_UNCONFIGURED` warning），并验证 `vault/tasks/README.md`、`vault/decisions/`、`vault/details/` 等 durable namespace 不被宽泛规则误伤（命中报 `LOCAL_BOUNDARY_OVERREACH` error，附规则与修复方向）；Git 边界命令失败报 `LOCAL_BOUNDARY_UNVERIFIED` error，不自动修改任何 `.gitignore`。
+- local 边界（2026.09.8；2026.09.9 默认接入）：`task_storage=local` 时用无写入 sentinel 验证未来 TASK/review/archive 会被忽略（未覆盖报 `LOCAL_BOUNDARY_UNCONFIGURED` warning），并验证 `vault/tasks/README.md`、`vault/decisions/`、`vault/details/` 等 durable namespace 不被宽泛规则误伤（命中报 `LOCAL_BOUNDARY_OVERREACH` error，附规则与修复方向）；Git 边界命令失败报 `LOCAL_BOUNDARY_UNVERIFIED` error。新 local 接入生成窄范围 `vault/tasks/.gitignore`，但 checker 本身仍只读，既有项目也不会被自动迁移或修改根 `.gitignore`。
 
 退出码：发现 error 退出 `2`；只有 warning 退出 `0`，但 summary 必须显示 warning，不会显示无条件 PASS；目标无效等操作错误退出 `1`。`check` 不会自动修复任何文件、不写入目标项目、不访问网络、不执行文档中出现的命令。
 

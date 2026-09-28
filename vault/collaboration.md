@@ -23,11 +23,12 @@
 - 优化方案在交付实现前显式反思并做单变量消融，预注册停止条件；能由更小流程解决时不升级为 schema、CLI 或服务。
 - 根据任务规模选择交付载体：边界清晰、单会话可完成的小任务给可直接执行的提示词；跨里程碑、多文件、治理/API、消融实验或多轮审查任务产出正式方案文档，再交实施 Agent 执行。
 - local TASK 是有意不进入仓库的私有、可丢弃工作日志；只把会约束未来实现的最小结论蒸馏到 canonical Vault 文件，不以跨 clone 保存完整 TASK 流水为目标。
+- 首次接入默认并推荐 local TASK storage，避免工作日志污染业务仓库；需要共享完整任务流水时再显式选择 tracked。
 - 对只在特定技术栈或任务类型生效的长规则，优先用 AGENTS 一行机械触发、直接路由到项目工程文档，以可控文件复杂度换取按需 Token；不通过 Vault 二跳，也不把工程规范默认收进 Vault。
 
 ## Execution Preferences
 
-- 发布保持低调：Release 标题使用版本号，正文默认留空；除非 owner 明确要求，不生成宣传性描述。
+- Trellium 当前仓库采用静默发布：只创建并推送版本 tag，不创建 GitHub Release，不生成 release 标题、正文或 notes。
 
 ## Review And Verification Preferences
 
