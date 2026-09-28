@@ -5,6 +5,15 @@
 
 分支、HEAD、脏文件在恢复时通过 Git 现场读取；不要把实时 Git 状态当权威记录。可选保留一条带观察时间、明确标注为历史观察的环境快照。累计计数（TASK/转换/handoff 等）不在 handoff 保存：条目中的数字仅为撰写时点快照，权威来源是 `vault/details/shadow-run-2026-09.md` 的 append-only 事件行与 dated 汇总（D-0005）。
 
+## TASK-0016 - 2026-09-28
+
+- Objective: 低调发布 `2026.09.8`，Release 标题仅版本号、正文为空。
+- Completed: clean clone 177/177、snapshot、check/status 0/0；develop `f9df065` 与 CI run 36399329700 success；轻量 tag `2026.09.8` 已推送并指向该 SHA。
+- In progress: GitHub Release 尚未创建，API 查询为 404。
+- Blocker: 当前环境没有 `gh`、API token、credential helper 或 GitHub 发布 connector；不能认证创建 Release。
+- Next best action: Owner 从 tag `2026.09.8` 创建非 draft、非 prerelease、标题 `2026.09.8`、空正文 Release；随后验证 latest 并把 TASK-0016 转 accepted。
+- Files to read first: `vault/tasks/TASK-0016-release-2026-09-8.md`、`vault/runtime.md`。
+
 ## TASK-0004 - 2026-09-18
 
 - Objective: 执行 `docs/superpowers/plans/2026-09-08-post-release-validation-plan.md` 的 M1-M3（冷启动基线、第二个真实项目试点、Context Go/No-Go）；M4 已被 D-0004 关闭，仅在重开条件触发后另立 Level C 任务。

@@ -30,7 +30,7 @@ table holds pointers only.
 | TASK-0013 | Close the adoption durability and local Git-boundary false-health gap. | accepted | Closed 2026-09-20 after 177/177 tests, security review and owner approval; implementation commit `7582e7c`. |
 | TASK-0014 | Persist complete selected language profiles inside adopted projects with one-hop scoped routing. | accepted | Closed 2026-09-20 after tracked implementation commit `7582e7c` and owner approval. |
 | TASK-0015 | Unify Claude Code project instructions on AGENTS.md and retire the CLAUDE.md convention. | accepted | Closed 2026-09-20 after focused checks, implementation commit `7582e7c` and owner approval. |
-| TASK-0016 | Publish Trellium 2026.09.8 with minimal release metadata. | active | Run clean-clone gates, push the release-prep commit, confirm CI, then create the lightweight tag and empty-body Release. |
+| TASK-0016 | Publish Trellium 2026.09.8 with minimal release metadata. | blocked | Code, CI and lightweight tag are complete; owner must create the empty-body GitHub Release or provide an authenticated release channel. |
 
 Status values: draft | active | blocked | ready_for_review | accepted |
 superseded. For a task with a task file, the status here is a projection of
@@ -40,7 +40,7 @@ the matching row. Demote paused-and-shelved tasks to `vault/parked.md`.
 
 ## Current Progress
 
-- TASK-0016: active 2026-09-28 — low-key 2026.09.8 release authorized; clean-clone and remote CI gates precede tag/Release creation.
+- TASK-0016: blocked 2026-09-28 — clean-clone gates, develop CI and lightweight tag passed; GitHub Release creation awaits an authenticated channel.
 - TASK-0015: accepted 2026-09-20 — Claude Code project instructions use AGENTS.md only; Skill installation support remains unchanged.
 - TASK-0014: accepted 2026-09-20 — complete selected profiles, explicit locale, external-link rejection and selected-profile-only authorization shipped in `7582e7c`.
 - TASK-0013: accepted 2026-09-20 — HEAD durability, exact managed-file authorization and unified dirfd/fallback fail-closed paths passed 177/177 and owner review.
@@ -65,6 +65,7 @@ the matching row. Demote paused-and-shelved tasks to `vault/parked.md`.
 
 ## Recent Changes
 
+- TASK-0016 active → blocked (2026-09-28): `f9df065` passed 177 tests, clean-clone check 0/0 and CI run 36399329700; lightweight tag 2026.09.8 pushed, but no authenticated Release API/CLI is available.
 - Opened TASK-0016 (2026-09-28): owner authorized the 2026.09.8 release with minimal metadata and no promotional notes; local Skill test artifacts remain excluded.
 - Owner accepted TASK-0013/0014/0015 (2026-09-20): implementation committed as `7582e7c`; develop push authorized, with tag/Release still out of scope.
 - TASK-0015 ready_for_review (2026-09-20): retired the CLAUDE.md project-entry convention across canonical and distributed protocol docs; Claude Skill installation remains supported, 11/11 focused tests pass.
@@ -141,7 +142,7 @@ git diff --check ee4f223..HEAD -- . ':(exclude)docs/evals/review-pack-2026-09/pa
 
 ## Next Steps
 
-- Complete TASK-0016 in order: clean-clone gates → develop CI → lightweight `2026.09.8` tag → empty-body GitHub Release → latest verification.
+- Complete TASK-0016 by creating an empty-body GitHub Release from tag `2026.09.8`, then verify `releases/latest`; code, CI and tag are already complete.
 - Continue TASK-0001 only as background shadow evidence; it is not the product-development mainline.
 - After 2026.09.8 is released, upgrade Orion, remove the accepted TASK runtime row/Focus, establish the tracked core/stamp boundary, run a fresh-clone check to 0/0, and record the final TASK-0004 M2 observation.
 - Context implementation stays closed per D-0004; any reopen requires the owner-approved Level C task first.
