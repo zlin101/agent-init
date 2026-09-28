@@ -6,7 +6,7 @@ Self-hosting pilot: the collaboration layer now maintains the Trellium repositor
 
 ## Focus
 
-- TASK-0001
+- TASK-0016
 
 ## Active Tasks
 
@@ -30,6 +30,7 @@ table holds pointers only.
 | TASK-0013 | Close the adoption durability and local Git-boundary false-health gap. | accepted | Closed 2026-09-20 after 177/177 tests, security review and owner approval; implementation commit `7582e7c`. |
 | TASK-0014 | Persist complete selected language profiles inside adopted projects with one-hop scoped routing. | accepted | Closed 2026-09-20 after tracked implementation commit `7582e7c` and owner approval. |
 | TASK-0015 | Unify Claude Code project instructions on AGENTS.md and retire the CLAUDE.md convention. | accepted | Closed 2026-09-20 after focused checks, implementation commit `7582e7c` and owner approval. |
+| TASK-0016 | Publish Trellium 2026.09.8 with minimal release metadata. | active | Run clean-clone gates, push the release-prep commit, confirm CI, then create the lightweight tag and empty-body Release. |
 
 Status values: draft | active | blocked | ready_for_review | accepted |
 superseded. For a task with a task file, the status here is a projection of
@@ -39,6 +40,7 @@ the matching row. Demote paused-and-shelved tasks to `vault/parked.md`.
 
 ## Current Progress
 
+- TASK-0016: active 2026-09-28 — low-key 2026.09.8 release authorized; clean-clone and remote CI gates precede tag/Release creation.
 - TASK-0015: accepted 2026-09-20 — Claude Code project instructions use AGENTS.md only; Skill installation support remains unchanged.
 - TASK-0014: accepted 2026-09-20 — complete selected profiles, explicit locale, external-link rejection and selected-profile-only authorization shipped in `7582e7c`.
 - TASK-0013: accepted 2026-09-20 — HEAD durability, exact managed-file authorization and unified dirfd/fallback fail-closed paths passed 177/177 and owner review.
@@ -63,6 +65,7 @@ the matching row. Demote paused-and-shelved tasks to `vault/parked.md`.
 
 ## Recent Changes
 
+- Opened TASK-0016 (2026-09-28): owner authorized the 2026.09.8 release with minimal metadata and no promotional notes; local Skill test artifacts remain excluded.
 - Owner accepted TASK-0013/0014/0015 (2026-09-20): implementation committed as `7582e7c`; develop push authorized, with tag/Release still out of scope.
 - TASK-0015 ready_for_review (2026-09-20): retired the CLAUDE.md project-entry convention across canonical and distributed protocol docs; Claude Skill installation remains supported, 11/11 focused tests pass.
 - TASK-0013/0014 final technical review (2026-09-20): exact selected-profile managed set and unified fallback guards close the last release blocker; 177/177 tests, snapshots and whitespace pass; both tasks ready_for_review with owner excluded files untouched.
@@ -138,10 +141,7 @@ git diff --check ee4f223..HEAD -- . ':(exclude)docs/evals/review-pack-2026-09/pa
 
 ## Next Steps
 
-- GLM/Claude starts TASK-0013 by changing its state block draft → active, freezing and committing M0 preregistration before any checker/Skill implementation.
-- Owner runs the incremental re-review of TASK-0011's record closure (M0/M1 done, No-Go verdict + leak fix landed, privacy rewrite executed and CI green); then owner acceptance.
-- Plan B executed and pushed; remote gate green after the Actions incident recovery; pre-rewrite bundle deleted per the owner gate (file archive + SHA-256 manifest retained locally).
-- Owner creates the GitHub Release from the pushed `2026.09.5` tag (local `gh` unavailable, 2026-09-04 precedent); afterwards confirm `releases/latest` resolves to `2026.09.5` (D-0003 gate).
+- Complete TASK-0016 in order: clean-clone gates → develop CI → lightweight `2026.09.8` tag → empty-body GitHub Release → latest verification.
 - Continue TASK-0001 only as background shadow evidence; it is not the product-development mainline.
-- After TASK-0013 is accepted and released, upgrade Orion, remove the accepted TASK runtime row/Focus, establish the tracked core/stamp boundary, run a fresh-clone check to 0/0, and record the final TASK-0004 M2 observation.
+- After 2026.09.8 is released, upgrade Orion, remove the accepted TASK runtime row/Focus, establish the tracked core/stamp boundary, run a fresh-clone check to 0/0, and record the final TASK-0004 M2 observation.
 - Context implementation stays closed per D-0004; any reopen requires the owner-approved Level C task first.

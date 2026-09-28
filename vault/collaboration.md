@@ -27,7 +27,7 @@
 
 ## Execution Preferences
 
-- 替换为稳定执行偏好。
+- 发布保持低调：Release 标题使用版本号，正文默认留空；除非 owner 明确要求，不生成宣传性描述。
 
 ## Review And Verification Preferences
 
