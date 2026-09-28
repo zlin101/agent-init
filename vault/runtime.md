@@ -31,7 +31,7 @@ table holds pointers only.
 | TASK-0014 | Persist complete selected language profiles inside adopted projects with one-hop scoped routing. | accepted | Closed 2026-09-20 after tracked implementation commit `7582e7c` and owner approval. |
 | TASK-0015 | Unify Claude Code project instructions on AGENTS.md and retire the CLAUDE.md convention. | accepted | Closed 2026-09-20 after focused checks, implementation commit `7582e7c` and owner approval. |
 | TASK-0016 | Publish Trellium 2026.09.8 with minimal release metadata. | accepted | Closed 2026-09-28: tag and empty-metadata GitHub Release are live; latest resolves to 2026.09.8. |
-| TASK-0017 | Make first adoption choose TASK storage and default to local without weakening tracked core durability. | accepted | Closed 2026-09-28 by owner acceptance; publish 2026.09.9 as tag-only after final gates. |
+| TASK-0017 | Make first adoption choose TASK storage and default to local without weakening tracked core durability. | accepted | Closed and released 2026-09-28: commit/tag `e3bf72c`, clean clone 0/0, explicit-version install verified. |
 
 Status values: draft | active | blocked | ready_for_review | accepted |
 superseded. For a task with a task file, the status here is a projection of
@@ -41,10 +41,9 @@ the matching row. Demote paused-and-shelved tasks to `vault/parked.md`.
 
 ## Current Progress
 
-- TASK-0017 accepted 2026-09-28 — owner approved the Agent-native default-local contract and authorized the 2026.09.9 tag-only release; final commit/clone/tag verification is in progress.
+- TASK-0017 accepted and released 2026-09-28 — `develop` and tag `2026.09.9` point to `e3bf72c`; clean clone passed 177 tests and check 0/0, explicit-version install succeeded, and no GitHub Release was created.
 - TASK-0001 accepted / TASK-0004 superseded 2026-09-28 — owner closed both long-running pilots; five-question retrospective is recorded, Context remains No-Go, and no further cross-repo Orion action is required.
 - Release policy 2026-09-28: owner replaced GitHub Releases with tag-only publishing; `--fetch` already resolves the highest version tag and explicit installer `--version` is unaffected, while unversioned install remains pinned to the last Release and must not be advertised as latest-tag resolution.
-- TASK-0017: ready_for_review 2026-09-28 — CLI/renderer changes were withdrawn; bilingual Skill/protocol now asks once and recommends/defaults local, 177 tests and sync pass, with no open P0/P1/P2.
 - TASK-0016: accepted and released 2026-09-28 — release id 398079786 is live with empty name/body; latest resolves to 2026.09.8.
 - TASK-0015: accepted 2026-09-20 — Claude Code project instructions use AGENTS.md only; Skill installation support remains unchanged.
 - TASK-0014: accepted 2026-09-20 — complete selected profiles, explicit locale, external-link rejection and selected-profile-only authorization shipped in `7582e7c`.

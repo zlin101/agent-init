@@ -130,6 +130,13 @@ Next action:
 - Owner 明确接受 TASK-0017，并授权提交当前 Trellium 变更及创建 `2026.09.9` tag。
 - 生命周期 `ready_for_review → accepted`；发布仍须完成提交态 clean-clone、CI/远端与 tag 指向验证，不创建 GitHub Release。
 
+### 2026-09-28 - Agent: Codex — 2026.09.9 tag-only release
+
+- 发布提交 `e3bf72c`：clean clone 中 177/177 tests、双语 snapshot in sync、check 0 error / 0 warning、工作区 clean。
+- 远端 `develop` 与轻量 tag `2026.09.9` 均核验指向 `e3bf72cd24246ebad6f030a7ac81c481dc8ec782`。
+- `scripts/install.sh --version 2026.09.9` 在临时目录安装成功，包内 protocol VERSION 为 `2026.09.9`。
+- 按 D-0013 未创建 GitHub Release；tag 不移动，后续事实记录只进入 develop。
+
 ## Memory Updates
 
 - `vault/runtime.md`
