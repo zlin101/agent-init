@@ -6,8 +6,8 @@
   "task_id": "TASK-0019",
   "level": "C",
   "authority_level": 3,
-  "lifecycle": "active",
-  "current_slice": "parked-after-M2-awaiting-owner-resume"
+  "lifecycle": "ready_for_review",
+  "current_slice": "M2-hardening-M3-preflight-complete-awaiting-codex-review"
 }
 -->
 
@@ -82,18 +82,18 @@ Forbidden:
 
 ## Acceptance Criteria
 
-- [ ] M0 契约和 P0/P1 red fixtures 先于产品实现提交，tracked/local golden 冻结。
-- [ ] schema v1 tracked/local 与 schema v2 三模式严格解析并规范化；既有 v1 不自动改写。
-- [ ] private clean fixture 达到 check 0/0；全部 managed material untracked/staged-free 且 ignored。
-- [ ] canonical exclude block 通过 `git rev-parse --git-path info/exclude` 定位，target identity 唯一，patterns anchored 且不越 approved scope。
-- [ ] tracked/staged/forced-add、缺 ignore、overreach、Git failure 全部 fail-closed。
-- [ ] tracked AGENTS/private 冲突在任何写入前失败；不使用隐藏 index 状态绕过。
-- [ ] private 使用 local TASK lifecycle，但文案不声称跨 clone durable。
-- [ ] adopt/diff/upgrade/profile 与 managed-file allowlist、dirfd/fallback、link/path 安全边界无回归。
-- [ ] 不新增 CLI storage 参数，不自动修改 index/commit/push/history。
-- [ ] 双语协议、README、MIGRATIONS、VERSION 与 snapshots 同步。
-- [ ] 全量测试、check、sync、whitespace 和独立 review 通过，无 open P0/P1/P2。
-- [ ] 任务停在 `ready_for_review`，由 owner 决定 accepted 和发布。
+- [x] M0 契约和 P0/P1 red fixtures 先于产品实现提交，tracked/local golden 冻结。
+- [x] schema v1 tracked/local 与 schema v2 三模式严格解析并规范化；既有 v1 不自动改写。
+- [x] private clean fixture 达到 check 0/0；全部 managed material untracked/staged-free 且 ignored。
+- [x] canonical exclude block 通过 `git rev-parse --git-path info/exclude` 定位，target identity 唯一，patterns anchored 且不越 approved scope。
+- [x] tracked/staged/forced-add、缺 ignore、overreach、Git failure 全部 fail-closed。
+- [x] tracked AGENTS/private 冲突在任何写入前失败；不使用隐藏 index 状态绕过。
+- [x] private 使用 local TASK lifecycle，但文案不声称跨 clone durable。
+- [x] adopt/diff/upgrade/profile 与 managed-file allowlist、dirfd/fallback、link/path 安全边界无回归。
+- [x] 不新增 CLI storage 参数，不自动修改 index/commit/push/history。
+- [ ] 双语协议、README、MIGRATIONS、VERSION 与 snapshots 同步。（协议/Skills/MIGRATIONS/snapshots 已同步；README 与 VERSION 分别落在收敛计划 Phase 3 与 Phase 6）
+- [ ] 全量测试、check、sync、whitespace 和独立 review 通过，无 open P0/P1/P2。（自测全绿；独立 review = Codex，待进行）
+- [x] 任务停在 `ready_for_review`，由 owner 决定 accepted 和发布。
 
 ## Verification
 
@@ -331,6 +331,41 @@ Handoff to Codex:
 Next action:
 
 - Codex 继续 M2 marker 移除与 M3-M5；PI 待命（可做 review 或验证，不碰源码）。
+
+### 2026-09-29 - Agent: PI — owner resumed；M2 hardening + M3 preflight + distribution complete（ready_for_review）
+
+Context read:
+
+- Owner 收敛计划（Phase 0-2 GO）；TASK-0019 全文与 M1/M2 记录；`scripts/trellium.py` private 实现现状；3 条 preflight 冻结契约；冻结计划 §6.2/6.3/7.2。
+
+Changes made:
+
+- Phase 0（收敛计划，无提交）：owner-local stamp 恢复 HEAD、删除未跟踪 `docs/engineering/code-comments.md`（备份 `/tmp/trellium-phase0-backup/`）；check 0/0、status exit 0。
+- Phase 1：移除 19 个已转绿 M1/M2 marker（独立提交 `4ddbfe6`），保留 3 个 preflight 红测。
+- M2 hardening（4 红测先行 → 修复）：private policy 缺 stamp → fail-closed `PRIVATE_STORAGE_UNVERIFIED`（分支置于非 Git warning 之后，保住 M0 golden）；canonical block 合格后按实际 `git check-ignore` 判定，后置 negation/高优先级规则 un-ignore → `PRIVATE_STORAGE_UNCONFIGURED`；`git check-ignore` 查询失败 → fail-closed；stamp 声明的唯一副本缺失/非普通文件（含 symlink）→ fail-closed。
+- M3 preflight：`private_preflight(target, profiles=())` 只读探针——候选=AGENTS/Vault/agent-task/stamp/Comment Policy/所选完整 Profile；任一候选 tracked/in HEAD → `AdoptionError`（含路径与 local 退路）；Git 查询失败 fail-closed；非 Git 目标通过；指纹不变。真实流程接线：70 号模块 Private 章节 + 双语 Skill 冻结 preflight 先于 adopt 的顺序。
+- 生命周期与升级：Private 下 untracked managed 文件不视为 dirty（`git_dirty_paths include_untracked` 按 policy 豁免）；无冲突完成提示改为保持 untracked/ignored + 重跑 check，不提示 commit；adopt checklist 增加 private 步骤并给 tracked 步骤加限定词。
+- 2.4 消融：计划文档 R2 Evidence（不重跑真人探针，M0 Kill Gate 证据已落盘）与 R5 Cheapest test（handoff 已被 H2 淘汰）按 owner 清单失效化。
+- 2.5 分发：70 号模块新增 Private 存储模式章节；双语 Skill 增 private 接入流程；MIGRATIONS 新增 Unreleased — private storage mode（5 条）；`sync-skills` 刷新镜像与 manifest；AGENTS Profile 路由零改动。
+- 移除最后 3 个 preflight marker；恢复 sed 行号过期误删的 3 行测试内容（git diff 核验）。
+
+Checks run:
+
+- PrivateStorageModeTest 34/34 OK；全量 unittest OK exit 0（0 expected / 0 unexpected failure，首次全绿）；sync `--check` in sync；嵌入副本 byte-identical；self check 0 error / 0 warning；`git diff --check` 干净。
+- 自查两轮：R1 覆盖面（protocol/Skill/MIGRATIONS private 语义与 preflight 引用齐全）；R2 最小性（变更面 = TASK-0019 授权文件；无 add_argument 增项；AGENTS.md 零漂移）。
+
+Review and reflection:
+
+- M0 golden `test_policy_v2_private_mode_is_recognized` 的 UNVERIFIED severity 期望由 warning 收敛为 error（缺 stamp fail-closed 是 M2 hardening 明确要求）；非 Git warning 路径不变。
+- 实施中一次 sed 行号过期误删 3 行测试内容，当轮经 git diff 定位恢复。
+
+Risks:
+
+- preflight 的 Agent-native 调用依赖 Skill 文档的模块加载方式（无 CLI）；请 Codex 确认该接线满足“实际流程使用”标准。
+
+Next action:
+
+- Codex 独立验收 review；owner 决定 accepted。PI 停在 review 门，不进入收敛计划 Phase 3。
 
 ## Memory Updates
 

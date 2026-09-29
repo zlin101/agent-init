@@ -175,6 +175,18 @@ python3 trellium.py adopt <target> \
 
 工具为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`，把该 profile 的全部 roots 写入文件，并让 `AGENTS.md` 一跳按当前路径与实际语言读取；多语言不共享正文，也不加载未匹配 profile。`docs/engineering/code-comments.md` 继续作为兼容载体生成/保留，避免 2026.09.7 项目定制丢失；两者同时存在时，仅在注释/API 规则重叠处由兼容文档作为项目定制优先，完整 profile 继续约束其他工程事项。Profile 必须显式选择，不自动猜测；未选 profile 不生成任何工程文档。选择、roots 与完整源 hash 记录在 `.agent-init.json`，stamp 分别记录完整 profile（`project_profile`）与兼容载体（`project_rules`）两个文件角色的项目路径，便于确定性升级；人类可读规范仍以项目文档为准。已有规范（包括 `adopt --force`）不静默覆盖，后续上游与本地同时变化时走 proposal。改变既有 profile 集属于显式评审迁移，不由重复 adopt 偷偷改写。
 
+### Private 存储模式
+
+`storage_mode=private`（schema v2 policy）让全部 Trellium managed material 只存在于当前 clone：untracked、由 Git root `.git/info/exclude` 中带 target identity 的 canonical `# trellium-private:start/end` block 精确忽略，不进入 Git index、HEAD 或远端。Private 是显式选择，不自动迁移既有 tracked/local 项目。
+
+Private 接入的 Agent-native 顺序：
+
+1. adopt 之前调用 bundled 脚本的只读探针 `private_preflight(target, profiles)`：任一候选 managed path（AGENTS、Vault、agent-task Skill、stamp、Comment Policy、所选完整 Profile）已 tracked 或在 HEAD 中即拒绝；Git 查询失败 fail-closed；探针零写入。
+2. `adopt` 正常生成文件后，Agent 将 policy 写为 schema v2 `storage_mode=private`，并在 `.git/info/exclude` 维护 canonical private block（anchored patterns 精确覆盖全部 managed paths，不允许 overreach 或后置 negation）。
+3. 运行 check；private storage finding 为零才算接入完成。Private TASK 使用 local lifecycle 与 knowledge disposition 语义；fresh clone 没有 Trellium 属于预期，不提供恢复承诺。
+
+升级语义：upgrade/diff/proposal 不执行 Git 写入；untracked managed 文件不视为 dirty；Private 完成提示是保持 untracked/ignored 并重跑 check，不得提示 commit。Checker 反向 privacy Gate：`PRIVATE_STORAGE_TRACKED`（含 `git add -f`）、`PRIVATE_STORAGE_UNCONFIGURED`（block 缺失/畸形/重复，或按实际 `git check-ignore` 结果未被 ignore）、`PRIVATE_STORAGE_OVERREACH`、`PRIVATE_STORAGE_UNVERIFIED`（Git 查询失败、缺 stamp、managed 唯一副本缺失或非普通文件）全部 error fail-closed；非 Git 目标为 warning。
+
 ### 文件两分法
 
 升级器把协作层文件分成两类，写入权限不同：

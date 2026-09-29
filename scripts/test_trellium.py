@@ -4255,7 +4255,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertIn("AGENTS.md", self.reported_paths(tracked_findings))
         self.assertEqual(before, after)
 
-    @unittest.expectedFailure
     def test_private_preflight_rejects_tracked_agents_without_writes(self) -> None:
         # Plan §6.2 (1/3): the Agent-native preflight runs BEFORE adopt; a
         # tracked AGENTS.md must be rejected explicitly and leave the
@@ -4275,7 +4274,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertIn("AGENTS.md", str(rejected.exception))
         self.assertEqual(before, self.private_git_fingerprint(target))
 
-    @unittest.expectedFailure
     def test_private_preflight_rejects_tracked_profile_carrier_without_writes(self) -> None:
         # Plan §6.2 (2/3): with a profile selected, its tracked engineering
         # document is a carrier on its own - isolated here from AGENTS.md so
@@ -4297,7 +4295,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertIn("docs/engineering/code-comments.md", str(rejected.exception))
         self.assertEqual(before, self.private_git_fingerprint(target))
 
-    @unittest.expectedFailure
     def test_private_preflight_allows_untracked_carrier_without_writes(self) -> None:
         # Plan §6.2 (3/3): untracked carriers are adoptable for private mode;
         # the probe itself must stay read-only there too.
@@ -4355,6 +4352,87 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         tracked_findings = self.findings_with(payload, "PRIVATE_STORAGE_TRACKED")
         self.assertTrue(tracked_findings, payload["findings"])
         self.assertIn("docs/engineering/code-comments.md", self.reported_paths(tracked_findings))
+
+    def test_private_policy_without_stamp_fails_closed(self) -> None:
+        # M2 hardening: storage_mode=private with no adoption stamp cannot
+        # verify the managed inventory; the gate must fail closed instead of
+        # passing on base-namespace patterns alone.
+        target = self.private_repo("private-no-stamp")
+        (target / "vault/.agent-init.json").unlink()
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        unverified = self.findings_with(payload, "PRIVATE_STORAGE_UNVERIFIED")
+        self.assertTrue(unverified, payload["findings"])
+
+    def test_private_exclude_negation_unignoring_managed_path_fails(self) -> None:
+        # M2 hardening: a negation appended after the canonical block
+        # un-ignores managed paths even though the block itself is
+        # well-formed; the gate must judge the actual Git ignore outcome,
+        # not only the block text.
+        target = self.private_repo("private-negation")
+        exclude = self.git_path(target, "info/exclude")
+        exclude.write_text(
+            exclude.read_text(encoding="utf-8") + "!/AGENTS.md\n", encoding="utf-8"
+        )
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        unconfigured = self.findings_with(payload, "PRIVATE_STORAGE_UNCONFIGURED")
+        self.assertTrue(unconfigured, payload["findings"])
+        joined = " ".join(finding["message"] for finding in unconfigured)
+        self.assertIn("not actually ignored", joined)
+        self.assertIn("/AGENTS.md", joined)
+
+    def test_private_check_ignore_failure_fails_closed(self) -> None:
+        # M2 hardening: a failing git check-ignore query must fail closed
+        # (PRIVATE_STORAGE_UNVERIFIED), never pass as if every path matched.
+        target = self.private_repo("private-checkignore-failure")
+        original_git_run = agent_init.git_run
+
+        def failing_git_run(target_path, arguments, input_bytes=None):
+            if arguments and arguments[0] == "check-ignore":
+                return None
+            return original_git_run(target_path, arguments, input_bytes=input_bytes)
+
+        with patch.object(agent_init, "git_run", failing_git_run):
+            check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assertTrue(
+            self.findings_with(payload, "PRIVATE_STORAGE_UNVERIFIED"), payload["findings"]
+        )
+
+    def test_private_missing_stamp_declared_managed_copy_fails(self) -> None:
+        # M2 hardening: private managed material has no Git copy to recover;
+        # a missing or non-regular stamp-declared sole copy must fail closed.
+        target = self.private_repo(
+            "private-missing-profile", "--profile", "go-backend=services/api"
+        )
+        profile_doc = target / "docs/engineering/profiles/go-backend.md"
+        profile_doc.unlink()
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        missing = self.findings_with(payload, "PRIVATE_STORAGE_UNVERIFIED")
+        self.assertTrue(missing, payload["findings"])
+        joined = " ".join(finding["message"] for finding in missing)
+        self.assertIn("docs/engineering/profiles/go-backend.md", joined)
+
+        # A symlinked copy is not a private sole copy either.
+        link_source = target / "docs/engineering/profiles/elsewhere.md"
+        link_source.write_text("x", encoding="utf-8")
+        profile_doc.symlink_to(link_source)
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assertTrue(
+            self.findings_with(payload, "PRIVATE_STORAGE_UNVERIFIED"), payload["findings"]
+        )
 
 
 if __name__ == "__main__":

@@ -7,6 +7,14 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
+## Unreleased — private storage mode
+
+- Added: policy schema v2 `storage_mode`（`tracked | local | private`；默认 local）与 legacy v1 `task_storage` normalization；既有 v1 policy 不自动改写。
+- Added: `storage_mode=private` 反向 privacy Gate——managed material 必须 untracked 且被 `.git/info/exclude` 的 canonical `trellium-private` block 精确忽略；`PRIVATE_STORAGE_TRACKED`（含 `git add -f`）、`PRIVATE_STORAGE_UNCONFIGURED`（block 缺失/畸形/重复，或按实际 `git check-ignore` 结果未被 ignore，包括后置 negation）、`PRIVATE_STORAGE_OVERREACH`、`PRIVATE_STORAGE_UNVERIFIED`（Git 查询失败、缺 stamp、stamp 声明的唯一副本缺失或非普通文件）全部 error fail-closed；非 Git 目标为 warning。
+- Added: 只读探针 `private_preflight(target, profiles)`——adopt 之前由 Agent 调用（bundled 脚本内加载），任一候选 managed path 已 tracked/in HEAD 即拒绝；Git 查询失败 fail-closed；探针零写入。不新增 CLI。
+- Changed: Private 模式下 upgrade 的 untracked managed 文件不再视为 dirty；无冲突完成提示改为保持 untracked/ignored 并重跑 check，不提示 commit；diff/upgrade/proposal 依旧零 Git 写入。
+- Agent migration: 既有 tracked/local 项目不自动迁移；Private 接入是 Agent-native 显式流程（preflight → adopt → private policy → exclude block → check）。tracked AGENTS 与 private 冲突时 preflight 拒绝并给出 local 退路。
+
 ## Unreleased — Profile 路由 conformance
 
 - Fixed: 既有 `AGENTS.md` 上追加的 Trellium 入口从只路由 `docs/engineering/code-comments.md` 修正为同时按 root 与实际语言路由完整 `docs/engineering/profiles/<profile>.md`，与 D-0011 及新项目模板路由一致；重叠注释/API 规则仍以兼容载体为项目定制优先。CLI、文件布局、Profile 内容、stamp schema 与 merge/overwrite/proposal 行为均不变。

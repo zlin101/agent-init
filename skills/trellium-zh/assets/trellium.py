@@ -2247,6 +2247,68 @@ def private_managed_extras(state: AdoptionCoreState) -> list[str]:
     )
 
 
+PRIVATE_PREFLIGHT_BASE_CANDIDATES = (
+    "AGENTS.md",
+    "skills/agent-task/SKILL.md",
+    "vault/.agent-init.json",
+    "vault/collaboration.md",
+    "vault/decisions.md",
+    "vault/governance.md",
+    "vault/handoff.md",
+    "vault/index.md",
+    "vault/parked.md",
+    "vault/project.md",
+    "vault/runtime.md",
+    "vault/tasks/README.md",
+)
+
+
+def private_preflight_candidates(profiles: tuple[str, ...]) -> list[str]:
+    """Candidate managed paths a private adoption would create or require."""
+    known = set(PROFILE_IDS)
+    candidates: set[str] = set(PRIVATE_PREFLIGHT_BASE_CANDIDATES)
+    candidates.add(PROFILE_RULES_RELATIVE)
+    for profile_id in profiles:
+        if profile_id not in known:
+            raise AdoptionError(f"unknown profile id for private preflight: {profile_id}")
+        candidates.add(f"{PROFILE_DOCUMENT_DIRECTORY}/{profile_id}.md")
+    return sorted(candidates)
+
+
+def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]:
+    """Agent-native read-only probe that runs BEFORE adopt in private mode.
+
+    Every candidate managed path must be free of Git index/HEAD collisions;
+    any collision raises, and any Git query failure fails closed. The probe
+    never mutates the worktree, index, HEAD, or the exclude file.
+    """
+    candidates = private_preflight_candidates(profiles)
+    if not git_in_worktree(target):
+        return []
+    tracked = git_tracked_files(target)
+    if tracked is None:
+        raise AdoptionError(
+            "private preflight failed closed: git ls-files failed; the private boundary cannot be verified"
+        )
+    head, head_error = git_head_files(target)
+    if head_error is not None:
+        raise AdoptionError(
+            f"private preflight failed closed: {head_error}; the private boundary cannot be verified"
+        )
+    collisions = sorted(
+        candidate for candidate in candidates if candidate in tracked or candidate in head
+    )
+    if collisions:
+        raise AdoptionError(
+            "private adoption rejected: "
+            + ", ".join(collisions)
+            + " are already tracked in Git; private managed material never enters Git."
+            " Choose local storage instead, or remove the paths from the Git index and HEAD"
+            " as the project owner decides, then re-run the preflight"
+        )
+    return []
+
+
 def parse_private_exclude_blocks(text: str) -> tuple[list[dict], list[str]]:
     """Parse canonical trellium-private blocks; (blocks, structural errors)."""
     blocks: list[dict] = []
@@ -2307,11 +2369,41 @@ def check_private_boundary(run: VaultCheckRun, policy: dict | None, state: Adopt
             "not a Git worktree or Git is unavailable; there is no Git upload surface, but the private boundary was not verified",
         )
         return
+    if state.stamp is None:
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNVERIFIED",
+            "error",
+            STAMP_RELATIVE,
+            "storage_mode=private requires the adoption stamp, but vault/.agent-init.json is missing; the managed-file inventory cannot be read and the private boundary cannot be verified",
+        )
+        return
     prefix = git_root_prefix(run.target)
     target_identity = prefix.rstrip("/") if prefix else "."
     extras = private_managed_extras(state)
     base = [f"/{prefix}{entry}" for entry in PRIVATE_BASE_MANAGED_PATHS]
     expected = base + [f"/{prefix}{entry}" for entry in extras]
+    missing_copies = []
+    for relative in extras:
+        candidate = run.target / relative
+        try:
+            metadata = candidate.lstat()
+        except OSError:
+            missing_copies.append(relative)
+            continue
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            missing_copies.append(relative)
+    if missing_copies:
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNVERIFIED",
+            "error",
+            STAMP_RELATIVE,
+            "private managed material has no Git copy to recover; declared managed copies are missing or not regular files: "
+            + ", ".join(missing_copies)
+            + "; restore them before the private boundary can be verified",
+        )
+        return
 
     exclude_result = git_run(run.target, ["rev-parse", "--git-path", "info/exclude"])
     if exclude_result is None or exclude_result.returncode != 0:
@@ -2396,6 +2488,27 @@ def check_private_boundary(run: VaultCheckRun, policy: dict | None, state: Adopt
                 "vault",
                 "the canonical private block does not cover the required managed scope; missing anchored patterns: " + ", ".join(missing),
             )
+        if not parse_errors and not non_anchored and not overreach and not missing:
+            check_relatives = (*PRIVATE_BASE_MANAGED_PATHS, *extras)
+            ignored = git_ignored_files(run.target, list(check_relatives))
+            if ignored is None:
+                run.add(
+                    "storage",
+                    "PRIVATE_STORAGE_UNVERIFIED",
+                    "error",
+                    STAMP_RELATIVE,
+                    "git check-ignore failed; the private boundary was not verified",
+                )
+            else:
+                for relative in check_relatives:
+                    if relative not in ignored:
+                        run.add(
+                            "storage",
+                            "PRIVATE_STORAGE_UNCONFIGURED",
+                            "error",
+                            "vault",
+                            f"/{prefix}{relative} is not actually ignored by Git (a later negation or higher-priority rule un-ignored it); fix the ignore rules so every managed path is ignored",
+                        )
 
     index = git_tracked_files(run.target)
     if index is None:
@@ -3299,7 +3412,9 @@ def fetch_and_run(args: argparse.Namespace, forwarded: list[str]) -> int:
     return result.returncode
 
 
-def git_dirty_paths(target: Path, relatives: list[str]) -> list[str]:
+def git_dirty_paths(
+    target: Path, relatives: list[str], include_untracked: bool = True
+) -> list[str]:
     if not (target / ".git").exists():
         return []
     try:
@@ -3318,8 +3433,27 @@ def git_dirty_paths(target: Path, relatives: list[str]) -> list[str]:
     for line in result.stdout.splitlines():
         if len(line) < 4:
             continue
+        if not include_untracked and line.startswith("?? "):
+            continue
         dirty.append(line[3:].strip().strip('"'))
     return dirty
+
+
+def target_storage_mode(target: Path) -> str | None:
+    """Best-effort storage mode from the target's own policy block; None if unreadable."""
+    try:
+        index_text = (target / "vault/index.md").read_text(
+            encoding="utf-8", errors="surrogateescape"
+        )
+    except (OSError, UnicodeError):
+        return None
+    blocks, error = extract_comment_blocks(index_text, POLICY_MARKER)
+    if error is not None or not blocks:
+        return None
+    policy, error = parse_block_object(blocks[0])
+    if policy is None:
+        return None
+    return normalized_storage_mode(policy)
 
 
 def selection_filter(args: argparse.Namespace):
@@ -3715,7 +3849,12 @@ def upgrade_project(args: argparse.Namespace) -> int:
         return plan_exit_code(plan)
 
     touch_paths = [item["path"] for item in (*apply_items, *add_items, *remove_items)]
-    dirty = git_dirty_paths(target, [*touch_paths, STAMP_RELATIVE])
+    storage_mode = target_storage_mode(target)
+    dirty = git_dirty_paths(
+        target,
+        [*touch_paths, STAMP_RELATIVE],
+        include_untracked=storage_mode != "private",
+    )
     if dirty and not args.allow_dirty:
         return fail(
             "target has uncommitted changes in files the upgrade would touch: "
@@ -3805,6 +3944,12 @@ def upgrade_project(args: argparse.Namespace) -> int:
         print(
             f"next: resolve proposals under {target / PROPOSAL_DIRECTORY / version}, "
             "then run 'upgrade <target> --complete'"
+        )
+    elif storage_mode == "private":
+        print(
+            "next: private storage - keep all Trellium material untracked and covered by the"
+            " trellium-private block in .git/info/exclude; never commit Trellium material;"
+            " re-run check to confirm the boundary"
         )
     else:
         print("next: commit this upgrade as a standalone, revertable change")
@@ -3949,9 +4094,10 @@ def adopt_project(args: argparse.Namespace) -> int:
     print("generated does not mean durable: whether the collaboration core is persisted is a Git HEAD fact, decided by a commit and confirmed by check, not by this run")
     print("adoption durability checklist (apply applicable steps in order):")
     print("  1. review the proposed or existing collaboration files with the user and finish semantic configuration: mode choice, TASK storage decision, merging any existing agent entry")
-    print("  2. ensure the collaboration core is present in Git HEAD (AGENTS.md, vault/, skills/agent-task/SKILL.md, vault/.agent-init.json); adopt never runs git add/commit/push - commits stay under the user's control")
-    print("  3. after the commit, re-run: python3 trellium.py check <target> - adoption is complete only with 0 errors (core paths present in Git HEAD, not ignored)")
+    print("  2. for tracked storage, ensure the collaboration core is present in Git HEAD (AGENTS.md, vault/, skills/agent-task/SKILL.md, vault/.agent-init.json); adopt never runs git add/commit/push - commits stay under the user's control")
+    print("  3. for tracked storage, after the commit, re-run: python3 trellium.py check <target> - adoption is complete only with 0 errors (core paths present in Git HEAD, not ignored)")
     print("  4. for local or production adoptions, verify a fresh clone of the repository passes check too")
+    print("  5. for private adoptions (storage_mode=private), never commit Trellium material: keep everything untracked and covered by the trellium-private block in .git/info/exclude, then re-run check; adoption is complete only with 0 errors")
     print("later upgrades: python3 trellium.py diff <target>")
     return 0
 

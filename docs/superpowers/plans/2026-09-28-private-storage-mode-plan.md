@@ -332,7 +332,7 @@ Go Gate：
 
 - **Claim:** ignored `AGENTS.md` 在当前 clone 可被 Agent 正常读取。
 - **Fails if:** 目标已有 tracked AGENTS，或目标 Agent 不读取 ignored/untracked AGENTS。
-- **Evidence:** 对 Codex 与 Claude Code 各做一个真实 private fixture discovery 首答；tracked AGENTS fixture 验证 preflight 零写入。
+- **Evidence:** M0 已在 `docs/evals/private-mode-kill-gates-2026-09/` 落盘 Agent discovery 证据；不重跑真人探针（2026-09-29 消融：已有证据足够）。
 - **Kill criterion:** 新建 ignored AGENTS 不能被任一受支持 Agent发现，或必须修改 tracked carrier。
 - **Cheapest test:** 空 repo 创建 ignored AGENTS，启动无历史会话询问其 Required Reading。
 
@@ -358,7 +358,7 @@ Go Gate：
 - **Fails if:** 用户真正需要的是一次性 prompt，不需要 Vault、任务治理或升级。
 - **Evidence:** 在一个不允许仓库改动的真实项目完成一次非琐碎任务，比较 private Trellium 与单 prompt 的遗漏和恢复成本。
 - **Kill criterion:** private 必须砍掉大部分核心文件才显得可用，或没有第二次会话恢复价值。
-- **Cheapest test:** 两会话 handoff：第一会话建任务并中断，第二会话只靠 ignored AGENTS+Vault 恢复。
+- **Cheapest test:** 已被 H2 淘汰（2026-09-29 消融）：handoff 不再承载会话进度，第二会话恢复走 TASK + Git/工作区 + tests 重放，不依赖 handoff。
 
 ### What's Well-Reasoned
 
