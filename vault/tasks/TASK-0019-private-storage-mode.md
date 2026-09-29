@@ -7,7 +7,7 @@
   "level": "C",
   "authority_level": 3,
   "lifecycle": "active",
-  "current_slice": "M0-contract-and-red-tests"
+  "current_slice": "parked-after-M2-awaiting-owner-resume"
 }
 -->
 
@@ -112,6 +112,13 @@ Completed:
 - M0（2026-09-28 至 2026-09-29，PI/Codex）：`scripts/test_trellium.py` 新增 `PrivateStorageModeTest`；三轮整改、第四轮复审后以 6 绿 + 24 红测通过 M0 验收（marker 完整性、反向 privacy Gate、preflight 三合同独立冻结、profile 精确忽略、check/status golden）；Kill Gate 证据落盘 `docs/evals/private-mode-kill-gates-2026-09/`，owner 已授权提交。
 
 ## Execution Record
+
+### 2026-09-29 - Agent: Codex — owner-directed pause
+
+- Owner instructed that TASK-0019 be temporarily parked; no further implementation, marker removal, review, or release work is authorized until the owner explicitly resumes it.
+- Lifecycle remains `active` because the project schema has no `paused` value and the work is unfinished; `vault/parked.md` is the canonical pause signal, while `current_slice` records the resumable boundary.
+- Exact resume point: retain PI's completed M1/M2 work; first remove the 19 stale `expectedFailure` markers in a dedicated TASK-0019 slice, then implement M3-M5. The three M3 preflight expected failures remain intentional.
+- No product code or tests were changed as part of parking the task.
 
 ### 2026-09-29 - Agent: Codex — M0 accepted
 
@@ -295,6 +302,35 @@ Risks:
 Next action:
 
 - PI 从 M0 characterization/red tests 开始；Kill Gate 通过后再进入 policy/checker 实现。
+
+### 2026-09-29 - Agent: PI — M1/M2 implementation and handoff to Codex
+
+Context read:
+
+- M0 验收（round 4 通过、commit `31bd8c4`）后的授权：不提交、直接连续实现 M1-M5；中途发现与活跃 Codex 会话并发编辑同一工作区。
+
+Changes made (worktree, uncommitted,与 Codex 进行中的 runtime-projection 重构同文件交叠):
+
+- M1 完成：`validate_policy_object` 支持 v1（`task_storage`）/ v2（`storage_mode`，拒绝 v2 内出现 `task_storage`，budgets 语义不变）；新增唯一归一入口 `normalized_storage_mode(policy)`；三个消费点切换（`check_task_storage` local 分支服务 local+private、private 专属 message；`check_local_boundary`；runtime projection `local_mode` 含 private）；移除 2 个 M1 红 marker（v2 tracked / v2 local，验证转绿）。upgrade 不触碰 policy，v1 byte-preservation 由既有套件覆盖。
+- M2 实现：`check_private_boundary` + `parse_private_exclude_blocks` + `private_managed_extras` + `PRIVATE_BASE_MANAGED_PATHS`；`collect_vault_state` 按 normalized mode 分派；private 模式跳过正向 durability Gate、保留 stamp 损坏 `CORE_STORAGE_INVALID`；非 Git → `PRIVATE_STORAGE_UNVERIFIED` warning。碰撞前验证：19 个 M2 红测 + v2-private 识别测试全部转绿（unexpected successes），3 个 preflight 红测保持红（M3）。
+- lint-gate 维护：修复 8 个预存 Pyright 诊断 + 14 个 ruff 发现（I001/UP035/SIM105/SIM102/PIE810/SIM109 行为保持的机械修复；3 处 S310 加显式 https 守卫后 `# noqa: S310`）。
+- 并发冲突（10:35）：活跃 Codex 会话删除 `check_runtime_projection`/`parse_runtime_task_pointers`（进行中的重构）致构建短暂损坏（NameError，122 errors）；按 owner 决定 Codex 接手全部源码/协议/测试编辑直至 M5，PI 退出 `scripts/*`、`init/*`、`skills/*`。完整交接见 `vault/handoff.md` TASK-0019 条目。
+
+Checks run:
+
+- 碰撞前全量：`python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh` — 207/207 OK（22 expected failures，设计状态）。
+- 交接时快照（Codex 重构中途）：套件 175 tests，3 failures 为 Codex 进行中状态；类内 30 测试 = 3 expected failures（preflight 三合同，M3）+ 19 unexpected successes（M2 契约已绿，marker 待 Codex 移除）。
+- `sync-skills --check`、`git diff --check` 碰撞前均通过。
+
+Handoff to Codex:
+
+- 立即动作：完成 runtime-projection 重构（保留 normalized mode 两处语义）；移除 19 个已转绿 marker（保留 3 个 preflight marker 给 M3）；M3 `private_preflight` + 条件化 adopt 文案 + 双语协议；M4 分发；M5 全量门禁 + 两轮 review → `ready_for_review`。
+- 冻结合同与 gate 惯例（noqa/pi-lens-ignore/disposition）详见 `vault/handoff.md` TASK-0019 条目；可执行合同 = `scripts/test_trellium.py` `PrivateStorageModeTest`。
+- M5 目标态：全部测试绿、0 expected failures（22 个 marker 全部移除）+ Required Checks 全过；不自动 accepted/commit/push/tag。
+
+Next action:
+
+- Codex 继续 M2 marker 移除与 M3-M5；PI 待命（可做 review 或验证，不碰源码）。
 
 ## Memory Updates
 

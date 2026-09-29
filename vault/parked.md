@@ -6,7 +6,7 @@
 
 ## Entries
 
-- P-0001 · task · 简短标题 · 一句话上下文 · 重启触发器（用户提到什么时重新拾起） · 2026-01-01
+- P-0001 · task · TASK-0019 private storage mode · M0 已验收，M1/M2 已在当前工作区实现，待独立移除 19 个过期 marker 后继续 M3-M5 · 用户明确重新提起 TASK-0019 或 private 模式开发时恢复 · 2026-09-29
 
 类型：task | decision | question。有任务文件的记指针 `TASK-xxxx`，没有的记 2-4 行上下文。
 

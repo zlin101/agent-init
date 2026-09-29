@@ -8,19 +8,11 @@
 
 - TASK-0001
 
-## Active Tasks
-
-每行一个并行任务；本表只存指针，正文放 `vault/tasks/<task-id>.md`。
-
-| Task | Objective | Status | Next Action |
-| --- | --- | --- | --- |
-| TASK-0001 | 替换为一句话目标。 | active | 替换为下一步动作。 |
-
-状态取值：draft | active | blocked | ready_for_review | accepted | superseded。有任务文件的 TASK，此行状态是 `trellium-task-state` 状态块的派生投影：先改状态块，再改此行。Focus 只表示当前注意力，不等于 lifecycle；更新状态时只改对应行。暂停且暂不推进的任务降级为 `vault/parked.md` 条目。已关闭的 local 任务（`task_storage=local`）不保留行；fresh clone 中指向不存在 local 任务文件的行只是未验证线索，不授予授权。
+Focus 是可选导航信息。它不拥有 lifecycle、Authority、slice、Gate 或活跃任务清单。`trellium status` 直接从 `vault/tasks/*` 读取 TASK 状态。Focus 指向不存在的 TASK 时，只表示导航无法解析。
 
 ## Current Progress
 
-- 替换为简短当前状态（对应 Focus 任务）。
+- 替换为简短的项目全局当前状态。
 
 ## Constraints
 

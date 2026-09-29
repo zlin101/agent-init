@@ -8,27 +8,13 @@ Replace with the current phase.
 
 - TASK-0001
 
-## Active Tasks
-
-One line per parallel task; keep bodies in `vault/tasks/<task-id>.md`, this
-table holds pointers only.
-
-| Task | Objective | Status | Next Action |
-| --- | --- | --- | --- |
-| TASK-0001 | Replace with a one-line objective. | active | Replace with the next action. |
-
-Status values: draft | active | blocked | ready_for_review | accepted |
-superseded. For a task with a task file, the status here is a projection of
-its `trellium-task-state` block: update the block first, then this row.
-Focus names the current attention, not lifecycle; a status change edits only
-the matching row. Demote paused-and-shelved tasks to `vault/parked.md`.
-Closed local tasks (`task_storage=local`) leave no row here; in a fresh
-clone, a row whose local task file is absent is an unverified clue that
-grants no authority.
+Focus is optional navigation only. It owns no lifecycle, authority, slice,
+gate, or active-task inventory. `trellium status` reads TASK state directly
+from `vault/tasks/*`. A missing focused TASK is unresolved navigation only.
 
 ## Current Progress
 
-- Replace with short current state for the focused task.
+- Replace with short project-global current state.
 
 ## Constraints
 

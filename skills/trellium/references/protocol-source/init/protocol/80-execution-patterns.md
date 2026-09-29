@@ -55,11 +55,12 @@ Agent 的方案必须基于当前项目上下文，而不是泛化建议。
 可恢复检查点包括：
 
 - `vault/tasks/*` 中的任务契约和执行记录；
-- `vault/runtime.md` 中的活跃任务指针和当前状态；
-- `vault/handoff.md` 中的接力信息；
-- 明确的验收标准和验证命令。
+- `vault/runtime.md` 中的 project-global runtime 与可选导航 Focus；
+- 实时 Git 工作区、diff 与重跑测试；
+- 明确的验收标准和验证命令；
+- 仅真实中断时：`vault/handoff.md` 中的 transient delta（三小节：Why interrupted / Transient context not captured elsewhere / Exact resume point）。
 
-当上下文窗口、工具会话或 Agent 发生切换时，后续 Agent 应能通过这些文件继续，而不是依赖对话记忆。
+恢复顺序：先读 TASK 契约，再现场读 Git/工作区并重跑测试，最后才用 handoff 补非可推导 delta；不把 handoff 当默认冷启动源。当上下文窗口、工具会话或 Agent 发生切换时，后续 Agent 应能通过这些文件继续，而不是依赖对话记忆。
 
 ### Human Signal
 
@@ -105,7 +106,7 @@ Agent 不应把“我能做到”误认为“这是应该做的”。
 
 ## 与治理层的关系
 
-- Level A 任务可以使用轻量计划，并在 `vault/runtime.md` 记录必要状态。
+- Level A 任务可以使用轻量计划；仅当 project-global runtime 发生变化时更新 `vault/runtime.md`。
 - Level B 任务必须把计划、执行记录和验证结果写入任务文件。
 - Level C 任务必须记录长期决策，并在需要时先获得用户确认。
 - 任何执行模式都不能降低 `20-governance.md` 中的授权和禁止规则。

@@ -1,6 +1,6 @@
 # Decisions
 
-长期决策记录。当前任务进展放 `vault/runtime.md` 或 `vault/tasks/*`。
+长期决策记录。TASK 进展放 `vault/tasks/*`；`runtime.md` 只保存项目全局运行态。
 
 每条决策标注状态：`Active`、`Superseded by D-xxxx`、`Merged into D-xxxx` 或 `Expired`。默认 `Active`。
 

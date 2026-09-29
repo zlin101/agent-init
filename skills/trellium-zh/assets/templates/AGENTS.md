@@ -19,7 +19,7 @@
 
 - `vault/project.md`
 
-接手中断任务时，还要读取：
+接手真实中断的任务时，还要读取（可推导的干净会话边界不读）：
 
 - `vault/handoff.md`
 
@@ -47,8 +47,8 @@
 8. 检查验收门。
 9. 更新 `vault/runtime.md`。
 10. 长期决策写入 `vault/decisions.md`。
-11. 中断或交接时更新 `vault/handoff.md`。
-12. 记忆更新时检查预算线；任一热文件超出时执行或提议压缩（测量→分类→重组→校验→记录）。
+11. 仅在真实中断且存在非可推导 transient delta 时更新 `vault/handoff.md`。
+12. 记忆更新时检查预算线；超出只在 `trellium.py check` 中呈现为仓库健康 warning，不阻塞当前任务验收；仅当用户要求或任务契约明确包含压缩时，才执行或提议压缩（测量→分类→重组→校验→记录）。
 13. 任务中出现用户协作偏好或纠正信号时，记入 `vault/collaboration.md`。
 
 ## Forbidden

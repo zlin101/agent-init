@@ -4,7 +4,7 @@ Cold index of items the user parked: parked but not forgotten, read only when
 mentioned. Never part of the default reading path.
 
 Entry lifecycle: record an item when the user parks a task or decision;
-promote it back to `vault/tasks/<task-id>.md` (Draft) or `vault/runtime.md`
+promote it back to `vault/tasks/<task-id>.md` (Draft)
 when the user brings it up again. The Agent never deletes entries; cleanup
 only produces proposals confirmed by the user.
 

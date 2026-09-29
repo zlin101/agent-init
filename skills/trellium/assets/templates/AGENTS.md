@@ -19,7 +19,7 @@ On first entry to the project, also read:
 
 - `vault/project.md`
 
-When resuming interrupted work, also read:
+When resuming genuinely interrupted work, also read (skip for a derivable clean session boundary):
 
 - `vault/handoff.md`
 
@@ -47,8 +47,8 @@ When modifying or reviewing source code, public APIs, dependencies, builds, conc
 8. Check acceptance gates.
 9. Update `vault/runtime.md`.
 10. Record durable decisions in `vault/decisions.md`.
-11. Update `vault/handoff.md` if interrupted or handing off.
-12. Check memory budgets when updating hot files; compact or propose compaction when exceeded (measure → classify → restructure → verify → record).
+11. Update `vault/handoff.md` only when a real interruption leaves a non-derivable transient delta.
+12. Check memory budgets when updating hot files; an exceed surfaces only as a repository-health warning in `trellium.py check` and never blocks the current task's acceptance; compact or propose compaction only when the owner asks or the task contract explicitly includes it (measure → classify → restructure → verify → record).
 13. Record user collaboration preferences or corrections observed in this task in `vault/collaboration.md`.
 
 ## Forbidden

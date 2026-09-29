@@ -2,7 +2,7 @@
 
 用户挂起事项的冷索引：挂起不遗忘，提及才读取。不进入默认读取路径。
 
-条目生命周期：任务或决定被用户挂起时记入；用户重新提起时升回 `vault/tasks/<task-id>.md`（Draft）或 `vault/runtime.md`。Agent 不得删除条目；清理只出提案，由用户确认。
+条目生命周期：任务或决定被用户挂起时记入；用户重新提起时升回 `vault/tasks/<task-id>.md`（Draft）。Agent 不得删除条目；清理只出提案，由用户确认。
 
 ## Entries
 

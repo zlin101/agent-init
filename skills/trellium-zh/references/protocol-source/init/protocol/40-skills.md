@@ -27,7 +27,7 @@ skills/
 - 聚焦实现；
 - 验证；
 - vault 更新；
-- handoff 更新。
+- 仅真实中断且存在非可推导恢复事实时写 transient-delta handoff（三小节：Why interrupted / Transient context not captured elsewhere / Exact resume point；恢复顺序 TASK → Git/工作区/测试 → handoff delta）。
 
 ## INIT 应用 Skill
 

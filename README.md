@@ -217,7 +217,7 @@ python3 scripts/trellium.py adopt /path/to/project \
   --profile python-backend=services/model
 ```
 
-这会为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`（含 roots），并在 `AGENTS.md` 添加按当前路径和实际语言触发的一跳路由；未选 profile 不生成，后续会话不依赖再次发现 Trellium Skill。`docs/engineering/code-comments.md` 作为既有注释/API 规则兼容载体继续保留。选择、roots、完整源 hash 与项目路径记录在 `vault/.agent-init.json` 供升级器重放，但工程规范正文不进入 Vault。已有规范即使使用 `--force` 也不覆盖；上游与本地同时变化时生成 upgrade proposal。
+这会为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`（含 roots），并在 `AGENTS.md` 添加按当前路径和实际语言触发的一跳路由；未选 profile 不生成，后续会话不依赖再次发现 Trellium Skill。`docs/engineering/code-comments.md` 作为既有注释/API 规则的兼容载体继续保留：重叠的注释/API 规则以它为项目定制优先，其余工程事项由完整 profile 约束。工程规范正文不进入 Vault；roots、已有文件保护与升级 proposal 等完整规则见 `init/protocol/70-adoption-flow.md`「Profile 工程规范」。
 
 `adopt` 默认只新增缺失的 Agent 协作文件：
 
@@ -264,9 +264,8 @@ python3 scripts/trellium.py check /path/to/project --format json  # 稳定 JSON
 
 - `trellium-task-state` 状态块：Level B/C 任务文件顶部的严格 JSON 块，是 lifecycle、授权等级、当前 slice 与 Gate 结果的唯一 owner；
 - `trellium-policy` 策略块：`vault/index.md` 中的项目策略，唯一配置预算与 TASK storage（`tracked | local`）；
-- runtime 投影：`runtime.md` Active Tasks 行与状态块 lifecycle 的一致性；`local` 项目中指向不存在任务文件的 open 行报 clone-safe warning `TASK_RUNTIME_LOCAL_UNRESOLVED`（说明可能是 fresh clone 或本地误删、恢复动作，且该摘要不授予 Authority），closed local 行残留报 `TASK_RUNTIME_CLOSED_LOCAL` error；
-- 预算测量：热文件行数、UTF-8 字节、最大单行、条目数始终报告；只有策略块显式配置的阈值会触发超限错误；
-- TASK storage：按策略对比 Git 实际状态（tracked/local）；
+- 预算测量：热文件行数、UTF-8 字节、最大单行、条目数始终报告；只有策略块显式配置的阈值会触发 `BUDGET_EXCEEDED` warning（仓库健康信号，不阻塞验收）；
+- TASK storage：按策略对比 Git 实际状态（tracked/local）；tracked 模式还从 Git index 只读识别已索引 TASK 在 working tree 中被删除；
 - 接入持久性（2026.09.8）：从安装版本戳派生协作核心集合（含 stamp 自身）并逐路径核对 Git `HEAD`——当前 stamp 损坏报 `CORE_STORAGE_INVALID` error，未提交或 HEAD stamp 与当前协议版本/核心集合不相容报 `CORE_STORAGE_UNCOMMITTED` error，被 ignore 规则误伤报 `CORE_STORAGE_IGNORED` error（附命中规则）；Git 验证失败报 `CORE_STORAGE_UNVERIFIED` error，非 Git 目标报同码 warning。fresh clone 是 local/生产接入的一次性验收动作，不进入日常 check；
 - local 边界（2026.09.8；2026.09.9 默认接入）：`task_storage=local` 时用无写入 sentinel 验证未来 TASK/review/archive 会被忽略（未覆盖报 `LOCAL_BOUNDARY_UNCONFIGURED` warning），并验证 `vault/tasks/README.md`、`vault/decisions/`、`vault/details/` 等 durable namespace 不被宽泛规则误伤（命中报 `LOCAL_BOUNDARY_OVERREACH` error，附规则与修复方向）；Git 边界命令失败报 `LOCAL_BOUNDARY_UNVERIFIED` error。新 local 接入生成窄范围 `vault/tasks/.gitignore`，但 checker 本身仍只读，既有项目也不会被自动迁移或修改根 `.gitignore`。
 
@@ -283,12 +282,12 @@ python3 scripts/trellium.py status /path/to/project                # 文本摘�
 python3 scripts/trellium.py status /path/to/project --format json  # 稳定 JSON v1
 ```
 
-`status` 是完全只读、确定性的 owner 状态摘要命令（2026.09.5 引入），解决"想知道当前进展，还得让 Agent 重读 runtime/TASK 手工汇总"的重复成本。它只编译 `check` 已校验的同一状态层，不新增事实源：
+`status` 是完全只读、确定性的 owner 状态摘要命令（2026.09.5 引入）。它直接扫描 `check` 校验的 canonical TASK 状态块，不新增事实源：
 
-- Focus 行逐个标注 resolved/unresolved；
-- 开放任务按 `draft / active / blocked / ready_for_review` 分类，每项给出 `authority_level`、任务文件路径与可选的 `current_slice`/`gates` 原值；runtime 行贡献 `objective`/`next` 投影，重复行或行状态非法时不产出投影；
+- Focus 行逐个标注 resolved/unresolved，但只用于导航；缺失 Focus 不使 TASK lifecycle unresolved；
+- 开放任务按 `draft / active / blocked / ready_for_review` 分类，每项给出 `authority_level`、任务文件路径与可选的 `current_slice`/`gates` 原值；
 - `accepted`/`superseded` 只进 closed 计数，不进入行动清单；
-- 无法解析的任务显式列入 `unresolved`（附阻塞发现码如 `TASK_RUNTIME_DRIFT`、`TASK_RUNTIME_LOCAL_UNRESOLVED`），绝不推断 lifecycle 或 authority；runtime 与状态块冲突（drift）时任务进入 unresolved，不裁决哪边为真；
+- 无法解析的 canonical TASK state 显式列入 `unresolved`，绝不推断 lifecycle 或 authority；
 - 退出码与 `check` 一致（error → `2`，仅 warning → `0`，操作错误 → `1`）。
 
 它是状态摘要，不是完整 owner approval inbox：blocked 与 pending gate 只显示原值，不会被翻译成"owner 必须批准"。文本与 JSON 从同一份结果渲染，JSON v1 恒含 `schema_version/target/focus/summary/tasks/findings` 键。`status` 不写目标、不访网、不执行文档命令。
@@ -353,7 +352,7 @@ Agent 不按身份获得信任，而是按任务契约获得授权，并按验�
 
 ### 记忆压缩（Compact）
 
-热文件（runtime、handoff、decisions）有明确预算线。agent-task 工作流在任务收尾检查预算；超线时执行五阶段压缩（测量→分类→重组→校验→记录）：runtime 重写而非删减，handoff 滚动保留，decisions 超阈值索引化（正文迁入 `vault/decisions/`，默认只读索引）。Superseded/Merged/Expired 等语义判定只出提案，由用户批量确认——压缩永远是零信息损失的重组，不是删除。压缩产出只含 `vault/` 变更的独立提交，可随时回滚。
+热文件（runtime、handoff、decisions）有明确预算线。预算超出在 `trellium.py check` 中呈现为仓库健康 warning：任务照常验收，不自动触发压缩、不产生额外提交；压缩作为独立 maintenance 动作，仅在用户显式要求、独立 maintenance 任务或任务契约明确包含时执行，流程为五阶段（测量→分类→重组→校验→记录）：runtime 重写而非删减，handoff 仅保留真实中断且非可推导的 transient delta（消费即删，删除不视为信息损失），decisions 超阈值索引化（正文迁入 `vault/decisions/`，默认只读索引）。Superseded/Merged/Expired 等语义判定只出提案，由用户批量确认——压缩永远是零信息损失的重组，不是删除。压缩产出只含 `vault/` 变更的独立提交，可随时回滚。
 
 治理文件（governance、collaboration）由事件驱动激活：升级事件与压缩审查产出治理修订提案，协作偏好在任务收尾被捕获。默认读取路径分级：`index.md` 内置任务与授权速查表，完整 `governance.md` 仅 Level B/C 或判定模糊时读取。
 

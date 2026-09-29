@@ -6,23 +6,25 @@ Agents are trusted by task contract, not identity. Work closes only through acce
 
 ## Task Levels
 
-### Level A: Simple Task
-
-Low risk, normally one session, one or two files, no architecture/API/dependency/data-model impact. Record in `vault/runtime.md`.
-
-### Level B: Tracked Task
-
-Use when work needs tracking, affects more than two files, has more than three acceptance criteria, needs design plus verification, may need handoff, or should be auditable. Record in `vault/tasks/TASK-xxxx-short-title.md`.
+Classification follows one canonical order: a Level C risk domain → C; otherwise clearly high interruption-recovery or collaboration cost → B; otherwise → A. Scale only prompts further judgment and never decides the level alone; a later unexpected interruption never retroactively rewrites the original classification.
 
 ### Level C: Governed Task
 
-Use when work changes architecture, public APIs, data models, frameworks, external services, security, privacy, cost, deployment, or Agent governance. Record in a task file and `vault/decisions.md`; usually request user approval.
+Risk domains (a one-line change included): security/privacy, public APIs or external contracts, persistent data/migrations, deployment/production behavior, dependency changes, material cost/quota, architecture (durable architectural decisions), governance rules/policy. Record in a task file and `vault/decisions.md`; usually request user approval.
+
+### Level B: Tracked Task
+
+Outside Level C risk domains but with clearly high recovery or coordination cost: expected to cross sessions, a real handoff, multi-agent or multi-person ownership, external system state, multi-stage gates, acceptance state under continuous tracking, or execution state not cheaply recoverable from diff/tests. Record in `vault/tasks/TASK-xxxx-short-title.md`.
+
+### Level A: Simple Task
+
+Low risk with low recovery and coordination cost: diff, workspace, and tests can rebuild the state cheaply. No persisted TASK lifecycle by default; update `vault/runtime.md` only when project-global runtime actually changes.
 
 ## Task Lifecycle
 
 `draft | active | blocked | ready_for_review | accepted | superseded`
 
-Owned by the task file's `trellium-task-state` block; the `runtime.md` row is a projection (update the block first, then the row). Paused-and-shelved work lives in `parked.md`, not in a lifecycle value. Level A has no task file; the `runtime.md` inline record is authoritative.
+Lifecycle, authority, current slice, and gate results are owned only by the task file's `trellium-task-state` block; `runtime.md` persists no TASK projection. Paused-and-shelved work lives in `parked.md`, not in a lifecycle value. Level A has no persisted TASK lifecycle and recovers from the workspace, Git diff, and tests.
 
 ## Authority Levels
 
@@ -68,7 +70,7 @@ Before closing work:
 3. Sync code, tests, docs, and vault memory where applicable.
 4. Update `vault/runtime.md`.
 5. Record durable decisions in `vault/decisions.md`.
-6. Record unfinished work or risks in the task file or `vault/handoff.md`.
+6. Record unfinished work or risks in the task file (the acceptance gate does not treat ordinary handoff as a risk ledger).
 7. Disclose all high-impact changes.
 
 Tests passing alone is not completion.
@@ -77,9 +79,8 @@ For `task_storage=local` tasks, entering `accepted` also requires the
 Durable Knowledge Disposition in Memory Updates (`none — <reason>` or
 `distilled — <canonical destinations>`; an unfilled line counts as `pending`
 and blocks `ready_for_review` and `accepted`). Wrong contracts go to
-`superseded` immediately — the gate never blocks that. After a local task
-closes, remove its `runtime.md` row. Tracked tasks default to
-`not_applicable`.
+`superseded` immediately — the gate never blocks that. Tracked tasks default
+to `not_applicable`.
 
 ## Escalation
 
@@ -87,14 +88,12 @@ Escalate or ask the user when requirements are ambiguous, scope expands, high-im
 
 ## Handoff
 
-When interrupted or transferring work, update `vault/handoff.md` with:
+Handoff is dual-triggered: create or update `vault/handoff.md` only when (1) a real interruption occurred, and (2) at least one recovery-relevant fact is not cheaply derivable from canonical state (TASK file, Git, working tree, rerun tests, durable knowledge). Normal completion, waiting for acceptance, a finished review, an open lifecycle alone, an ordinary next step, or a derivable clean session boundary never writes handoff.
 
-- Objective
-- Completed
-- In progress
-- Failed attempts
-- Blockers
-- Next best action
-- Files to read first
+Each entry (named after its task id, or SESSION) holds exactly three sections:
 
-Branch, HEAD, and dirty files are read live from Git at resume time; handoff does not store them as authoritative facts (an optional timestamped, clearly historical environment snapshot is allowed).
+- Why interrupted
+- Transient context not captured elsewhere
+- Exact resume point
+
+Recovery order: read the TASK file, live Git/working tree, and rerun tests first; apply the handoff delta second; delete the entry once consumed. Branch, HEAD, and dirty files are read live from Git at resume time; handoff stores no state copies.

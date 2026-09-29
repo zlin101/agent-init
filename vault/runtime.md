@@ -2,29 +2,28 @@
 
 ## Current Phase
 
-Post-2026.09.9 development: private storage mode M0 is approved; M1 policy normalization is next.
+Post-2026.09.9 development: H1–H4 are owner-accepted (tracked closures await owner commit); TASK-0023 (Profile protocol drift cleanup) is implemented and awaiting owner acceptance review; TASK-0019 remains parked at the post-M2 boundary.
 
 ## Focus
 
-- TASK-0019
+- TASK-0023
 
-## Active Tasks
-
-One line per parallel task; keep bodies in `vault/tasks/<task-id>.md`, this table holds pointers only.
-
-| Task | Objective | Status | Next Action |
-| --- | --- | --- | --- |
-| TASK-0019 | Add a strict private mode in which all Trellium managed material stays out of Git. | active | M0 approved and commit authorized; begin M1 policy v2 normalization next. |
-
-Status values: draft | active | blocked | ready_for_review | accepted | superseded. Task state blocks are authoritative; this table is a projection.
+Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or active-task inventory; `trellium status` reads TASK state directly from task files.
 
 ## Current Progress
 
 - `2026.09.9` is published as a tag-only release; explicit-version installation was verified and no GitHub Release was created (D-0013).
 - TASK-0001 is accepted and TASK-0004 is superseded; the self-hosting and Orion pilot work is closed with Context remaining No-Go (D-0004).
 - TASK-0018 is accepted and committed as `bf253f8`; origin/develop was verified at that commit.
-- TASK-0019 final plan is frozen after storage-schema and entry-carrier ablation plus strategy red-team; product code is unchanged.
+- TASK-0019 final plan is frozen after storage-schema and entry-carrier ablation plus strategy red-team.
 - TASK-0019 M0 passed owner review after three rework rounds: 24 expectedFailure red tests plus P0/golden/guard freezes in `scripts/test_trellium.py` (marker-stripped self-check: 21 failures + 3 errors, 0 unexpected successes), kill-gate evidence in `docs/evals/private-mode-kill-gates-2026-09/`; checker baseline unchanged and the M0 commit is authorized.
+- 2026-09-29: PI implemented M1 (policy v2 normalization) and M2 (reverse privacy Gate; 19 red tests green), then handed the worktree to Codex; the owner has now parked TASK-0019 before marker removal and M3-M5.
+- 2026-09-29: TASK-0020 freezes the H2 execution plan: handoff becomes interruption-triggered transient delta; PI implements and Codex independently accepts.
+- 2026-09-29: TASK-0020 H2 passed Codex review and owner acceptance; TASK-0021 freezes the H3 plan to downgrade ordinary budget exceed to health warnings and remove automatic task-close compaction without adding maintenance machinery.
+- 2026-09-29: PI implemented TASK-0021 H3 (M0-M4) in one pass: both `BUDGET_EXCEEDED` producers are repository-health warnings (warning-only check/status/CI exit 0; correctness errors retain exit 2), task-close compaction coupling deleted across AGENTS/Skill/routing/compaction protocol and bilingual templates with explicit compaction preserved, MIGRATIONS H3 entry added; owner accepted H3 after review.
+- 2026-09-29: TASK-0022 (H4) implemented M0-M4: task classification rewritten risk-first (canonical three-step flow: Level C risk domain → recovery/coordination cost → default A); all mechanical scale thresholds deleted from live surfaces; MIGRATIONS entry added; 7 red→green contracts in `LocalTemplateSemanticsTest`; historical replay tables in the task file; owner accepted H4 after review.
+- 2026-09-29: TASK-0022 review round 1 (REQUEST_CHANGES) fixed: architecture added as explicit Level C risk domain across canonical + all distribution surfaces; MIGRATIONS upgrade semantics corrected to merge-carrier reality; baseline checksum self-reference removed (21/21 verify) and checker exit corrected to 2; runtime refreshed for H3 acceptance.
+- 2026-09-29: TASK-0023 (Profile protocol drift cleanup) implemented M0-M4: `70-adoption-flow.md` made sole canonical owner for profile engineering rules; "唯一 code-comments" drift removed from INIT/protocol README/READMEs/Skills; `agent_entry_section()` fixed to route the complete profile per D-0011 for existing-AGENTS adoptions; regression test red→green; concise MIGRATIONS entry; ready_for_review for owner.
 
 ## Constraints
 
@@ -37,6 +36,10 @@ Status values: draft | active | blocked | ready_for_review | accepted | supersed
 
 ## Recent Changes
 
+- 2026-09-29: accepted TASK-0020 H2 after two review/rework rounds and opened TASK-0021 with the reflected/ablated H3 plan; no H3 product implementation or planning handoff was created.
+
+- 2026-09-29: opened TASK-0020 with the reflected/ablated H2 plan; no H2 implementation or planning handoff was created.
+- 2026-09-29: parked TASK-0019 at the post-M2 boundary by owner direction; cleared Focus and retained the exact recovery delta in `vault/handoff.md`.
 - 2026-09-29: TASK-0019 M0 approved after four owner review rounds: kill-gate evidence saved, 24 red contracts independently verified, status goldens frozen, and no P0/P1/P2 remains open.
 - 2026-09-28: opened TASK-0019 with the final private-mode plan for PI; no product implementation has started.
 - 2026-09-28: accepted and pushed TASK-0018 as `bf253f8`; runtime and decisions returned below budget.
@@ -45,8 +48,6 @@ Status values: draft | active | blocked | ready_for_review | accepted | supersed
 - 2026-09-28: adopted tag-only publishing as D-0013 and superseded D-0003.
 - 2026-09-28: accepted TASK-0001 after its retrospective and superseded TASK-0004 with M2 retained as Partial.
 - 2026-09-28: released `2026.09.8`; TASK-0016 accepted.
-- 2026-09-18: closed the project-scoped `trellium-work` direction as No-Go (D-0009).
-- 2026-09-16: released `2026.09.7` and accepted durable comment routing (TASK-0012).
 
 ## Known Risks
 
@@ -67,4 +68,4 @@ git diff --check
 
 ## Next Steps
 
-- Begin M1 policy v2 normalization, removing its three expectedFailure markers in the same implementation change.
+- Owner independently re-verifies TASK-0023 review-round-1 P2 fixes (`ready_for_review`); owner decides accept/commit. TASK-0019 stays parked.

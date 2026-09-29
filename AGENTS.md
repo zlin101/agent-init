@@ -19,13 +19,13 @@
 
 - `vault/project.md`
 
-接手中断任务时，还要读取：
+接手真实中断的任务时，还要读取（可推导的干净会话边界不读）：
 
 - `vault/handoff.md`
 
 追踪任务或治理任务读取 `vault/tasks/` 下的活跃任务文件。
 
-修改、生成或评审源码、公共 API、注释或 TODO/FIXME 时，如果 `docs/engineering/code-comments.md` 存在，直接读取它，并只应用与当前路径匹配的语言章节。
+修改、生成或评审源码、公共 API、依赖、构建、并发、生命周期、注释或 TODO/FIXME 时，读取 `docs/engineering/profiles/` 下 root 与当前路径匹配的 profile；只应用当前文件实际语言的 profile，不读取未匹配语言。兼容项目若存在 `docs/engineering/code-comments.md`，处理注释/API 文档时也直接读取；重叠的注释/API 规则以该兼容文档为项目定制优先，完整 profile 继续约束其余工程事项。
 
 ## Working Principles
 
@@ -45,10 +45,10 @@
 6. 行为变化时添加或更新聚焦测试。
 7. 运行必要检查。
 8. 检查验收门。
-9. 更新 `vault/runtime.md`。
+9. project-global runtime 发生变化时更新 `vault/runtime.md`；Focus 仅用于导航。
 10. 长期决策写入 `vault/decisions.md`。
-11. 中断或交接时更新 `vault/handoff.md`。
-12. 记忆更新时检查预算线；任一热文件超出时执行或提议压缩（测量→分类→重组→校验→记录）。
+11. 仅在真实中断且存在非可推导 transient delta 时更新 `vault/handoff.md`。
+12. 记忆更新时检查预算线；超出只在 `trellium.py check` 中呈现为仓库健康 warning，不阻塞当前任务验收；仅当用户要求或任务契约明确包含压缩时，才执行或提议压缩（测量→分类→重组→校验→记录）。
 13. 任务中出现用户协作偏好或纠正信号时，记入 `vault/collaboration.md`。
 
 ## Forbidden

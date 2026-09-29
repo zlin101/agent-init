@@ -13,11 +13,11 @@ draft -> active -> ready_for_review -> accepted
 
 任务被替代时使用 `superseded`。暂停且暂不推进的工作进入 `vault/parked.md`，不是 lifecycle 值。
 
-local 任务（`task_storage=local`）进入 `accepted` 前必须在 Memory Updates 填写 Durable knowledge disposition：`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`。错误契约走 `superseded` 立即废止，不受该 gate 阻塞，未处置事项显式转交。local 任务关闭后删除 `runtime.md` 对应行并压缩相关 handoff 条目。tracked 任务默认 `not_applicable`，关闭后可保留 runtime 行。
+local 任务（`task_storage=local`）进入 `accepted` 前必须在 Memory Updates 填写 Durable knowledge disposition：`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`。错误契约走 `superseded` 立即废止，不受该 gate 阻塞，未处置事项显式转交。local 任务关闭后，删除 `vault/handoff.md` 中与其相关的 transient delta（durable 结论先落入 canonical 文件）。tracked 任务默认 `not_applicable`。
 
 ## 任务状态块
 
-Level B/C 任务文件在标题之后携带 `trellium-task-state` 状态块。它是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner（可选字段：`current_slice`、`gates`）。每次状态变化先更新状态块；`runtime.md` 行只是投影。未定义字段非法；改变字段含义必须提升 `schema_version`。状态块不授予批准：Allowed、Requires Approval、Forbidden 与验收仍由任务正文与用户指令决定。
+Level B/C 任务文件在标题之后携带 `trellium-task-state` 状态块。它是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner（可选字段：`current_slice`、`gates`）。每次状态变化只更新状态块；`runtime.md` 不保存 TASK 投影。未定义字段非法；改变字段含义必须提升 `schema_version`。状态块不授予批准：Allowed、Requires Approval、Forbidden 与验收仍由任务正文与用户指令决定。
 
 没有状态块的任务文件是 legacy：下次接触该任务时补上，不批量迁移历史。`TASK-xxxx-review.md` 台账与 `tasks/archive/` 是冷历史，不带状态块。
 
@@ -122,7 +122,7 @@ Next action:
 
 - `vault/runtime.md`
 - `vault/decisions.md` if durable decisions were made
-- `vault/handoff.md` if interrupted or handed off
+- `vault/handoff.md` 仅在真实中断留下非可推导 transient delta 时
 - Durable knowledge disposition (required before `accepted` when `task_storage=local`): not_applicable | pending | none — <reason> | distilled — <canonical destinations>
 ```
 

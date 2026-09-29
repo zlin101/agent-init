@@ -31,8 +31,13 @@
 
 ## 触发时机
 
-- agent-task 工作流收尾的记忆更新步骤检测到任一预算线超出。
+压缩是独立 maintenance 动作，由显式意图触发；普通预算超出本身不是触发器：
+
 - 用户显式要求压缩（例如 "compact vault"）。
+- 独立 maintenance TASK 或当前 TASK 的验收标准明确包含压缩。
+- 正确性恢复需要：热文件结构损坏导致 canonical 状态不可读或不可解析。
+
+agent-task 收尾检测到预算超出（`trellium.py check` 的 `BUDGET_EXCEEDED` warning）只报告为仓库健康信号，不自动触发压缩，也不扩大当前 TASK 的 scope。
 
 ## 压缩流程
 
@@ -48,21 +53,21 @@
 
 ### runtime.md：重写而非删减
 
-以"新会话冷启动需要什么"为唯一标准生成全新文件：当前阶段、活跃任务指针表（Focus + Active Tasks 全表保留）、当前约束、必要检查、已知风险、下一步。
+以"新会话冷启动需要什么"为唯一标准生成全新文件：当前阶段、可选导航 Focus、当前约束、必要检查、已知风险、下一步。TASK inventory 与状态直接从 `vault/tasks/*` 的状态块读取，不复制进 runtime。
 
 旧内容分流：
 
 - 进行中的进展保留；
-- 暂停且暂不推进的任务：从 Active Tasks 表移除该行，降级为 `parked.md` 条目（含重启触发器）；
+- 暂停且暂不推进的任务：降级为 `parked.md` 条目（含重启触发器）；
 - 已完成的进展压缩为一行进 Recent Changes，执行历史已在 `tasks/*`；
 - Recent Changes 超过 10 条时，老条目并入对应任务文件的 Execution Record 或压缩为一行；
 - 长期结论迁入 `decisions.md`。
 
-### handoff.md：滚动窗口加分流
+### handoff.md：消费即删
 
-- 保留最近 1-3 次交接，每条以任务编号命名。
-- 更早的交接：有对应任务文件的，按任务编号把失败尝试与教训合并进该任务文件的 Execution Record；已被 `runtime.md` 或 `decisions.md` 吸收的允许删除。handoff 是瞬态上下文，删除不视为信息损失。
-- 无在途任务时恢复为模板态。
+- 每条是真实中断留下的 transient delta（三小节：Why interrupted / Transient context not captured elsewhere / Exact resume point）。
+- 恢复者消费 delta 后删除该条目；过期未消费的条目，在任何 durable 结论已落入 canonical 位置（decisions/TASK）后可直接删除。禁止把 handoff 内容整体搬进 TASK Execution Record 或其他新文档；handoff 是瞬态上下文，删除不视为信息损失。
+- 无在途中断时恢复为模板态；正常完成、等待 acceptance 或普通 review 产生的条目属于误写，直接删除。
 
 ### parked.md：只出清理提案
 
@@ -135,7 +140,7 @@ ls vault/decisions/
 
 - 索引与目录一一对应：索引无悬挂，目录无孤儿。
 - 压缩前的每条决策在压缩后索引中出现（无 Active 丢失）。
-- `runtime.md` 活跃任务指针指向存在的文件。
+- `runtime.md` 的 Focus 若指向不存在的 TASK，只报告 navigation unresolved；TASK lifecycle 仍完全由任务状态块决定。
 
 ```bash
 git diff --stat HEAD

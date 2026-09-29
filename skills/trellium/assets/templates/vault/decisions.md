@@ -1,6 +1,6 @@
 # Decisions
 
-Record durable decisions here. Keep current task progress in `vault/runtime.md` or `vault/tasks/*`.
+Record durable decisions here. Keep TASK progress in `vault/tasks/*`; `runtime.md` is project-global only.
 
 Every decision carries a status: `Active`, `Superseded by D-xxxx`, `Merged into D-xxxx`, or `Expired`. Default is `Active`.
 

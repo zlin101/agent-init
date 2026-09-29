@@ -48,9 +48,9 @@ vault/
 
 Budgets: runtime ≤ 120 lines (Recent Changes ≤ 10 entries); handoff ≤ 3 entries or 100 lines; decisions ≤ 150 lines or 8 full records; parked ≤ 60 lines or 20 entries; tasks ≤ 40 current task files (excluding archive and review ledgers). These are initialization defaults; the project's current budgets and TASK storage live once in the `trellium-policy` block in `vault/index.md`. `trellium.py check <target>` measures hot files and only enforces explicitly configured thresholds; a missing policy block is reported as legacy, never substituted with hidden defaults.
 
-Read-only status summary: `trellium.py status <target>` (2026.09.5) compiles the state layer checked by `check` into an owner view — focus, open-task classification (draft/active/blocked/ready_for_review with authority/slice/gates verbatim and the runtime projection), closed tasks as counts only, and explicit unresolved entries with finding codes; lifecycle and authority are never inferred, it is not an approval inbox, and exit codes match `check` (`2` errors / `0` warnings-only / `1` operational).
+Read-only status summary: `trellium.py status <target>` (2026.09.5) scans canonical task-state blocks into an owner view — navigation focus, open-task classification (draft/active/blocked/ready_for_review with authority/slice/gates verbatim and task path), closed tasks as counts only, and explicit unresolved task-state entries with finding codes. Focus is navigation only; lifecycle and authority are never inferred. It is not an approval inbox, and exit codes match `check` (`2` errors / `0` warnings-only / `1` operational).
 
-Compaction runs five phases: measure → classify → restructure → verify → record. Non-semantic moves (relocating bodies, indexing, marking Active, demoting paused tasks to parked entries) run autonomously; semantic judgments (`Superseded by D-xxxx` / `Merged into D-xxxx` / `Expired`, parked cleanup) are proposal-only, confirmed by the user in batch, and stay `Active` until confirmed. Compaction is a dedicated commit containing only `vault/` changes.
+Compaction runs five phases: measure → classify → restructure → verify → record. Non-semantic moves (relocating bodies, indexing, marking Active, demoting paused tasks to parked entries) run autonomously; semantic judgments (`Superseded by D-xxxx` / `Merged into D-xxxx` / `Expired`, parked cleanup) are proposal-only, confirmed by the user in batch, and stay `Active` until confirmed. Compaction is a dedicated commit containing only `vault/` changes. Configured budget exceeds are repository-health warnings in `trellium.py check`; compaction itself is independent maintenance triggered by explicit intent, never an automatic task-close step.
 
 Decision indexing: decisions.md becomes a pure index and bodies move to `vault/decisions/D-xxxx-slug.md`. Index principle: growth goes to directories, reading goes through indexes.
 
@@ -62,32 +62,34 @@ Two small versioned JSON blocks carry current-state facts; everything else stays
 
 `trellium-task-state` sits right after a Level B/C task title. Required fields: `schema_version` (integer `1`), `task_id` (`TASK-NNNN`, matching the file name), `level` (`B | C`), `authority_level` (integer 0..4), `lifecycle`. Optional: `current_slice` (non-empty string) and `gates` (open gate ids mapped to `pending | in_progress | passed | partial | blocked | not_authorized | not_applicable`). Unknown fields are invalid. It is the single owner of lifecycle, authority level, current slice, and gate results; it never grants approvals. Task files without a block are legacy (reported, not guessed); review ledgers and `tasks/archive/` carry no block.
 
-`trellium-policy` sits at the top of `vault/index.md`. Required: `schema_version` and `task_storage` (`tracked | local`); optional `budgets` per hot file. It is the single source for project budgets and TASK storage. First adoption asks the owner and recommends/defaults to `local`: task files, review ledgers, and archive stay out of Git while the collaboration core remains tracked; Accepted conclusions must then be distilled into published truth. Choose `tracked` when the complete task trail should be shared. Local adoption creates a narrow `vault/tasks/.gitignore`; tools never auto-migrate or auto-untrack. Before a local task enters `accepted`, its Memory Updates record a Durable knowledge disposition (`none` with a reason, or `distilled` listing canonical destinations; unfilled counts as `pending` and blocks `ready_for_review`/`accepted`). In a fresh clone an ignored local task file is absent, so its runtime row is an unverified clue that grants no authority; closed local tasks leave no runtime row.
+`trellium-policy` sits at the top of `vault/index.md`. Required: `schema_version` and `task_storage` (`tracked | local`); optional `budgets` per hot file. It is the single source for project budgets and TASK storage. First adoption asks the owner and recommends/defaults to `local`: task files, review ledgers, and archive stay out of Git while the collaboration core remains tracked; Accepted conclusions must then be distilled into published truth. Choose `tracked` when the complete task trail should be shared. Local adoption creates a narrow `vault/tasks/.gitignore`; tools never auto-migrate or auto-untrack. Before a local task enters `accepted`, its Memory Updates record a Durable knowledge disposition (`none` with a reason, or `distilled` listing canonical destinations; unfilled counts as `pending` and blocks `ready_for_review`/`accepted`). In a fresh clone an ignored local task file is absent by storage contract; runtime provides no recovery copy.
 
 ## Task Lifecycle
 
 `draft | active | blocked | ready_for_review | accepted | superseded`
 
-The `trellium-task-state` block owns it; the `runtime.md` TASK row is a projection. Paused-and-shelved work lives in `parked.md`, not in a lifecycle value. Level A has no task file; the `runtime.md` inline record is authoritative.
+The `trellium-task-state` block is the only persisted owner of lifecycle, authority, current slice, and gate results; `runtime.md` persists no TASK projection. Paused-and-shelved work lives in `parked.md`, not in a lifecycle value. Level A has no persisted TASK lifecycle and recovers from the workspace, Git diff, and tests.
 
 ## File Responsibilities
 
 - `vault/index.md`: routing table plus the `trellium-policy` project policy block; no runtime state.
 - `vault/project.md`: stable project purpose, scope, boundaries, and current phase.
-- `vault/runtime.md`: short current state, active task pointer table (Focus line + Active Tasks, one row per parallel task), checks, risks, and next steps. Supports parallel tasks; a status change edits only the matching row, and TASK rows are projections of each task's state block.
+- `vault/runtime.md`: short project-global current state, optional navigation Focus, checks, risks, and next steps. Focus owns no task state, authority, or active-task inventory.
 - `vault/governance.md`: task levels, authority levels, task lifecycle, task contracts, acceptance gates, escalation, and handoff.
 - `vault/decisions.md`: durable decision index and lifecycle records (Active / Superseded / Merged / Expired); bodies move to `vault/decisions/*` after indexing.
-- `vault/handoff.md`: recent transfer context for interrupted or resumed work; each entry named after its task id, at most 3 entries; live Git facts are read at resume time, not stored as authoritative.
-- `vault/parked.md`: cold index of user-parked items; read only when mentioned, never on the default path; flows both ways with runtime (demote on park, promote on mention).
+- `vault/handoff.md`: transient delta written only when a real interruption leaves a non-derivable recovery fact; each entry (task id, or SESSION) holds exactly three sections — Why interrupted, Transient context not captured elsewhere, Exact resume point; recovery reads TASK/live Git/tests first, applies the delta, then deletes it.
+- `vault/parked.md`: cold index of user-parked items; read only when mentioned, never on the default path; promote back to a task file when resumed.
 - `vault/collaboration.md`: soft collaboration preferences that cannot override hard governance.
 - `vault/tasks/*`: tracked or governed task contracts, execution records, verification, and closure notes.
 - `skills/*`: reusable Agent workflows.
 
 ## Task Levels
 
-- Level A, simple task: low risk, usually one session, one or two files, no architecture/API/dependency/data-model impact. Record in `vault/runtime.md`.
-- Level B, tracked task: multi-file, auditable, needs design plus docs/tests/verification, may need handoff. Record in `vault/tasks/TASK-xxxx-short-title.md`.
-- Level C, governed task: changes architecture, public API, data model, framework, external services, security, privacy, cost, deployment, or Agent governance. Record in task file and `vault/decisions.md`; usually requires user confirmation.
+Classification order: a Level C risk domain → C; otherwise clearly high recovery or coordination cost → B; otherwise → A. Scale only prompts judgment and never decides the level alone.
+
+- Level C, governed task: any risk domain makes it governed — a one-line change included (security/privacy, public API or external contracts, persistent data/migrations, deployment/production behavior, dependencies, cost/quota, architecture (durable architectural decisions), governance rules). Record in task file and `vault/decisions.md`; usually requires user confirmation.
+- Level B, tracked task: outside Level C risk domains but recovery or coordination cost is clearly high (cross-session, real handoff, multi-owner, external system state, multi-stage gates, execution state not cheaply recoverable from diff/tests). Record in `vault/tasks/TASK-xxxx-short-title.md`.
+- Level A, simple task: low risk, low recovery and coordination cost. No persisted TASK lifecycle by default; recover from the workspace, Git diff, and tests.
 
 ## Authority Levels
 
@@ -123,7 +125,7 @@ Do not close work until:
 3. Code, tests, docs, and vault memory are synchronized when applicable.
 4. `vault/runtime.md` is updated.
 5. Durable decisions are recorded in `vault/decisions.md`.
-6. Unfinished work or risks are recorded in the task file or `vault/handoff.md`.
+6. Unfinished work or risks are recorded in the task file (not an ordinary handoff).
 7. No high-impact change is hidden.
 
 Passing tests alone is not completion.
@@ -132,7 +134,7 @@ Passing tests alone is not completion.
 
 - Plan first: clarify goal, boundary, acceptance, verification, files, and non-goals before editing.
 - Context grounded: read local project context before applying generic advice.
-- Checkpointable: keep long tasks recoverable through task files, runtime, and handoff.
+- Checkpointable: keep long tasks recoverable through task files, runtime, live Git/tests, and — only for real interruptions that leave a non-derivable delta — a transient-delta handoff.
 - Human signal: return architecture, cost, safety, privacy, deployment, and ambiguous product decisions to the user.
 - Review ledger: converge multi-round review through a `TASK-xxxx-review.md` ledger — one batched write per round instead of message ping-pong; archive into the task file once converged.
 - Workflow compounding: repeated stable workflows become focused skills, not bloated entry files.

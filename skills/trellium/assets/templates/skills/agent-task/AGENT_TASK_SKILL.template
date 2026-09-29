@@ -9,21 +9,21 @@ description: Use when doing non-trivial project work that requires context readi
 
 1. Read `AGENTS.md`, `vault/index.md` (with the cheat sheet), and `vault/runtime.md`; read `vault/governance.md` in full for Level B/C work, unclear classification, or governance-rule changes.
 2. Follow `vault/index.md` to read task-specific context.
-3. Classify the task as Level A, Level B, or Level C.
+3. Classify with the three-step judgment: does the work hit a Level C risk domain? If yes → C. Otherwise, is interruption-recovery or coordination cost clearly high? If yes → B. Otherwise → A. Scale (file count, diff, acceptance-item count) only prompts judgment and never decides the level alone; details in `vault/governance.md`.
 4. Determine authority level and whether user confirmation is required.
 5. Define objective, scope, out of scope, acceptance criteria, and checks.
-6. Create or update a task file for Level B or Level C work. Keep its `trellium-task-state` block authoritative for lifecycle, authority level, current slice, and gate results; update it on every status change, then sync the matching `runtime.md` row (a projection). Task files without a state block are legacy: add the block when you next touch the task.
+6. Create or update a task file for Level B or Level C work. Keep its `trellium-task-state` block authoritative for lifecycle, authority level, current slice, and gate results; update only that block on every status change. `runtime.md` does not persist a TASK projection. Task files without a state block are legacy: add the block when you next touch the task.
 7. Make the smallest necessary change.
 8. Add or update focused tests for behavior changes.
-9. Keep long work checkpointable through task files and `vault/handoff.md`.
+9. Keep long work checkpointable through task files; write a three-section handoff (Why interrupted / Transient context not captured elsewhere / Exact resume point) only when a real interruption leaves a non-derivable delta, with recovery ordered TASK first, then Git/working tree/tests, then the handoff delta.
 10. Run required checks.
 11. Check acceptance gates; tests passing alone is not completion.
 12. For multi-round review, keep a ledger at `vault/tasks/TASK-xxxx-review.md`: findings enter as a numbered list, get processed in batch, and get their statuses written back in batch (open / fixed / wont-fix / needs-discussion); archive it into the task file's Execution Record once converged.
-13. Update `vault/runtime.md`: edit only the status and next action of the matching row in Active Tasks, and the Focus line when the main line changes; one item per line, single-line replacement, never rewrite whole sections.
-14. Record durable decisions in `vault/decisions.md`. For local tasks (`task_storage=local`), fill the Durable knowledge disposition line in the task file's Memory Updates before entering `accepted`: `none — <reason>` or `distilled — <canonical destinations>`; an unfilled line counts as `pending`, which blocks `ready_for_review` and `accepted`. Wrong contracts go to `superseded` immediately — the gate never blocks that; after a local task closes, remove its `runtime.md` row.
-15. When the user parks a task or decision, add an entry to `vault/parked.md` (with a resume trigger); when they bring it up again, promote it back to a task file (draft) or `runtime.md`.
+13. Update `vault/runtime.md` only when project-global runtime changes. Adjust Focus when useful, but Focus is navigation only: it owns no task state, authority, or active-task inventory.
+14. Record durable decisions in `vault/decisions.md`. For local tasks (`task_storage=local`), fill the Durable knowledge disposition line in the task file's Memory Updates before entering `accepted`: `none — <reason>` or `distilled — <canonical destinations>`; an unfilled line counts as `pending`, which blocks `ready_for_review` and `accepted`. Wrong contracts go to `superseded` immediately — the gate never blocks that.
+15. When the user parks a task or decision, add an entry to `vault/parked.md` (with a resume trigger); when they bring it up again, promote it back to a task file (draft).
 16. Read project budgets and TASK storage from the `trellium-policy` block in `vault/index.md` before compaction or storage decisions; the block is the only source of current numbers. When it is missing, treat the project as legacy, follow the protocol's initialization defaults for manual judgment, and report the gap.
-17. When any hot file exceeds its budget, compact in five phases: measure → classify → restructure → verify → record. Compaction rules:
+17. When any hot file exceeds its budget, report the `BUDGET_EXCEEDED` warning honestly (a repository-health signal) — it never blocks the current task's acceptance and never expands this task's scope on its own; compact in five phases (measure → classify → restructure → verify → record) only when the owner explicitly asks, an independent maintenance TASK or this task's acceptance criteria include compaction, or a hot file is structurally damaged and needs recovery. Compaction rules:
     - Decision indexing and task archiving are zero-loss moves an Agent may run autonomously.
     - Demoting paused tasks to `parked.md` entries is a zero-loss move; parked cleanup is proposal-only.
     - Superseded / Merged / Expired judgments are proposal-only; keep Active until the user confirms.

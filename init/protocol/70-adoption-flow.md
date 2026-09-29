@@ -132,7 +132,7 @@ Agent 执行接入前，应只做只读扫描：
 12. 在 `vault/project.md` 记录“这是既有项目接入，不是新项目初始化”。
 13. 在 `vault/runtime.md` 记录接入状态、风险和下一步。
 14. 在 `vault/decisions.md` 记录接入决策。
-15. 如发生中断或存在未完成事项，更新 `vault/handoff.md`。
+15. 仅当发生真实中断且存在非可推导 transient delta 时，更新 `vault/handoff.md`（未完成事项本身不触发 handoff；普通接入与规划不产生 handoff）。
 16. 运行只读或文档级检查；不要运行会改变工程状态的命令，除非用户授权。
 
 ## 接入验收
@@ -163,6 +163,8 @@ Agent 执行接入前，应只做只读扫描：
 
 ### Profile 工程规范
 
+本节是 Profile 工程规范的唯一 canonical 定义：产物集合、文件角色、roots、已有文件保护与 proposal、AGENTS 路由语义以本节为准；其他文档只保留摘要并指向本节，不重复完整规则。
+
 `adopt --profile PROFILE[=ROOT]` 可重复使用，例如：
 
 ```bash
@@ -171,7 +173,7 @@ python3 trellium.py adopt <target> \
   --profile python-backend=services/model
 ```
 
-工具为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`，把该 profile 的全部 roots 写入文件，并让 `AGENTS.md` 一跳按当前路径与实际语言读取；多语言不共享正文，也不加载未匹配 profile。`docs/engineering/code-comments.md` 继续作为兼容载体生成/保留，避免 2026.09.7 项目定制丢失；两者同时存在时，仅在注释/API 规则重叠处由兼容文档作为项目定制优先，完整 profile 继续约束其他工程事项。选择、roots、完整源 hash 和项目文件路径记录在 `.agent-init.json`，便于确定性升级；人类可读规范仍以项目文档为准。已有规范（包括 `adopt --force`）不静默覆盖，后续上游与本地同时变化时走 proposal。改变既有 profile 集属于显式评审迁移，不由重复 adopt 偷偷改写。
+工具为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`，把该 profile 的全部 roots 写入文件，并让 `AGENTS.md` 一跳按当前路径与实际语言读取；多语言不共享正文，也不加载未匹配 profile。`docs/engineering/code-comments.md` 继续作为兼容载体生成/保留，避免 2026.09.7 项目定制丢失；两者同时存在时，仅在注释/API 规则重叠处由兼容文档作为项目定制优先，完整 profile 继续约束其他工程事项。Profile 必须显式选择，不自动猜测；未选 profile 不生成任何工程文档。选择、roots 与完整源 hash 记录在 `.agent-init.json`，stamp 分别记录完整 profile（`project_profile`）与兼容载体（`project_rules`）两个文件角色的项目路径，便于确定性升级；人类可读规范仍以项目文档为准。已有规范（包括 `adopt --force`）不静默覆盖，后续上游与本地同时变化时走 proposal。改变既有 profile 集属于显式评审迁移，不由重复 adopt 偷偷改写。
 
 ### 文件两分法
 

@@ -43,7 +43,7 @@ vault/governance.md
 vault/project.md
 ```
 
-接手交接任务追加读取：
+接手真实中断的任务追加读取（可推导的干净会话边界不读）：
 
 ```text
 vault/handoff.md
@@ -70,17 +70,17 @@ vault/tasks/<task-id>.md
 1. 读取必要上下文；
 2. 判断任务等级和授权等级；
 3. 明确任务边界和验收标准；
-4. Level B 或 Level C 任务创建或更新任务文件；状态变化先更新任务文件的 `trellium-task-state` 状态块，再同步 `vault/runtime.md` 对应行（投影）；
+4. Level B 或 Level C 任务创建或更新任务文件；状态变化只更新任务文件的 `trellium-task-state` 状态块；
 5. 做最小必要修改；
 6. 行为变化时补充或更新聚焦测试；
 7. 运行必要检查；
 8. 检查验收门；
 9. 更新 `vault/runtime.md`；
 10. 长期有效决策更新 `vault/decisions.md`；
-11. 任务中断或转交时更新 `vault/handoff.md`；
+11. 仅在真实中断且存在非可推导 transient delta 时更新 `vault/handoff.md`；
 12. 用户挂起任务时记入 `vault/parked.md`，重新提起时升回。
 
-`task_storage=local` 的项目中，`runtime.md` 指向的任务文件不在本工作区（fresh clone 中 local 任务文件被忽略，或文件意外丢失）时，该行只是未验证的工作线索：它不授予 Authority，不得据此继续实现；先向 owner 取回原任务文件，或经 owner 批准后重建任务契约。
+`task_storage=local` 的项目在 fresh clone 中缺少 local TASK 文件符合 storage contract；`runtime.md` 不承担恢复副本职责。继续该任务前先向 owner 取回原任务文件，或经 owner 批准后重建任务契约。
 
 ## 禁止内容
 

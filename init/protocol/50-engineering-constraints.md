@@ -85,7 +85,7 @@
 - 行为或约束变化时同步更新或删除注释。Git 保存历史，源码注释不保留已失效实现。
 - 生成文件的注释从生成源修改；工具 directive、编译指令和其他机器语义注释不得按普通文本翻译或重排。
 
-语言对公共 API 的定义、文档语法和 directive 规则放在对应 profile，不伪装成通用规则。选定 profile 时，将公共核心与所选语言适配合并为目标项目唯一的 `docs/engineering/code-comments.md`；不把工程规范正文写入 Vault。`AGENTS.md` 只保留一跳条件路由，源码、API、注释或 TODO/FIXME 任务才直接读取该文档。
+语言对公共 API 的定义、文档语法和 directive 规则放在对应 profile，不伪装成通用规则。显式选择 profile 时生成完整工程规范 `docs/engineering/profiles/<profile>.md`，并保留兼容载体 `docs/engineering/code-comments.md`；`AGENTS.md` 按 root 与实际语言一跳路由，重叠的注释/API 规则以兼容文档为项目定制优先。完整规则见 `70-adoption-flow.md`「Profile 工程规范」。
 
 ## 记忆目标
 

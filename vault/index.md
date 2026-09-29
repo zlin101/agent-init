@@ -13,9 +13,10 @@
 
 ## 任务与授权速查表
 
-- Level A 简单任务：低风险、一次会话、1-2 个文件；记 `runtime.md`。
-- Level B 追踪任务：多文件、需审计、可能交接；记 `tasks/*`。
-- Level C 治理任务：架构、公开 API、数据模型、框架、外部服务、安全、成本、部署或治理规则变化；记 `tasks/*` 和 `decisions.md`，需用户确认。
+- Level C 治理任务：命中风险域即治理，一行修改也不例外（安全/隐私、公开 API/外部契约、持久数据/迁移、部署、依赖、成本/配额、架构方向、治理规则）；记 `tasks/*` 和 `decisions.md`，需用户确认。
+- Level B 追踪任务：非 C 风险域但中断恢复或协作成本明显较高（跨 session、真实 handoff、多 owner、外部系统状态、多阶段 gate）；记 `tasks/*`。
+- Level A 简单任务：低风险、恢复与协调成本低，默认不持久化 TASK lifecycle；仅 project-global runtime 变化时记 `runtime.md`。
+- 规模（文件数、验收项数）只提示判断，不单独决定等级。
 - 授权等级：0 只读 / 1 局部修改 / 2 限定范围 / 3 需确认 / 4 禁止。
 - 判定模糊或涉及治理规则本身：读完整 `governance.md`。
 
@@ -35,7 +36,7 @@
 
 - `vault/project.md`
 
-中断或恢复任务：
+中断或恢复任务（仅真实中断；可推导的干净边界不读）：
 
 - `vault/handoff.md`
 
@@ -51,10 +52,10 @@
 
 - `index.md`（本文件）：路由 + `trellium-policy` 项目策略块；不保存运行态。
 - `project.md`：稳定项目目标、范围、边界和阶段。
-- `runtime.md`：当前状态、活跃任务指针表（Focus + Active Tasks）、检查、风险和下一步。TASK 行是各任务状态块的派生投影。
+- `runtime.md`：项目全局当前状态、可选导航 Focus、检查、风险和下一步；不拥有 TASK 状态或清单。
 - `governance.md`：任务等级、授权、任务契约、验收门、升级和交接。
 - `decisions.md`：长期决策索引与（未拆分前的）决策记录；正文拆分后在 `vault/decisions/D-xxxx-*.md`。
-- `handoff.md`：中断工作近期交接状态，每条标注任务编号；实时 Git 事实在恢复时现场读取，不作为权威记录。
+- `handoff.md`：真实中断时的 transient delta，每条以任务编号命名（无任务编号时 SESSION），只含三小节：Why interrupted / Transient context not captured elsewhere / Exact resume point；恢复时先读 TASK 与实时 Git/测试，再用它补非可推导现场，消费后即删。
 - `parked.md`：用户挂起事项冷索引；仅被提及时读取，不进默认读取路径。
 - `collaboration.md`：不能覆盖硬规则的软协作偏好。
 - `tasks/README.md`：任务文件生命周期流转、状态块规则和模板。
@@ -72,12 +73,12 @@
 ## 更新规则
 
 - 热文件更新纪律：固定段落顺序，每条内容占一行；状态或进展变化用单行替换，不重写整段。
-- 非琐碎任务后更新 `runtime.md`（Active Tasks 表中对应任务行的状态与下一步）。
-- Level B 或 Level C 更新 `tasks/*`：先改任务的 `trellium-task-state` 状态块，再同步 `runtime.md` 对应行（投影）。
+- 非琐碎任务后只在 project-global runtime 发生变化时更新 `runtime.md`；Focus 只有导航语义。
+- Level B 或 Level C 更新 `tasks/*`：`trellium-task-state` 状态块是 lifecycle、Authority、slice 与 Gate 的唯一 owner。
 - 长期决策更新 `decisions.md`。
-- 中断或交接时更新 `handoff.md`。
+- 仅在真实中断且存在非可推导 transient delta 时更新 `handoff.md`。
 - 用户挂起任务时在 `parked.md` 记条目；重新提起时升回任务文件或 `runtime.md`。
 - 将长细节移出 `runtime.md`。
-- local 任务（`task_storage=local`）关闭后删除 `runtime.md` 对应行；runtime 指向的 missing local TASK 只是线索，不授予授权（见 governance.md）。
+- local 任务（`task_storage=local`）在 fresh clone 中缺失符合 storage contract；`runtime.md` 不承担恢复副本职责（见 governance.md）。
 - 更新热文件时检查预算线；当前上限以上方 `trellium-policy` 策略块为唯一来源。
-- 超出预算线时执行压缩：测量→分类→重组→校验→记录；语义判定（Superseded/Merged/Expired）只提案，用户确认前保持 Active。
+- 预算超出只在 `trellium.py check` 中呈现为健康 warning，不阻塞任务验收；压缩由显式意图（用户要求/独立 maintenance TASK/任务契约）触发：测量→分类→重组→校验→记录；语义判定（Superseded/Merged/Expired）只提案，用户确认前保持 Active。

@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterator
+from contextlib import contextmanager, suppress
+from datetime import date
 import difflib
 import hashlib
 import json
 import os
+from pathlib import Path, PurePosixPath
 import re
 import secrets
 import shutil
@@ -17,10 +21,6 @@ import sys
 import tarfile
 import urllib.error
 import urllib.request
-from contextlib import contextmanager
-from datetime import date
-from pathlib import Path, PurePosixPath
-from typing import Iterator
 
 
 # The script runs from two layouts:
@@ -454,8 +454,6 @@ def open_child_directory(parent_descriptor: int, name: str, create: bool) -> int
         except FileExistsError:
             pass
         return os.open(name, DIRECTORY_OPEN_FLAGS, dir_fd=parent_descriptor)
-
-
 def open_target_directory(target: Path, create: bool) -> int:
     """Open an absolute target from its filesystem root without following links."""
     if not target.is_absolute():
@@ -520,10 +518,9 @@ def staging_file_at(parent_descriptor: int, destination_name: str) -> tuple[int,
 
 
 def unlink_at_if_present(parent_descriptor: int, name: str) -> None:
-    try:
+    with suppress(FileNotFoundError):
+        # pi-lens-ignore: unchecked-throwing-call-python
         os.unlink(name, dir_fd=parent_descriptor)
-    except FileNotFoundError:
-        pass
 
 
 def atomic_copy_file_at(
@@ -815,7 +812,7 @@ Read `vault/governance.md` in full for Level B or Level C work, unclear classifi
 
 Use `vault/project.md` on first entry, `vault/handoff.md` when resuming interrupted work, and `vault/tasks/` for tracked or governed tasks.
 
-When modifying, generating, or reviewing source code, public APIs, comments, or TODO/FIXME items, read `docs/engineering/code-comments.md` directly when it exists and apply only the language sections whose paths match the work.
+When modifying or reviewing source code, public APIs, dependencies, builds, concurrency, lifecycle, comments, or TODO/FIXME items, read the profile under `docs/engineering/profiles/` whose declared root matches the current path. Apply only the profile for the file's actual language; do not load unmatched languages. For compatibility, also read `docs/engineering/code-comments.md` for comment/API work when it exists. Its overlapping comment/API rules take precedence as project customization; the complete profile still governs all other engineering concerns.
 {AGENTS_MARKER_END}
 """
 
@@ -920,22 +917,11 @@ Trellium adoption recorded on {today}.
 
 ## Focus
 
-- ADOPTION
+- (none)
 
-## Active Tasks
-
-One line per parallel task; keep bodies in `vault/tasks/<task-id>.md`, this
-table holds pointers only.
-
-| Task | Objective | Status | Next Action |
-| --- | --- | --- | --- |
-| ADOPTION | Maintain the Agent collaboration layer. | active | Update `vault/project.md` with durable facts. |
-
-Status values: draft | active | blocked | ready_for_review | accepted |
-superseded. For a task with a task file, the status here is a projection of
-its `trellium-task-state` block: update the block first, then this row.
-Focus names the current attention, not lifecycle; a status change edits only
-the matching row. Demote paused-and-shelved tasks to `vault/parked.md`.
+Focus is optional navigation only. It owns no lifecycle, authority, slice,
+gate, or active-task inventory; `trellium status` reads TASK state directly
+from task files.
 
 Acceptance: `AGENTS.md`, `vault/`, and `skills/agent-task/SKILL.md` exist and route future Agents to project memory.
 
@@ -1032,12 +1018,8 @@ def validate_stamp_file_paths(stamp: dict) -> None:
     managed_roles = managed_upgrade_file_roles(profiles, include_retired=True)
     for relative, entry in files.items():
         validate_managed_relative(relative)
-        if (
-            relative == STAMP_RELATIVE
-            or relative == PROPOSAL_DIRECTORY
-            or relative.startswith(f"{PROPOSAL_DIRECTORY}/")
-            or relative == BACKUP_DIRECTORY
-            or relative.startswith(f"{BACKUP_DIRECTORY}/")
+        if relative in (STAMP_RELATIVE, PROPOSAL_DIRECTORY, BACKUP_DIRECTORY) or relative.startswith(
+            (f"{PROPOSAL_DIRECTORY}/", f"{BACKUP_DIRECTORY}/")
         ):
             raise AdoptionError(
                 f"managed path uses a reserved internal namespace: {relative!r}"
@@ -1374,7 +1356,7 @@ def write_adoption_stamp(
                 template_hash = hash_path(TEMPLATES_ROOT / "AGENTS.md")
                 if template_hash is None:
                     raise AdoptionError(f"template file does not exist: {TEMPLATES_ROOT / 'AGENTS.md'}")
-                entry = {"role": "merge", "baseline": template_hash}
+                entry: dict[str, object] = {"role": "merge", "baseline": template_hash}
             elif action == "updated":
                 entry = {"role": "marker", "baseline": sha256_hex(upstream_marker_region().encode("utf-8"))}
             else:
@@ -1600,9 +1582,8 @@ def print_playbook(sections: list[tuple[str, str]]) -> None:
 #
 # `check` validates the minimal canonical state layer: the trellium-task-state
 # block in Level B/C task files, the trellium-policy block in vault/index.md,
-# the runtime projection of task lifecycles, hot-file budgets, and TASK
-# storage versus Git. It never writes, never executes content, and never
-# follows symbolic links into vault inputs.
+# hot-file budgets, and TASK storage versus Git. It never writes, never
+# executes content, and never follows symbolic links into vault inputs.
 
 CHECK_ERROR_EXIT = 2
 
@@ -1617,7 +1598,9 @@ REVIEW_LEDGER_RE = re.compile(rf"^{TASK_ID_PATTERN}-review\.md$")
 
 LIFECYCLE_VALUES = ("draft", "active", "blocked", "ready_for_review", "accepted", "superseded")
 GATE_VALUES = ("pending", "in_progress", "passed", "partial", "blocked", "not_authorized", "not_applicable")
+STORAGE_MODES = ("tracked", "local", "private")
 TASK_STORAGE_VALUES = ("tracked", "local")
+POLICY_SCHEMA_VERSIONS = (1, 2)
 
 STATE_REQUIRED_FIELDS = ("schema_version", "task_id", "level", "authority_level", "lifecycle")
 STATE_OPTIONAL_FIELDS = ("current_slice", "gates")
@@ -1652,7 +1635,6 @@ FINDING_PHASES = (
     "required-files",
     "policy",
     "task-state",
-    "runtime-projection",
     "budgets",
     "storage",
 )
@@ -1721,23 +1703,22 @@ def validate_state_object(state: dict) -> list[str]:
     if missing:
         errors.append(f"missing field(s): {', '.join(missing)}")
 
-    if "schema_version" in state:
-        if not is_strict_int(state["schema_version"]) or state["schema_version"] != 1:
-            errors.append("schema_version must be the integer 1")
+    if "schema_version" in state and (
+        not is_strict_int(state["schema_version"]) or state["schema_version"] != 1
+    ):
+        errors.append("schema_version must be the integer 1")
     if "task_id" in state:
         task_id = state["task_id"]
         if not isinstance(task_id, str) or TASK_ID_RE.match(task_id) is None:
             errors.append(f"task_id must match {TASK_ID_PATTERN}")
-    if "level" in state:
-        if state["level"] not in ("B", "C"):
-            errors.append('level must be "B" or "C"')
+    if "level" in state and state["level"] not in ("B", "C"):
+        errors.append('level must be "B" or "C"')
     if "authority_level" in state:
         authority = state["authority_level"]
         if not is_strict_int(authority) or not 0 <= authority <= 4:
             errors.append("authority_level must be an integer in 0..4")
-    if "lifecycle" in state:
-        if state["lifecycle"] not in LIFECYCLE_VALUES:
-            errors.append(f"lifecycle must be one of: {', '.join(LIFECYCLE_VALUES)}")
+    if "lifecycle" in state and state["lifecycle"] not in LIFECYCLE_VALUES:
+        errors.append(f"lifecycle must be one of: {', '.join(LIFECYCLE_VALUES)}")
     if "current_slice" in state:
         current_slice = state["current_slice"]
         if not isinstance(current_slice, str) or not current_slice.strip():
@@ -1759,18 +1740,28 @@ def validate_state_object(state: dict) -> list[str]:
 
 def validate_policy_object(policy: dict) -> list[str]:
     errors: list[str] = []
-    known = {"schema_version", "task_storage", "budgets"}
+    schema_version = policy.get("schema_version")
+    schema_v2 = is_strict_int(schema_version) and schema_version == 2
+    known = {"schema_version", "storage_mode", "budgets"} if schema_v2 else {"schema_version", "task_storage", "budgets"}
     unknown = sorted(set(policy) - known)
     if unknown:
         errors.append(f"unknown field(s): {', '.join(unknown)}")
-    missing = [field for field in ("schema_version", "task_storage") if field not in policy]
-    if missing:
-        errors.append(f"missing field(s): {', '.join(missing)}")
-    if "schema_version" in policy:
-        if not is_strict_int(policy["schema_version"]) or policy["schema_version"] != 1:
-            errors.append("schema_version must be the integer 1")
-    if "task_storage" in policy:
-        if policy["task_storage"] not in TASK_STORAGE_VALUES:
+    if "schema_version" in policy and (
+        not is_strict_int(schema_version) or schema_version not in POLICY_SCHEMA_VERSIONS
+    ):
+        errors.append("schema_version must be the integer 1 or 2")
+    if schema_v2:
+        if "task_storage" in policy:
+            errors.append("task_storage must not appear in schema 2; use storage_mode")
+        if "storage_mode" not in policy:
+            errors.append("missing field(s): storage_mode")
+        elif policy["storage_mode"] not in STORAGE_MODES:
+            errors.append(f"storage_mode must be one of: {', '.join(STORAGE_MODES)}")
+    else:
+        missing = [field for field in ("schema_version", "task_storage") if field not in policy]
+        if missing:
+            errors.append(f"missing field(s): {', '.join(missing)}")
+        if "task_storage" in policy and policy["task_storage"] not in TASK_STORAGE_VALUES:
             errors.append(f"task_storage must be one of: {', '.join(TASK_STORAGE_VALUES)}")
     if "budgets" in policy:
         budgets = policy["budgets"]
@@ -1795,6 +1786,23 @@ def validate_policy_object(policy: dict) -> list[str]:
                             f"budgets.{file_key}.{threshold_key} must be a positive integer"
                         )
     return errors
+
+
+def normalized_storage_mode(policy: dict | None) -> str | None:
+    """Collapse policy schema v1/v2 into the single tracked/local/private mode.
+
+    All storage consumers read this, never the raw fields: v1 keeps its
+    legacy task_storage (tracked/local), v2 carries the whole-layer
+    storage_mode (tracked/local/private). Callers only receive validated
+    policies (check_policy_block returns None otherwise).
+    """
+    if not isinstance(policy, dict):
+        return None
+    if is_strict_int(policy.get("schema_version")) and policy["schema_version"] == 2:
+        mode = policy.get("storage_mode")
+        return mode if isinstance(mode, str) else None
+    storage = policy.get("task_storage")
+    return storage if isinstance(storage, str) else None
 
 
 def read_regular_text(path: Path) -> tuple[str | None, str | None]:
@@ -1829,51 +1837,16 @@ def markdown_section_lines(text: str, title: str) -> list[str]:
     return []
 
 
-def parse_runtime_task_pointers(
-    runtime_text: str,
-) -> tuple[list[tuple[str, str, str, str]], list[str], list[tuple[str, str, str | None]], set[str]]:
-    """Return (task rows, focus pointers, problems, oversplit ids).
-
-    Task rows carry (task_id, status, objective, next_action); the objective
-    and next_action cells are the runtime projection quoted by `status`.
-    Problems carry (kind, detail, task_id or None): a malformed short row
-    still exposes the task id it names so `status` can materialise it in
-    `unresolved` without touching check findings. Oversplit ids name rows
-    that split into more than four cells (e.g. an unescaped `|`), whose
-    projection cells cannot be trusted.
-    """
-    rows: list[tuple[str, str, str, str]] = []
+def parse_runtime_focus(runtime_text: str) -> list[str]:
+    """Return valid TASK ids from runtime's navigation-only Focus section."""
     focus: list[str] = []
-    problems: list[tuple[str, str, str | None]] = []
-    oversplit: set[str] = set()
-
     for line in markdown_section_lines(runtime_text, "Focus"):
         stripped = line.strip()
         if stripped.startswith("- "):
             candidate = stripped[2:].strip()
             if TASK_ID_RE.match(candidate):
                 focus.append(candidate)
-
-    for line in markdown_section_lines(runtime_text, "Active Tasks"):
-        stripped = line.strip()
-        if not (stripped.startswith("|") and stripped.endswith("|")):
-            continue
-        cells = [cell.strip() for cell in stripped[1:-1].split("|")]
-        if all(set(cell) <= {"-", ":", ""} for cell in cells):
-            continue
-        if not cells[0].startswith("TASK-"):
-            continue
-        if len(cells) < 4:
-            pid = cells[0] if TASK_ID_RE.match(cells[0]) else None
-            problems.append(("invalid", f"malformed Active Tasks row: {stripped}", pid))
-            continue
-        if TASK_ID_RE.match(cells[0]) is None:
-            problems.append(("invalid", f"malformed task id in Active Tasks row: {cells[0]}", None))
-            continue
-        if len(cells) > 4:
-            oversplit.add(cells[0])
-        rows.append((cells[0], cells[2], cells[1], cells[3]))
-    return rows, focus, problems, oversplit
+    return focus
 
 
 def count_recent_entries(runtime_text: str) -> int:
@@ -2214,7 +2187,7 @@ def check_local_boundary(
     Sentinel paths are queried through `git check-ignore --no-index`; nothing
     is written and no `.gitignore` is ever modified by the checker.
     """
-    if policy is None or policy.get("task_storage") != "local":
+    if policy is None or normalized_storage_mode(policy) != "local":
         return
     if not git_in_worktree(run.target):
         return  # CORE_STORAGE_UNVERIFIED already reports non-Git targets
@@ -2256,6 +2229,224 @@ def check_local_boundary(
                 relative,
                 f"{relative} durable namespace is captured by Git ignore rule {pattern} ({source}); narrow local rules to TASK journals, review ledgers, and vault/tasks/archive/, and keep decisions/details/tasks README tracked",
             )
+
+
+PRIVATE_BASE_MANAGED_PATHS = ("AGENTS.md", "vault/", "skills/agent-task/", ".agent-init-backup/")
+
+
+def private_managed_extras(state: AdoptionCoreState) -> list[str]:
+    """Stamp-managed paths outside the four base private namespaces."""
+    if state.paths is None:
+        return []
+    return sorted(
+        relative
+        for relative in state.paths
+        if relative != STAMP_RELATIVE
+        and relative != "AGENTS.md"
+        and not relative.startswith(("vault/", "skills/agent-task/", ".agent-init-backup/"))
+    )
+
+
+def parse_private_exclude_blocks(text: str) -> tuple[list[dict], list[str]]:
+    """Parse canonical trellium-private blocks; (blocks, structural errors)."""
+    blocks: list[dict] = []
+    errors: list[str] = []
+    current: dict | None = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        match = re.match(r"^# trellium-private:(start|end)\s*(.*)$", line)
+        if "trellium-private:" in line and match is None:
+            errors.append(f"malformed trellium-private marker: {line}")
+            continue
+        if match is None:
+            if current is not None and line and not line.startswith("#"):
+                current["patterns"].append(line)
+            continue
+        kind, marker_identity = match.group(1), match.group(2).strip()
+        if kind == "start":
+            if current is not None:
+                errors.append(f"unclosed trellium-private block for {current['identity']!r} before a new start marker")
+            current = {"identity": marker_identity, "patterns": []}
+        elif current is None:
+            errors.append(f"trellium-private end marker without a start marker (identity {marker_identity!r})")
+        elif current["identity"] != marker_identity:
+            errors.append(f"trellium-private end marker identity {marker_identity!r} does not match its start marker {current['identity']!r}")
+            current = None
+        else:
+            blocks.append(current)
+            current = None
+    if current is not None:
+        errors.append(f"unterminated trellium-private block for {current['identity']!r}")
+    return blocks, errors
+
+
+def check_private_boundary(run: VaultCheckRun, policy: dict | None, state: AdoptionCoreState) -> None:
+    """Reverse privacy gate for storage_mode=private.
+
+    Replaces the positive HEAD-durability gate: managed material must stay
+    out of HEAD and the index, and the canonical .git/info/exclude block
+    must carry exactly one well-formed block per target whose anchored
+    patterns cover the approved scope and nothing else. Read-only Git
+    queries only; any verification failure fails closed.
+    """
+    if state.error is not None:
+        run.add(
+            "storage",
+            "CORE_STORAGE_INVALID",
+            "error",
+            STAMP_RELATIVE,
+            f"the adoption stamp exists but is invalid: {state.error}; the private boundary cannot be verified",
+        )
+        return
+    if not git_in_worktree(run.target):
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNVERIFIED",
+            "warning",
+            STAMP_RELATIVE,
+            "not a Git worktree or Git is unavailable; there is no Git upload surface, but the private boundary was not verified",
+        )
+        return
+    prefix = git_root_prefix(run.target)
+    target_identity = prefix.rstrip("/") if prefix else "."
+    extras = private_managed_extras(state)
+    base = [f"/{prefix}{entry}" for entry in PRIVATE_BASE_MANAGED_PATHS]
+    expected = base + [f"/{prefix}{entry}" for entry in extras]
+
+    exclude_result = git_run(run.target, ["rev-parse", "--git-path", "info/exclude"])
+    if exclude_result is None or exclude_result.returncode != 0:
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNVERIFIED",
+            "error",
+            STAMP_RELATIVE,
+            "git rev-parse could not locate the Git exclude file; the private boundary was not verified",
+        )
+        return
+    exclude_value = Path(exclude_result.stdout.decode("utf-8", "surrogateescape").strip())
+    exclude_path = exclude_value if exclude_value.is_absolute() else (run.target / exclude_value)
+    try:
+        exclude_text = exclude_path.read_text(encoding="utf-8", errors="surrogateescape")
+    except FileNotFoundError:
+        exclude_text = ""
+    except (OSError, UnicodeError) as exc:
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNVERIFIED",
+            "error",
+            STAMP_RELATIVE,
+            f"could not read the Git exclude file: {exc}; the private boundary was not verified",
+        )
+        return
+
+    blocks, parse_errors = parse_private_exclude_blocks(exclude_text)
+    for parse_error in parse_errors:
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNCONFIGURED",
+            "error",
+            "vault",
+            f"the canonical private exclude block is unusable: {parse_error}; keep exactly one complete block per target in .git/info/exclude",
+        )
+    own = [block for block in blocks if block["identity"] == target_identity]
+    if len(own) > 1:
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNCONFIGURED",
+            "error",
+            "vault",
+            f"{len(own)} canonical private blocks claim target identity {target_identity!r}; keep exactly one complete block per target",
+        )
+        own = []
+    if not own:
+        if not parse_errors:
+            run.add(
+                "storage",
+                "PRIVATE_STORAGE_UNCONFIGURED",
+                "error",
+                "vault",
+                f"no canonical trellium-private block for target identity {target_identity!r} in the Git exclude file; write one complete block (start/end markers carrying this identity, one anchored pattern per managed path: {' '.join(expected)})",
+            )
+    else:
+        patterns = own[0]["patterns"]
+        non_anchored = [entry for entry in patterns if not entry.startswith("/")]
+        overreach = [entry for entry in patterns if entry.startswith("/") and entry not in expected]
+        if non_anchored:
+            run.add(
+                "storage",
+                "PRIVATE_STORAGE_OVERREACH",
+                "error",
+                "vault",
+                "private exclude patterns must be anchored (start with '/') so the boundary cannot reach beyond the target: " + ", ".join(non_anchored),
+            )
+        if overreach:
+            run.add(
+                "storage",
+                "PRIVATE_STORAGE_OVERREACH",
+                "error",
+                "vault",
+                "private exclude block covers paths outside the approved managed scope (expected exactly: " + " ".join(expected) + "): " + ", ".join(overreach),
+            )
+        missing = [entry for entry in expected if entry not in patterns]
+        if missing and not non_anchored and not overreach:
+            run.add(
+                "storage",
+                "PRIVATE_STORAGE_UNCONFIGURED",
+                "error",
+                "vault",
+                "the canonical private block does not cover the required managed scope; missing anchored patterns: " + ", ".join(missing),
+            )
+
+    index = git_tracked_files(run.target)
+    if index is None:
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNVERIFIED",
+            "error",
+            STAMP_RELATIVE,
+            "git ls-files failed; the private boundary was not verified",
+        )
+        return
+    head, head_error = git_head_files(run.target)
+    if head_error is not None:
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_UNVERIFIED",
+            "error",
+            STAMP_RELATIVE,
+            f"{head_error}; the private boundary was not verified",
+        )
+        return
+    extras_set = set(extras)
+
+    def is_managed(relative: str) -> bool:
+        return (
+            relative == "AGENTS.md"
+            or relative.startswith(("vault/", "skills/agent-task/", ".agent-init-backup/"))
+            or relative in extras_set
+        )
+
+    head_hits: set[str] = set()
+    for name in head:
+        if prefix and not name.startswith(prefix):
+            continue
+        relative = name[len(prefix) :] if prefix else name
+        if is_managed(relative):
+            head_hits.add(relative)
+    index_hits = {relative for relative in index if is_managed(relative)}
+    for relative in sorted(head_hits | index_hits):
+        where = []
+        if relative in head_hits:
+            where.append("Git HEAD")
+        if relative in index_hits:
+            where.append("the Git index (tracked or staged)")
+        run.add(
+            "storage",
+            "PRIVATE_STORAGE_TRACKED",
+            "error",
+            relative,
+            f"{relative} is private managed material but is present in {' and '.join(where)}; private material never enters Git; remove it from the index as the project owner decided",
+        )
 
 
 class VaultCheckRun:
@@ -2362,17 +2553,17 @@ def discover_task_files(run: VaultCheckRun) -> tuple[list[dict], list[str], list
         relative = entry.relative_to(run.target).as_posix()
         if entry.name.startswith("."):
             continue
+        match = TASK_FILE_ID_RE.match(entry.name)
         if entry.is_symlink():
             run.add("task-state", "SYMLINK_INPUT", "error", relative, f"{relative} is a symbolic link; refusing to follow it")
             if REVIEW_LEDGER_RE.match(entry.name):
                 ledgers.append(relative)
-            elif TASK_FILE_ID_RE.match(entry.name) and entry.name.endswith(".md"):
-                current.append({"path": relative, "task_id": TASK_FILE_ID_RE.match(entry.name).group(1), "lifecycle": None, "legacy": False, "valid": False, "state": None})
+            elif match and entry.name.endswith(".md"):
+                current.append({"path": relative, "task_id": match.group(1), "lifecycle": None, "legacy": False, "valid": False, "state": None})
             continue
         if REVIEW_LEDGER_RE.match(entry.name):
             ledgers.append(relative)
             continue
-        match = TASK_FILE_ID_RE.match(entry.name)
         if match is None or not entry.name.endswith(".md"):
             continue
         text, error = read_regular_text(entry)
@@ -2398,6 +2589,8 @@ def discover_task_files(run: VaultCheckRun) -> tuple[list[dict], list[str], list
             for code, message in failures:
                 run.add("task-state", code, "error", relative, message, task_id=match.group(1))
             current.append({"path": relative, "task_id": match.group(1), "lifecycle": None, "legacy": False, "valid": False, "state": None})
+            continue
+        if state is None:  # unreachable: (None, None) pairs with failures is None
             continue
         if state["task_id"] != match.group(1):
             run.add(
@@ -2464,118 +2657,6 @@ def parse_task_state_block(text: str) -> tuple[dict | None, list[tuple[str, str]
     return state, []
 
 
-def check_runtime_projection(run: VaultCheckRun, runtime_text: str | None, tasks: list[dict], policy: dict | None = None) -> None:
-    if runtime_text is None:
-        return
-    by_id: dict[str, list[dict]] = {}
-    for task in tasks:
-        by_id.setdefault(task["task_id"], []).append(task)
-
-    closed_lifecycles = {"accepted", "superseded"}
-    storage = policy.get("task_storage") if isinstance(policy, dict) else None
-    local_mode = storage == "local"
-    reported_missing_local: set[str] = set()
-
-    def resolve(task_id: str, row_status: str | None = None) -> None:
-        if row_counts.get(task_id, 0) > 1:
-            # TASK_RUNTIME_DUPLICATE already covers this task; freshness/closed
-            # inference must not depend on the order of the duplicate rows.
-            return
-        matches = by_id.get(task_id)
-        if not matches:
-            if local_mode:
-                if task_id in reported_missing_local:
-                    return
-                reported_missing_local.add(task_id)
-                if row_status in closed_lifecycles:
-                    run.add(
-                        "runtime-projection",
-                        "TASK_RUNTIME_CLOSED_LOCAL",
-                        "error",
-                        "vault/runtime.md",
-                        f"local task {task_id} is closed ({row_status}) but its runtime row still exists; remove the stale row from runtime.md — closed local tasks stay out of the hot path, and durable conclusions belong in canonical vault files",
-                        task_id=task_id,
-                    )
-                else:
-                    run.add(
-                        "runtime-projection",
-                        "TASK_RUNTIME_LOCAL_UNRESOLVED",
-                        "warning",
-                        "vault/runtime.md",
-                        f"runtime points to local task {task_id}, but its file is not in this worktree: this is expected in a fresh clone (local task files are ignored) or the file may have been lost locally; recover the original task file or rebuild the contract with owner approval; the runtime summary is an unverified clue and grants no authority",
-                        task_id=task_id,
-                    )
-            else:
-                run.add("runtime-projection", "TASK_RUNTIME_MISSING", "error", "vault/runtime.md", f"runtime points to a task file that does not exist: {task_id}", task_id=task_id)
-            return
-        task = matches[0]
-        if task["legacy"]:
-            run.add("runtime-projection", "TASK_RUNTIME_UNRESOLVED", "warning", "vault/runtime.md", f"runtime row for {task_id} cannot be verified: the task file has no trellium-task-state block (legacy)", task_id=task_id)
-        elif task.get("lifecycle") is None:
-            run.add("runtime-projection", "TASK_RUNTIME_UNRESOLVED", "warning", "vault/runtime.md", f"runtime row for {task_id} cannot be verified: the task state block is invalid", task_id=task_id)
-
-    rows, focus, problems, _oversplit = parse_runtime_task_pointers(runtime_text)
-    for _kind, detail, _pid in problems:
-        run.add("runtime-projection", "TASK_RUNTIME_INVALID", "error", "vault/runtime.md", detail)
-
-    row_counts: dict[str, int] = {}
-    for task_id, _status, _objective, _next_action in rows:
-        row_counts[task_id] = row_counts.get(task_id, 0) + 1
-    for task_id, count in row_counts.items():
-        if count > 1:
-            run.add(
-                "runtime-projection",
-                "TASK_RUNTIME_DUPLICATE",
-                "error",
-                "vault/runtime.md",
-                f"Active Tasks table has {count} rows for {task_id}; keep one row per task",
-                task_id=task_id,
-            )
-
-    projected = set(row_counts)
-    for task in tasks:
-        if not task["valid"] or task["lifecycle"] in closed_lifecycles:
-            continue
-        if task["task_id"] not in projected:
-            run.add(
-                "runtime-projection",
-                "TASK_PROJECTION_MISSING",
-                "error",
-                "vault/runtime.md",
-                f"open task {task['task_id']} ({task['lifecycle']}) has no Active Tasks row in runtime.md; the runtime projection is missing",
-                task_id=task["task_id"],
-            )
-
-    for task_id, status, _objective, _next_action in rows:
-        resolve(task_id, status)
-        matches = by_id.get(task_id) or []
-        task = matches[0] if matches else None
-        if task is None or task["legacy"] or task.get("lifecycle") is None:
-            continue
-        if local_mode and task["lifecycle"] in closed_lifecycles:
-            run.add(
-                "runtime-projection",
-                "TASK_RUNTIME_CLOSED_LOCAL",
-                "error",
-                "vault/runtime.md",
-                f"local task {task_id} is closed ({task['lifecycle']}) but its runtime row still exists; remove the stale row from runtime.md — closed local tasks stay out of the hot path, and durable conclusions belong in canonical vault files",
-                task_id=task_id,
-            )
-        if status not in LIFECYCLE_VALUES:
-            run.add("runtime-projection", "TASK_RUNTIME_INVALID", "error", "vault/runtime.md", f"Active Tasks row for {task_id} uses status {status!r} outside the lifecycle enum", task_id=task_id)
-        elif status != task["lifecycle"]:
-            run.add(
-                "runtime-projection",
-                "TASK_RUNTIME_DRIFT",
-                "error",
-                "vault/runtime.md",
-                f"runtime row for {task_id} says {status!r} but the trellium-task-state block says {task['lifecycle']!r}",
-                task_id=task_id,
-            )
-    for task_id in focus:
-        resolve(task_id)
-
-
 def measure_hot_files(run: VaultCheckRun, texts: dict[str, str]) -> None:
     definitions = (
         ("runtime", "vault/runtime.md", "recent_entries", count_recent_entries),
@@ -2614,7 +2695,7 @@ def check_budgets(run: VaultCheckRun, policy: dict | None) -> None:
                 run.add(
                     "budgets",
                     "BUDGET_EXCEEDED",
-                    "error",
+                    "warning",
                     f"vault/{file_key}.md",
                     f"{file_key}.{measured_key} is {measured}, above the configured limit {threshold_key}={limit}",
                 )
@@ -2652,7 +2733,7 @@ def check_task_budget(run: VaultCheckRun, policy: dict | None, tasks: list[dict]
         run.add(
             "budgets",
             "BUDGET_EXCEEDED",
-            "error",
+            "warning",
             "vault/tasks",
             f"{len(active)} open task files exceed the configured limit max_active_tasks={limit}",
         )
@@ -2660,29 +2741,63 @@ def check_task_budget(run: VaultCheckRun, policy: dict | None, tasks: list[dict]
 
 def check_task_storage(run: VaultCheckRun, policy: dict | None, tasks: list[dict], ledgers: list[str], archive: list[str]) -> None:
     task_paths = [task["path"] for task in tasks] + ledgers + archive
-    if not task_paths:
-        return
-    if not git_in_worktree(run.target):
-        run.add("storage", "GIT_CHECK_SKIPPED", "warning", "vault/tasks", "not a Git worktree or Git is unavailable; TASK storage was not verified")
-        return
     if policy is None:
         # POLICY_MISSING already reports the unresolved project strategy.
         return
-    storage = policy.get("task_storage")
+    storage = normalized_storage_mode(policy)
+    if not task_paths and storage != "tracked":
+        return
+    if not git_in_worktree(run.target):
+        if task_paths:
+            run.add("storage", "GIT_CHECK_SKIPPED", "warning", "vault/tasks", "not a Git worktree or Git is unavailable; TASK storage was not verified")
+        return
     tracked = git_tracked_files(run.target)
     if tracked is None:
         run.add("storage", "GIT_CHECK_SKIPPED", "warning", "vault/tasks", "git ls-files failed; TASK storage was not verified")
         return
 
-    if storage == "local":
-        for relative in task_paths:
-            if relative in tracked:
+    if storage == "tracked":
+        for relative in sorted(tracked):
+            path = Path(relative)
+            if (
+                path.parent.as_posix() != "vault/tasks"
+                or TASK_FILE_ID_RE.match(path.name) is None
+                or REVIEW_LEDGER_RE.match(path.name) is not None
+                or path.suffix != ".md"
+            ):
+                continue
+            try:
+                (run.target / path).lstat()
+            except FileNotFoundError:
                 run.add(
                     "storage",
                     "TASK_STORAGE_MISMATCH",
                     "error",
                     relative,
-                    f"task_storage=local but {relative} is tracked or staged in Git; remove it from the index as the project owner decided",
+                    f"task_storage=tracked but indexed task file {relative} is missing from the working tree",
+                    task_id=task_id_of(relative),
+                )
+            except OSError:
+                # Existing task-state discovery reports unreadable filesystem
+                # entries; this branch only proves index-known deletion.
+                pass
+
+    if not task_paths:
+        return
+
+    if storage in ("local", "private"):
+        for relative in task_paths:
+            if relative in tracked:
+                if storage == "local":
+                    message = f"task_storage=local but {relative} is tracked or staged in Git; remove it from the index as the project owner decided"
+                else:
+                    message = f"storage_mode=private but {relative} is tracked or staged in Git; private TASK journals never enter Git; remove it from the index as the project owner decided"
+                run.add(
+                    "storage",
+                    "TASK_STORAGE_MISMATCH",
+                    "error",
+                    relative,
+                    message,
                     task_id=task_id_of(relative),
                 )
         return
@@ -2759,14 +2874,16 @@ def collect_vault_state(target: Path) -> tuple[VaultCheckRun, dict[str, str], li
     texts = check_required_files(run)
     policy = check_policy_block(run, texts.get("vault/index.md"))
     tasks, ledgers, archive = discover_task_files(run)
-    check_runtime_projection(run, texts.get("vault/runtime.md"), tasks, policy)
     measure_hot_files(run, texts)
     check_budgets(run, policy)
     check_task_budget(run, policy, tasks, ledgers, archive)
     check_task_storage(run, policy, tasks, ledgers, archive)
     core = adoption_core_paths(run.target)
-    check_core_storage(run, core)
-    check_local_boundary(run, policy, core)
+    if normalized_storage_mode(policy) == "private":
+        check_private_boundary(run, policy, core)
+    else:
+        check_core_storage(run, core)
+        check_local_boundary(run, policy, core)
     return run, texts, tasks
 
 
@@ -2823,24 +2940,18 @@ def check_project(args: argparse.Namespace) -> int:
 # --- Vault status (read-only) -----------------------------------------------
 #
 # `status` compiles the same checked state layer as `check` into an owner
-# summary: focus, open-task classification, closed counts, and explicit
-# unresolved entries. It adds no facts and claims no authority: lifecycle and
-# authority come only from validated task state blocks, runtime rows only
-# contribute their objective/Next Action projection, and anything else is
-# reported as unresolved with the blocking finding codes. Closed tasks appear
-# as counts only. Like `check`, it never writes, never follows symlinks into
-# vault inputs, and never executes content.
+# summary: navigation focus, canonical open-task state, closed counts, and
+# explicit unresolved entries. It adds no facts and claims no authority:
+# lifecycle, authority, slice, and gates come only from validated task state
+# blocks. Closed tasks appear as counts only. Like `check`, it never writes,
+# never follows symlinks into vault inputs, and never executes content.
 
 STATUS_OPEN_LIFECYCLES = ("draft", "active", "blocked", "ready_for_review")
 CLOSED_LIFECYCLES = frozenset({"accepted", "superseded"})
 
-# Unresolved reasons come straight from the check phases that speak about
-# lifecycle: the task-state side (the block) and the runtime-projection side
-# (the pointer). There is no hand-maintained list of finding codes to drift
-# out of sync when check grows: storage and budget findings never demote or
-# mis-describe a lifecycle that the state block owns, simply because their
-# phases are excluded here.
-STATUS_REASON_PHASES = frozenset({"task-state", "runtime-projection"})
+# Unresolved reasons come straight from canonical task-state checks. Storage
+# and budget findings never demote or misdescribe lifecycle state.
+STATUS_REASON_PHASES = frozenset({"task-state"})
 
 
 def status_unresolved_reasons(phase_findings: list[tuple[str, dict]]) -> dict[str, list[str]]:
@@ -2879,40 +2990,11 @@ def build_status_payload(
     phase_findings = run.findings_with_phase()
     findings = [finding for _phase, finding in phase_findings]
     runtime_text = texts.get("vault/runtime.md")
-    rows: list[tuple[str, str, str, str]] = []
     focus_ids: list[str] = []
-    problems: list[tuple[str, str, str | None]] = []
-    oversplit_ids: set[str] = set()
     if runtime_text is not None:
-        rows, focus_ids, problems, oversplit_ids = parse_runtime_task_pointers(runtime_text)
-
-    # One projection per task: duplicated, enum-invalid or oversplit rows
-    # cannot quote a trustworthy Next Action, so their tasks lose the
-    # projection but keep the lifecycle owned by their state block.
-    invalid_row_ids = {
-        finding["task_id"]
-        for finding in findings
-        if finding["code"] == "TASK_RUNTIME_INVALID" and "task_id" in finding
-    }
-    row_counts: dict[str, int] = {}
-    projections: dict[str, dict] = {}
-    for task_id, _status, objective, next_action in rows:
-        row_counts[task_id] = row_counts.get(task_id, 0) + 1
-        if task_id in oversplit_ids:
-            projections.pop(task_id, None)
-            continue
-        if row_counts[task_id] == 1 and task_id not in invalid_row_ids:
-            projections[task_id] = {"objective": objective, "next_action": next_action}
-        elif task_id in projections:
-            del projections[task_id]
+        focus_ids = parse_runtime_focus(runtime_text)
 
     reasons = status_unresolved_reasons(phase_findings)
-    # A malformed short row names its task without emitting a task-scoped
-    # finding; the actual check diagnosis for that row is TASK_RUNTIME_INVALID,
-    # so materialise the id under that real code (check output stays intact).
-    for _kind, _detail, pid in problems:
-        if pid:
-            reasons.setdefault(pid, ["TASK_RUNTIME_INVALID"])
     open_buckets: dict[str, list[dict]] = {lifecycle: [] for lifecycle in STATUS_OPEN_LIFECYCLES}
     unresolved: list[dict] = []
     unresolved_ids: set[str] = set()
@@ -2920,9 +3002,8 @@ def build_status_payload(
     closed = 0
 
     def unresolved_entry(task_id: str, path: str | None) -> dict:
-        # Every unresolved source (invalid records, drift, dangling rows or
-        # focus pointers, unreadable files) emits a lifecycle-phase finding,
-        # so the reason below is the actual check diagnosis. "UNVERIFIED" is a
+        # Every unresolved task source emits a task-state finding, so the
+        # reason below is the actual check diagnosis. "UNVERIFIED" is a
         # neutral last resort, never a fabricated checker code.
         entry: dict = {
             "task_id": task_id,
@@ -2934,8 +3015,7 @@ def build_status_payload(
 
     for task in tasks:
         task_id = task["task_id"]
-        drifted = "TASK_RUNTIME_DRIFT" in reasons.get(task_id, [])
-        if not task["valid"] or drifted:
+        if not task["valid"]:
             if task_id not in unresolved_ids:
                 unresolved_ids.add(task_id)
                 # A duplicated id spans several files; the findings list keeps
@@ -2958,22 +3038,8 @@ def build_status_payload(
             item["current_slice"] = state["current_slice"]
         if "gates" in state:
             item["gates"] = state["gates"]
-        if task_id in projections:
-            item["runtime_projection"] = projections[task_id]
         open_buckets[task["lifecycle"]].append(item)
 
-    # Runtime rows and focus pointers that resolve to no classified task stay
-    # visible as unresolved without inventing lifecycle or authority.
-    for task_id in row_counts:
-        if task_id in resolved_ids or task_id in unresolved_ids:
-            continue
-        unresolved_ids.add(task_id)
-        unresolved.append(unresolved_entry(task_id, None))
-    for task_id in focus_ids:
-        if task_id in resolved_ids or task_id in unresolved_ids:
-            continue
-        unresolved_ids.add(task_id)
-        unresolved.append(unresolved_entry(task_id, None))
     # A current task file can also fail before any record exists (unreadable,
     # not a regular file); its id still belongs in unresolved.
     for task_id in sorted(reasons):
@@ -3052,12 +3118,6 @@ def render_status_text(payload: dict) -> None:
                 head += f" gates: {gates}"
             head += f" path={item['task_path']}"
             print(head)
-            projection = item.get("runtime_projection")
-            if projection is not None:
-                if projection["objective"]:
-                    print(f"    objective: {projection['objective']}")
-                if projection["next_action"]:
-                    print(f"    next: {projection['next_action']}")
     unresolved = payload["tasks"]["unresolved"]
     if not unresolved:
         print("unresolved: (none)")
@@ -3109,12 +3169,20 @@ def status_project(args: argparse.Namespace) -> int:
 
 def latest_release_tag() -> str:
     """Return the newest CalVer tag of the upstream repository."""
+    if not FETCH_TAGS_URL.startswith("https://"):
+        raise AdoptionError(f"refusing non-https fetch URL: {FETCH_TAGS_URL}")
     request = urllib.request.Request(
         FETCH_TAGS_URL,
         headers={"Accept": "application/vnd.github+json", "User-Agent": "trellium-fetch"},
     )
-    with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_SECONDS) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    # FETCH_TAGS_URL is a module constant pinned to https; the guard above
+    # keeps the scheme allowlist explicit for auditors.
+    with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_SECONDS) as response:  # noqa: S310
+        body = response.read().decode("utf-8")
+    try:
+        payload = json.loads(body)
+    except ValueError as exc:
+        raise AdoptionError(f"invalid tag listing from {FETCH_TAGS_URL}: {exc}") from exc
     if not isinstance(payload, list):
         raise AdoptionError(f"unexpected tag listing from {FETCH_TAGS_URL}")
     candidates = []
@@ -3140,7 +3208,10 @@ def safe_extract_tarball(tarball_path: Path, destination: Path) -> None:
             target = (root / member.name).resolve()
             if not target.is_relative_to(root):
                 raise AdoptionError(f"refusing path escape in release tarball: {member.name}")
-        archive.extractall(destination)
+        # Members were individually validated above; the "data" filter is a
+        # second, interpreter-level line of defense (strips setuid/setgid and
+        # refuses absolute/traversal targets).
+        archive.extractall(destination, filter="data")
 
 
 def fetch_release_tree(tag: str) -> Path:
@@ -3157,14 +3228,18 @@ def fetch_release_tree(tag: str) -> Path:
     staging_tarball = FETCH_CACHE_ROOT / f".{tag}.{secrets.token_hex(8)}.tar.gz"
     staging_extract = FETCH_CACHE_ROOT / f".{tag}.extracting.{secrets.token_hex(8)}"
     try:
-        request = urllib.request.Request(
-            FETCH_TARBALL_TEMPLATE.format(tag=tag),
+        tarball_url = FETCH_TARBALL_TEMPLATE.format(tag=tag)
+        if not tarball_url.startswith("https://"):
+            raise AdoptionError(f"refusing non-https fetch URL: {tarball_url}")
+        request = urllib.request.Request(  # noqa: S310
+            tarball_url,
             headers={"User-Agent": "trellium-fetch"},
         )
-        with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_SECONDS) as response, staging_tarball.open("wb") as handle:
+        # tarball_url is https-guarded above.
+        with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_SECONDS) as response, staging_tarball.open("wb") as handle:  # noqa: S310
             shutil.copyfileobj(response, handle)
         safe_extract_tarball(staging_tarball, staging_extract)
-        entries = [child for child in staging_extract.iterdir()]
+        entries = list(staging_extract.iterdir())
         if len(entries) != 1 or not entries[0].is_dir():
             raise AdoptionError(f"release tarball for {tag} has an unexpected layout")
         if destination.exists():
@@ -3355,10 +3430,8 @@ def remove_tracked_file(target: Path, relative: str, target_descriptor: int | No
     metadata = managed_file_metadata(target, relative)
     if metadata is None:
         return
-    try:
+    with suppress(FileNotFoundError):
         (target / relative).unlink()
-    except FileNotFoundError:
-        pass
 
 
 def backup_upgraded_file(
@@ -3723,7 +3796,7 @@ def upgrade_project(args: argparse.Namespace) -> int:
         if target_descriptor is not None:
             os.close(target_descriptor)
 
-    for relative, role, action in outcomes:
+    for relative, _role, action in outcomes:
         print(f"{action} {relative}")
     for relative, _content in proposals:
         print(f"proposal {relative}")
@@ -3953,7 +4026,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     check = subparsers.add_parser(
         "check",
-        help="read-only validation of task state blocks, policy, runtime projection, budgets, and TASK storage",
+        help="read-only validation of task state blocks, policy, budgets, and TASK storage",
     )
     check.add_argument("target", nargs="?", default=".", help="target project directory")
     check.add_argument(
@@ -3965,7 +4038,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     status = subparsers.add_parser(
         "status",
-        help="read-only owner summary: focus, open-task classification, closed counts, and unresolved pointers",
+        help="read-only owner summary: navigation focus, canonical task state, closed counts, and unresolved tasks",
     )
     status.add_argument("target", nargs="?", default=".", help="target project directory")
     status.add_argument(

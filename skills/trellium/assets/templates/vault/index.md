@@ -28,9 +28,10 @@ substitute hidden defaults.
 
 ## Task And Authority Cheat Sheet
 
-- Level A, simple: low risk, one session, 1-2 files; record in `runtime.md`.
-- Level B, tracked: multi-file, auditable, may need handoff; record in `tasks/*`.
-- Level C, governed: architecture, public API, data model, framework, external service, security, cost, deployment, or governance-rule changes; record in `tasks/*` and `decisions.md`; needs user confirmation.
+- Level C, governed: any risk domain makes it governed, a one-line change included (security/privacy, public API/external contracts, persistent data/migrations, deployment, dependencies, cost/quota, architecture, governance rules); record in `tasks/*` and `decisions.md`; needs user confirmation.
+- Level B, tracked: outside Level C risk domains but recovery or coordination cost is clearly high (cross-session, real handoff, multi-owner, external state, multi-stage gates); record in `tasks/*`.
+- Level A, simple: low risk, low recovery and coordination cost, no persisted TASK lifecycle by default; record in `runtime.md` only when project-global runtime changes.
+- Scale (file counts, acceptance-item counts) only prompts judgment and never decides the level alone.
 - Authority: 0 read-only / 1 local edit / 2 scoped change / 3 approval required / 4 forbidden.
 - Unclear classification or governance-rule work: read full `governance.md`.
 
@@ -50,7 +51,7 @@ First project entry:
 
 - `vault/project.md`
 
-Interrupted or resumed work:
+Genuinely interrupted work (skip for a derivable clean boundary):
 
 - `vault/handoff.md`
 
@@ -66,10 +67,10 @@ When the user mentions a parked, shelved, or suspended item:
 
 - `index.md` (this file): routing + the `trellium-policy` project policy block; no runtime state.
 - `project.md`: stable project purpose, scope, boundaries, and phase.
-- `runtime.md`: current state, active task pointer table (Focus + Active Tasks), checks, risks, and next steps. TASK rows are projections of each task's `trellium-task-state` block.
+- `runtime.md`: project-global current state, optional navigation Focus, checks, risks, and next steps. It owns no TASK state or inventory.
 - `governance.md`: task levels, authority, task contracts, acceptance gates, escalation, and handoff.
 - `decisions.md`: durable decision index and, before the split, full records; bodies move to `vault/decisions/D-xxxx-*.md` after indexing.
-- `handoff.md`: recent transfer state for interrupted work, each entry named after its task id; live Git facts are read at resume time, not stored as authoritative.
+- `handoff.md`: transient delta for real interruptions; each entry is named after its task id (or SESSION) and holds exactly three sections (Why interrupted / Transient context not captured elsewhere / Exact resume point); recovery reads TASK and live Git/tests first, applies the delta, then deletes the entry.
 - `parked.md`: cold index of user-parked items; read only when mentioned, never on the default path.
 - `collaboration.md`: soft collaboration preferences that cannot override hard rules.
 - `tasks/README.md`: task file lifecycle flow, state block, and template.
@@ -87,12 +88,12 @@ When the user mentions a parked, shelved, or suspended item:
 ## Update Rules
 
 - Hot-file update discipline: keep section order fixed, one item per line; replace the single matching line on a status or progress change instead of rewriting whole sections.
-- Update `runtime.md` after non-trivial work (the status and next action of the matching row in Active Tasks).
-- Update `tasks/*` for Level B or Level C work: change the `trellium-task-state` block first, then the matching `runtime.md` row (a projection).
+- Update `runtime.md` after non-trivial work only when project-global runtime changes; Focus is navigation only.
+- Update `tasks/*` for Level B or Level C work: the `trellium-task-state` block is the only lifecycle, authority, slice, and gate owner.
 - Update `decisions.md` for durable decisions.
-- Update `handoff.md` when interrupted or handing off.
-- Record parked items in `parked.md` when the user suspends them; promote back to a task file or `runtime.md` when mentioned again.
+- Update `handoff.md` only when a real interruption leaves a non-derivable transient delta.
+- Record parked items in `parked.md` when the user suspends them; promote back to a task file when mentioned again.
 - Move long details out of `runtime.md`.
-- For local tasks (`task_storage=local`), remove the `runtime.md` row after close; a runtime row whose local task file is missing is an unverified clue, not authority (see governance.md).
+- For local tasks (`task_storage=local`), absence from a fresh clone follows the storage contract; `runtime.md` is not a recovery copy (see governance.md).
 - Check hot-file budgets when updating them; current limits live in the `trellium-policy` block above.
-- When a budget is exceeded, compact: measure → classify → restructure → verify → record. Semantic judgments (Superseded / Merged / Expired) are proposals only; keep Active until the user confirms.
+- A budget exceed appears only as a repository-health warning in `trellium.py check` and never blocks task acceptance; compaction is triggered by explicit intent (owner request / independent maintenance TASK / task contract): measure → classify → restructure → verify → record. Semantic judgments (Superseded / Merged / Expired) are proposals only; keep Active until the user confirms.

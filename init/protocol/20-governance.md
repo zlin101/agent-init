@@ -16,60 +16,33 @@
 
 ## 任务等级
 
-### Level A: Simple Task
+判定只有一条 canonical 流程，按顺序执行：
 
-低风险、可在一次会话中完成的任务。
+```text
+命中 Level C 风险域？
+→ 是：C
 
-条件：
+否则，中断恢复或协作成本是否明显较高？
+→ 是：B
 
-- 不改变架构。
-- 不改变公开接口。
-- 不引入依赖。
-- 不影响数据模型。
-- 不需要 Agent 接力。
-- 通常只影响 1-2 个文件。
-
-记录在 `vault/runtime.md`。
-
-最小字段：
-
-```md
-Objective:
-Acceptance:
-Required Check:
+否则：
+→ A
 ```
 
-### Level B: Tracked Task
-
-需要独立追踪的任务。
-
-满足任一条件即升级：
-
-- 预计超过一次工作会话；
-- 涉及 2 个以上文件；
-- 验收标准超过 3 条；
-- 需要设计、实现、测试和文档同步；
-- 可能需要 Agent 交接；
-- 存在明显风险或回滚成本；
-- 需要保存失败尝试或执行历史；
-- 用户要求可审计。
-
-记录在 `vault/tasks/TASK-xxxx-short-title.md`。
+规模（文件数、diff 行数、验收项数量、预计时长）可提示进一步判断，但不能单独决定等级。后来意外中断 ≠ 最初分类自动错误：升级在事实出现时发生，不追溯改写已完成任务的分级。
 
 ### Level C: Governed Task
 
-高影响任务。
+命中以下任一风险域即属于治理任务，一行修改也不例外：
 
-满足任一条件即属于治理任务：
-
-- 改变架构；
-- 改变公开 API 契约；
-- 改变数据模型；
-- 引入新框架；
-- 引入外部服务；
-- 删除公共能力；
-- 改变 Agent 治理规则；
-- 影响安全、权限、隐私、成本、部署或合规。
+- 安全 / 隐私 / 权限；
+- 公开 API 或外部契约（含删除公共能力、外部服务集成）；
+- 持久数据或数据迁移（含数据模型变化）；
+- 部署或生产行为；
+- 依赖变更（含引入新框架）；
+- 实质成本或配额；
+- 架构方向或重大架构决策；
+- 治理规则或策略（含 Agent 治理规则）。
 
 记录在：
 
@@ -79,9 +52,46 @@ Required Check:
 
 治理任务通常需要用户确认。
 
+### Level B: Tracked Task
+
+未命中 Level C 风险域，但中断恢复或协作成本明显较高时追踪。强信号包括：
+
+- 在已知信息下预计跨 session；
+- 需要真实 handoff；
+- 多 Agent / 多人 ownership；
+- 依赖外部系统状态；
+- 存在多阶段 gate；
+- acceptance 状态需要持续追踪；
+- 存在不可由 diff/tests 低成本恢复的 execution state；
+- 在非 C 风险域内仍有明显 migration/rollback 或审计协调成本。
+
+这些是强信号，不是满足即升级的机械清单；结论始终回到：中断恢复或协作成本是否明显较高。
+
+记录在 `vault/tasks/TASK-xxxx-short-title.md`。
+
+### Level A: Simple Task
+
+低风险，恢复和协调成本低：diff、工作区和测试足以低成本重建状态。默认不创建 TASK lifecycle，从实时工作区、Git diff 与测试结果恢复；仅当 project-global runtime 确实变化时更新 `vault/runtime.md`。
+
+最小字段：
+
+```md
+Objective:
+Acceptance:
+Required Check:
+```
+
+示例：
+
+```text
+4~5 个文件，但低风险、单 session、易恢复 → A
+1 个文件，但跨 session 外部调试、多阶段 gate → B
+1 行 dependency/auth/public API contract → C
+```
+
 ## 任务生命周期
 
-追踪与治理任务使用统一 lifecycle 枚举，`trellium-task-state` 状态块与 `runtime.md` TASK 行共用：
+追踪与治理任务在 `trellium-task-state` 状态块中使用统一 lifecycle 枚举：
 
 ```text
 draft | active | blocked | ready_for_review | accepted | superseded
@@ -89,12 +99,12 @@ draft | active | blocked | ready_for_review | accepted | superseded
 
 - `draft`：任务已建立，尚未开始执行。
 - `active`：执行中。
-- `blocked`：被阻塞；阻塞原因记录在任务文件或 `handoff.md`。
+- `blocked`：被阻塞；阻塞原因记录在任务文件（真实外部中断才可能另有 handoff delta）。
 - `ready_for_review`：等待用户验收。
 - `accepted`：验收通过，任务关闭。
 - `superseded`：被其他任务替代。
 
-lifecycle 的唯一 owner 是任务文件顶部的 `trellium-task-state` 状态块（schema 见 `10-vault.md`）；`runtime.md` 的 TASK 行是派生投影。暂停且暂不推进的工作进入 `parked.md`，不是独立 lifecycle 值。Level A 没有任务文件，`runtime.md` inline 记录即权威。
+lifecycle、Authority、当前 slice 与 Gate 结果的唯一 owner 是任务文件顶部的 `trellium-task-state` 状态块（schema 见 `10-vault.md`）；`runtime.md` 不保存 TASK 投影。暂停且暂不推进的工作进入 `parked.md`，不是独立 lifecycle 值。Level A 没有持久化 TASK lifecycle，从实时工作区、Git diff 与测试结果恢复。
 
 ## 授权等级
 
@@ -198,12 +208,12 @@ Capability Tags 只描述工作需要的能力，不授予权限。
 3. 代码、测试和文档已同步；
 4. `vault/runtime.md` 已更新；
 5. 长期有效决策已记录在 `vault/decisions.md`；
-6. 未完成事项或风险已记录在任务文件或 `vault/handoff.md`；
+6. 未完成事项或风险已记录在任务文件（验收 gate 不把普通 handoff 当风险台账）；
 7. 没有未说明的高影响变更。
 
 测试通过不等于任务完成。任务完成必须同时满足验收、验证和记忆更新。
 
-`task_storage=local` 的任务进入 `accepted` 前还必须完成 Durable Knowledge Disposition（定义见 `10-vault.md`）：`pending` 不得进入 `ready_for_review` 或 `accepted`；`none` 需写明理由；`distilled` 只列 canonical 目标文件，不复制正文。契约错误、过期或不安全的任务走 `superseded` 立即废止，不被该 gate 阻塞，未处置事项显式转交。local 任务关闭后删除 `runtime.md` 对应行并压缩相关 handoff 条目。tracked 任务默认 `not_applicable`，关闭后可保留 runtime 行（本条不改变 tracked 行为）。
+`task_storage=local` 的任务进入 `accepted` 前还必须完成 Durable Knowledge Disposition（定义见 `10-vault.md`）：`pending` 不得进入 `ready_for_review` 或 `accepted`；`none` 需写明理由；`distilled` 只列 canonical 目标文件，不复制正文。契约错误、过期或不安全的任务走 `superseded` 立即废止，不被该 gate 阻塞，未处置事项显式转交。local 任务关闭后，删除 `vault/handoff.md` 中与其相关的 transient delta（消费即删；durable 结论先落入 canonical 文件）。tracked 任务默认 `not_applicable`。
 
 ## 升级规则
 
@@ -223,18 +233,14 @@ Capability Tags 只描述工作需要的能力，不授予权限。
 
 ## 多 Agent 接力
 
-当任务中断、转交或由另一个 Agent 恢复时，必须更新 `vault/handoff.md`。
+handoff 是双重触发的：仅当 (1) 发生真实中断（完成前的会话边界、Agent 所有权切换、owner 暂停、环境/外部依赖不可用、不可重现的半完成瞬态操作），且 (2) 存在无法从 canonical 状态（TASK、Git、工作区、重跑测试、durable knowledge）低成本推导的恢复事实时，才创建或更新 `vault/handoff.md`。正常完成、等待 acceptance、完成 review、单纯的 open lifecycle、普通下一步或完全可推导的干净会话边界，均不创建、不更新 handoff。
 
-handoff 至少包含：
+每条 handoff（任务编号命名，无任务编号时用 SESSION）只含三个小节：
 
-- Objective
-- Completed
-- In Progress
-- Failed Attempts
-- Blockers
-- Next Best Action
-- Files To Read First
+- `### Why interrupted`：为什么在当前上下文停下
+- `### Transient context not captured elsewhere`：无法从 canonical 状态重现的现场
+- `### Exact resume point`：精确续作动作（仅在超出任务 slice 导航价值时写）
 
-branch、HEAD、脏文件等实时 Git 事实在恢复时现场读取，handoff 不把它们当权威记录；只可保存一条带观察时间、明确标注非权威的环境快照。
+恢复顺序：先读 TASK 文件、实时 Git/工作区并重跑测试，再读 handoff 补齐瞬态 delta；delta 消费后删除该条目。branch、HEAD、脏文件等实时 Git 事实在恢复时现场读取，handoff 不把它们当权威记录；不保存环境快照充当状态副本。
 
-如果任务文件已存在，`handoff.md` 应指向任务文件，不重复完整任务记录。
+如果任务文件已存在，`handoff.md` 应指向任务文件，不重复完整任务记录。未完成风险属于任务文件，验收 gate 在任务文件记录它们，不写普通 handoff。

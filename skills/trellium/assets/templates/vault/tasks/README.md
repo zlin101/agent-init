@@ -20,16 +20,17 @@ disposition line in Memory Updates before entering `accepted`: `none —
 as `pending`, which blocks `ready_for_review` and `accepted`. Wrong or unsafe
 contracts go to `superseded` immediately — the gate never blocks that, and
 undisposed facts become an explicit handover. After a local task closes,
-remove its `runtime.md` row and compress the related handoff entry. Tracked
-tasks default to `not_applicable` and may keep their runtime row when closed.
+delete its related transient deltas from `vault/handoff.md`; durable
+conclusions live in canonical files first. Tracked tasks default to
+`not_applicable`.
 
 ## Task State Block
 
 Level B/C task files carry a `trellium-task-state` block right after the
 title. It is the single owner of lifecycle, authority level, the current
 slice, and gate results (optional: `current_slice`, `gates`). Update it on
-every status change; the `runtime.md` row is only a projection. Unknown
-fields are invalid; changing a field's meaning requires a new
+every status change; `runtime.md` persists no TASK projection. Unknown fields
+are invalid; changing a field's meaning requires a new
 `schema_version`. The block never grants approvals: Allowed, Requires
 Approval, Forbidden, and acceptance stay owned by the task body and the user.
 
@@ -138,7 +139,7 @@ Next action:
 
 - `vault/runtime.md`
 - `vault/decisions.md` if durable decisions were made
-- `vault/handoff.md` if interrupted or handed off
+- `vault/handoff.md` only if a real interruption leaves a non-derivable transient delta
 - Durable knowledge disposition (required before `accepted` when `task_storage=local`): not_applicable | pending | none — <reason> | distilled — <canonical destinations>
 ```
 

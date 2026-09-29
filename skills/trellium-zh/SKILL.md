@@ -42,7 +42,7 @@ description: 用于为新项目或既有软件项目添加或升级持久的 Age
 
 本包自带确定性安装/升级脚本 `assets/trellium.py`，优先使用；Agent 语义迁移在脚本之上叠加。
 
-- 新项目或既有项目首次接入前，先询问 owner 选择 TASK storage，推荐并默认 `local`；owner 未指定时按 local 执行。local 只把 `vault/tasks/TASK-*.md`、review 台账和 archive 留在本地，协作核心仍进入 Git；需要共享完整任务流水时选择 `tracked`。Agent 运行 `python3 assets/trellium.py adopt <target>` 后，把选择写入 `vault/index.md`；local 模式再创建窄范围 `vault/tasks/.gitignore`（`TASK-*.md`、`*-review.md`、`archive/`），tracked 模式不添加这些 ignore 规则。脚本默认只补缺失文件；已有 `AGENTS.md` 时追加标记区块，不覆盖。语言已明确时重复传入 `--profile go-backend=<root>` / `--profile python-backend=<root>`；每个已选 profile 在 `docs/engineering/profiles/` 生成完整项目文档，并由 AGENTS 按 root 一跳路由，不自动猜测语言。
+- 新项目或既有项目首次接入前，先询问 owner 选择 TASK storage，推荐并默认 `local`；owner 未指定时按 local 执行。local 只把 `vault/tasks/TASK-*.md`、review 台账和 archive 留在本地，协作核心仍进入 Git；需要共享完整任务流水时选择 `tracked`。Agent 运行 `python3 assets/trellium.py adopt <target>` 后，把选择写入 `vault/index.md`；local 模式再创建窄范围 `vault/tasks/.gitignore`（`TASK-*.md`、`*-review.md`、`archive/`），tracked 模式不添加这些 ignore 规则。脚本默认只补缺失文件；已有 `AGENTS.md` 时追加标记区块，不覆盖。语言已明确时重复传入 `--profile go-backend=<root>` / `--profile python-backend=<root>`；每个已选 profile 在 `docs/engineering/profiles/` 生成完整项目文档，并由 AGENTS 按 root 一跳路由；`docs/engineering/code-comments.md` 作为注释/API 兼容载体保留（重叠规则以它优先，完整规则见 `references/protocol-source/init/protocol/70-adoption-flow.md`「Profile 工程规范」）。不自动猜测语言。
 - 协议内容更新无需重装本 Skill：任何命令加 `--fetch` 即从 GitHub 拉取最新 tag release 并以该版本的脚本与模板执行（缓存于 `~/.cache/trellium/`，降级会被拒绝）。重装 Skill 仅在 SKILL 工作流或脚本自身变化时需要。
 - 已接入项目的升级：
   1. `python3 assets/trellium.py diff <target>`——只读报告：会动什么、绝不动什么、待执行迁移手册。
@@ -50,7 +50,7 @@ description: 用于为新项目或既有软件项目添加或升级持久的 Age
   3. Agent 按提案做语义合并（逐条保留项目定制），用户逐条确认。
   4. `python3 assets/trellium.py upgrade <target> --complete`——收尾登记。
 - 无版本戳的存量项目（`vault/.agent-init.json` 不存在）先运行 `python3 assets/trellium.py baseline <target>`。
-- 校验项目状态：`python3 assets/trellium.py check <target>`（可加 `--format json`）完全只读、确定性，校验最小状态层——Level B/C 任务文件的 `trellium-task-state` 状态块、`vault/index.md` 的 `trellium-policy` 策略块、runtime 任务行与状态块的投影一致性、热文件预算测量、TASK storage 与 Git 实际状态。退出码：有 error 为 `2`；仅 warning 为 `0`（warning 必须显示，不存在无条件 PASS）；操作错误为 `1`。它不自动修复、不写任何文件；没有状态块的历史 TASK 按 unresolved 报告，不猜测状态。新建任务用带状态块的模板，重新激活旧任务时补状态块，不批量迁移历史。 在 `local` 项目中，runtime 行指向的任务文件不存在（fresh clone 或本地丢失）时报 clone-safe warning 且不授予授权；已关闭的 local 任务不得保留 runtime 行。
+- 校验项目状态：`python3 assets/trellium.py check <target>`（可加 `--format json`）完全只读、确定性，校验最小状态层——Level B/C 任务文件中 canonical 的 `trellium-task-state` 状态块、`vault/index.md` 的 `trellium-policy` 策略块、热文件预算测量、TASK storage 与 Git 实际状态。`status` 直接扫描这些状态块；runtime Focus 只有导航语义。退出码：有 error 为 `2`；仅 warning 为 `0`（warning 必须显示，不存在无条件 PASS）；操作错误为 `1`。它不自动修复、不写任何文件；没有状态块的历史 TASK 按 unresolved 报告，不猜测状态。新建任务用带状态块的模板，重新激活旧任务时补状态块，不批量迁移历史。在 `local` 项目中，fresh clone 缺少任务文件符合 storage contract；runtime 不提供恢复副本。
 - 数据保护：runtime、handoff、decisions、tasks 等项目数据对脚本只读，永不被模板替换；数据文件的格式迁移按 `references/protocol-source/init/MIGRATIONS.md` 语义执行，只做内容搬运，不丢事实。
 - 版本判断：目标项目 `vault/.agent-init.json` 的 `protocol_version` 低于 `references/protocol-source/init/VERSION` 时提议升级。
 - 脚本无法运行时（缺少 python3 等），回退为本 SKILL 的 Agent 驱动流程：按 `references/protocol-source/` 的协议规则手工合并模板与执行迁移，遵守相同的数据保护边界。

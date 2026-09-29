@@ -11,10 +11,10 @@ Do not copy placeholders as if they were facts.
 - `AGENTS.md`: project-level Agent entry rules.
 - `vault/index.md`: context routing and memory update rules; carries the `trellium-policy` project policy block (budgets and TASK storage), includes the task/authority cheat sheet.
 - `vault/project.md`: stable project purpose and scope.
-- `vault/runtime.md`: current state and active task pointer table (Focus line + Active Tasks table, one row per parallel task); TASK rows are projections of task state blocks.
+- `vault/runtime.md`: project-global current state and optional navigation Focus; TASK state and inventory come directly from task-state blocks.
 - `vault/governance.md`: task levels, authority levels, task lifecycle, contracts, and acceptance gates.
 - `vault/decisions.md`: durable decisions; four lifecycle statuses; index when over budget (bodies move to `vault/decisions/`).
-- `vault/handoff.md`: recent transfer state; each entry named after its task id, at most 3 entries; live Git facts stay out of it.
+- `vault/handoff.md`: transient delta written only when a real interruption leaves a non-derivable recovery fact; three sections per entry (Why interrupted / Transient context not captured elsewhere / Exact resume point); live Git facts stay out of it.
 - `vault/parked.md`: cold index of user-parked items (P-xxxx entries); read only when mentioned; cleanup is proposal-only.
 - `vault/collaboration.md`: collaboration preferences and observed patterns.
 - `vault/tasks/README.md`: task lifecycle flow, `trellium-task-state` block rules, task template, and review ledger template.
@@ -25,7 +25,7 @@ Do not copy placeholders as if they were facts.
 Use most templates directly, then fill project facts:
 
 1. Replace project name and purpose in `vault/project.md`.
-2. Set the current stage, Focus task, and checks in `vault/runtime.md`; keep one row per actually active task in Active Tasks.
+2. Set the current stage, optional Focus task, and checks in `vault/runtime.md`; do not copy TASK state into runtime.
 3. Leave `vault/parked.md` in template state when nothing is parked; do not pre-fill.
 4. Keep `vault/governance.md` conservative.
 5. Add project code and tests only when a concrete profile or user request justifies them.

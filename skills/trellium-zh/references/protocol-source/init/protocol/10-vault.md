@@ -16,13 +16,14 @@
 
 | 事实 | 唯一 Owner | 其他位置 |
 | --- | --- | --- |
-| Level A 当前状态 | `runtime.md` inline 记录 | 无任务文件 |
-| Level B/C lifecycle、当前 slice、Gate 结果 | 任务文件顶部 `trellium-task-state` 状态块 | `runtime.md` 行是派生投影 |
+| Level A 当前状态 | 实时工作区、Git diff 与测试结果 | 不持久化 TASK lifecycle |
+| Level B/C lifecycle、Authority、当前 slice、Gate 结果 | 任务文件顶部 `trellium-task-state` 状态块 | 无人工持久化副本 |
 | Level B/C 当前契约 | 任务文件 current-contract 段（Objective/Scope/Authority/Acceptance 等） | Execution Record 只存执行历史 |
 | 当前 Focus | `runtime.md` | 只表示注意力，不等于 lifecycle |
 | 长期事实 | `project.md`、Active 决策或明确权威文档 | 任务文件可记录实施来源 |
-| 中断原因与下一动作 | `handoff.md` | 不保存实时 Git 状态为权威 |
-| branch、HEAD、脏文件 | 实时 Git | handoff 只可保存带观察时间、明确非权威的历史快照 |
+| 为什么中断（真实中断时） | `handoff.md`，仅当无法从 canonical 状态低成本推导 | 无中断或完全可推导时不产生条目 |
+| 不可重现的瞬态操作现场 | `handoff.md` | 消费后即删 |
+| 精确续作点 | `handoff.md`，仅当超出任务 slice 导航价值 | 恢复顺序：TASK → Git/工作区/测试 → handoff delta |
 | 项目预算与 TASK storage | `index.md` 的 `trellium-policy` 策略块 | 其他文件只路由，不复制当前值 |
 
 ## 记忆分层
@@ -102,13 +103,13 @@ vault 上下文路由表 + 项目策略载体。
 
 当前项目运行态。
 
-任何非琐碎任务前都要读取。保持短小，建议 50-120 行。超过 120 行即触发压缩（见 `15-vault-compaction.md`）。
+任何非琐碎任务前都要读取。保持短小，建议 50-120 行；超出建议长度会在 `trellium.py check` 中呈现为健康 warning（不自动触发压缩；显式压缩触发条件见 `15-vault-compaction.md`）。
 
 它应包含：
 
 - 当前阶段；
-- 活跃任务指针表：`Focus` 行指向当前主线任务，`Active Tasks` 表每行一个并行任务（任务编号、一句话目标、状态、下一步），支持多任务并行；
-- 当前进展（对应 Focus 任务）；
+- 可选 `Focus`：只导航到当前关注的 TASK；不拥有 lifecycle、Authority、slice、Gate 或活跃任务清单；
+- 当前项目进展；
 - 没有任务文件时的验收标准；
 - 当前约束；
 - 最近变化；
@@ -116,7 +117,7 @@ vault 上下文路由表 + 项目策略载体。
 - 必须运行的检查；
 - 下一步建议。
 
-TASK 行的状态使用统一 lifecycle 枚举（定义见 `20-governance.md`）：`draft | active | blocked | ready_for_review | accepted | superseded`。对有任务文件的 TASK，行内状态是 `trellium-task-state` 状态块的派生投影：lifecycle 变化先改状态块，再同步对应行。`Focus` 只表示当前注意力，不等于 lifecycle。暂停且暂不推进的任务降级为 `parked.md` 条目，不是独立状态。没有任务文件的 Level A 行仍以 `runtime.md` 为权威。
+TASK lifecycle 使用统一枚举（定义见 `20-governance.md`）：`draft | active | blocked | ready_for_review | accepted | superseded`，只存于任务文件的 `trellium-task-state` 状态块。`Focus` 只表示当前注意力；它不等于 task state，也不构成 Authority 或活跃任务清单。Focus 指向不存在的 TASK 时，只是 navigation unresolved，不使 TASK lifecycle unresolved。暂停且暂不推进的任务降级为 `parked.md` 条目，不是独立状态。
 
 长内容迁移到 `tasks/*`、`decisions.md`、`parked.md` 或 `details/*`。
 
@@ -136,11 +137,11 @@ TASK 行的状态使用统一 lifecycle 枚举（定义见 `20-governance.md`）
 
 ### handoff.md
 
-任务中断、模型切换、工具切换或多 Agent 接力时的最近交接上下文。
+真实中断时的 transient delta：只在「真实中断」且「存在无法从 canonical 状态低成本推导的恢复事实」同时成立时才写入。
 
-只保留最近 1-3 次关键交接，每条以任务编号命名（无任务编号时用 SESSION）。稳定结论迁移到 `decisions.md`；当前状态迁移到 `runtime.md`；执行历史按任务编号归并进对应任务文件。
+每条以任务编号命名（无任务编号时用 SESSION），且只含三个小节：`### Why interrupted`、`### Transient context not captured elsewhere`、`### Exact resume point`。正常完成、等待 acceptance、普通 review、单纯的 open lifecycle 或完全可推导的干净会话边界不创建、不更新 handoff。
 
-handoff 只保存持久叙事：目标、进展、失败尝试、阻塞、下一步、行动前先读取的文件。branch、HEAD、脏文件等实时 Git 事实在恢复时现场读取，不作为 handoff 权威记录；只可保存一条带观察时间、明确标注非权威的环境快照。
+恢复顺序：先读 TASK 文件、实时 Git/工作区与重跑测试，再读 handoff 补齐瞬态 delta；delta 消费后删除该条目。durable 结论必须已落在 canonical 位置（decisions/TASK 等文件），不因 handoff 删除而迁移。禁止把 Objective、进展、失败尝试、阻塞、普通下一步、Files To Read First 或完整测试结果复制进 handoff；branch、HEAD、脏文件在恢复时现场读取。
 
 ### parked.md
 
@@ -148,13 +149,13 @@ handoff 只保存持久叙事：目标、进展、失败尝试、阻塞、下一
 
 条目格式：`P-xxxx · 类型(task/decision/question) · 标题 · 一句话上下文 · 重启触发器 · 日期`。有任务文件的记 `TASK-xxxx` 指针，没有的记 2-4 行上下文。
 
-生命周期与 `runtime.md` 双向流动：任务被用户挂起时记入；用户重新提起时升回任务文件（Draft）或 `runtime.md`。Agent 不得删除条目；压缩清理只出提案，由用户确认。
+任务被用户挂起时记入；用户重新提起时升回任务文件（Draft）。Agent 不得删除条目；压缩清理只出提案，由用户确认。
 
 ### tasks/
 
 追踪任务和治理任务的任务契约与执行记录。
 
-简单的一次性任务可以留在 `runtime.md`。
+简单的一次性任务不需要持久化 TASK lifecycle；从实时工作区、Git diff 与测试结果恢复。
 
 Level B/C 任务文件在标题之后、叙事正文之前放置 `trellium-task-state` 状态块，是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner（schema 见下方"状态块与策略块"）。`TASK-*-review.md` 台账与 `tasks/archive/` 是冷历史，不需要状态块。
 
@@ -165,9 +166,9 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 - local 任务进入 `accepted` 前，必须在任务文件的 Memory Updates 中显式记录处置结果：`none — <理由>`（没有会约束未来 clone 的新事实）或 `distilled — <canonical 目标文件>`（长期事实的唯一正式正文写在那些文件中，不在此复制第二份）；未记录视为 `pending`，`pending` 的 local 任务不得进入 `ready_for_review` 或 `accepted`。
 - 没有长期结论的任务允许明确记录 `none`，关闭后不留下额外项目记忆；不把 TASK 全文、review 流水或执行日志复制进 Vault。
 - `superseded` 不被该 gate 阻塞：错误、过期或不安全的任务契约可立即废止；未处置的长期事实作为显式 next action 转交替代任务或 owner。
-- local 任务进入 `accepted`/`superseded` 后删除 `runtime.md` 对应行（closed 任务不占热路径），并压缩 `handoff.md` 相关条目；稳定结论必须已落入 canonical 文件。
-- fresh clone 中被忽略的 local TASK 文件必然不存在：`runtime.md` 的 open 摘要只是未验证的工作线索，不是任务契约，不授予 Authority；继续工作必须取回原任务文件，或经 owner 批准后重建任务契约。
-- tracked 任务默认 `not_applicable`（仍可主动记录 `none`/`distilled`），其 runtime closed 行为不变；该规则只作用于新关闭或重新打开后再关闭的任务，不批量回填历史。
+- local 任务进入 `accepted`/`superseded` 后，删除 `handoff.md` 中与其相关的 transient delta（关闭后不再有恢复目标；durable 结论必须已落入 canonical 文件）。
+- fresh clone 中被忽略的 local TASK 文件必然不存在；这是 storage contract，不由 `runtime.md` 提供恢复副本。继续工作必须取回原任务文件，或经 owner 批准后重建任务契约。
+- tracked 任务默认 `not_applicable`（仍可主动记录 `none`/`distilled`）；该规则只作用于新关闭或重新打开后再关闭的任务，不批量回填历史。
 
 ### details/
 
@@ -276,12 +277,12 @@ vault/parked.md
 ## 更新规则
 
 - 热文件更新纪律：固定段落顺序，每条内容占一行；状态或进展变化用单行替换，不重写整段——保证每次更新是小 diff。
-- Level B/C 任务状态变化先更新任务文件的状态块，再同步 `runtime.md` 对应行（投影）。
-- 非琐碎任务完成后更新 `runtime.md`（Active Tasks 表中对应任务行）。
+- Level B/C 任务状态变化只更新任务文件的状态块；`runtime.md` 不保存 TASK 投影。
+- 非琐碎任务后只在 project-global runtime 事实发生变化时更新 `runtime.md`；可选 Focus 仅用于导航。
 - 追踪任务或治理任务更新 `tasks/*`。
 - 产生长期结论时更新 `decisions.md`。
-- 任务中断或转交时更新 `handoff.md`。
+- 仅在真实中断且存在非可推导 transient delta 时更新 `handoff.md`。
 - 用户挂起任务或决定时记入 `parked.md`；重新提起时升回。
 - `runtime.md` 膨胀时，将细节迁移到对应目标文件。
-- 更新热文件时检查预算线；超出时按 `15-vault-compaction.md` 执行压缩。
+- 更新热文件时检查预算线；超出呈现为仓库健康 warning，不阻塞任务验收；显式压缩意图才按 `15-vault-compaction.md` 执行压缩。
 - 压缩语义判定只提案，由用户确认；未确认的决策保持 `Active`。

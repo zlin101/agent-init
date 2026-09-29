@@ -48,9 +48,9 @@ vault/
 
 预算线：runtime ≤ 120 行（Recent Changes ≤ 10 条）；handoff ≤ 3 条交接或 100 行；decisions ≤ 150 行或 8 条记录；parked ≤ 60 行或 20 条；tasks ≤ 40 个当前任务文件（不含 archive 与 review 台账）。以上是初始化默认值；项目当前预算与 TASK storage 只配置在 `vault/index.md` 的 `trellium-policy` 策略块中。`trellium.py check <target>` 始终测量热文件，只对显式配置的阈值报超限；策略块缺失按 legacy 报告，不用隐藏默认值替代。
 
-只读状态摘要：`trellium.py status <target>`（2026.09.5）把 check 校验的同一状态层编译成 owner 视图——Focus、开放任务分类（draft/active/blocked/ready_for_review，含 authority/slice/gates 原值与 runtime 投影）、closed 只进计数、unresolved 显式列出并附发现码；不推断 lifecycle/authority，不冒充 approval inbox，退出码与 `check` 一致（error `2` / 仅 warning `0` / 操作错误 `1`）。
+只读状态摘要：`trellium.py status <target>`（2026.09.5）直接扫描 canonical TASK 状态块形成 owner 视图——导航 Focus、开放任务分类（draft/active/blocked/ready_for_review，含 authority/slice/gates 原值与任务路径）、closed 只进计数、无法解析的 TASK state 显式列出并附发现码。Focus 只有导航语义；不推断 lifecycle/authority，不冒充 approval inbox，退出码与 `check` 一致（error `2` / 仅 warning `0` / 操作错误 `1`）。
 
-压缩五阶段：测量→分类→重组→校验→记录。非语义操作（搬运、索引、标注 Active、暂停任务降级为 parked 条目）Agent 自主执行；语义判定（Superseded by D-xxxx / Merged into D-xxxx / Expired、parked 清理）只提案，用户批量确认，未确认保持 Active。压缩是只含 `vault/` 变更的独立提交。
+压缩五阶段：测量→分类→重组→校验→记录。非语义操作（搬运、索引、标注 Active、暂停任务降级为 parked 条目）Agent 自主执行；语义判定（Superseded by D-xxxx / Merged into D-xxxx / Expired、parked 清理）只提案，用户批量确认，未确认保持 Active。压缩是只含 `vault/` 变更的独立提交。策略块配置的预算超出在 `trellium.py check` 中只是仓库健康 warning；压缩本身是显式意图触发的独立 maintenance 动作，不是自动的任务收尾步骤。
 
 决策索引化：decisions.md 变纯索引，正文入 `vault/decisions/D-xxxx-slug.md`。索引原则：增长进目录，读取走索引。
 
@@ -62,32 +62,34 @@ vault/
 
 `trellium-task-state` 位于 Level B/C 任务标题之后。必填字段：`schema_version`（整数 `1`）、`task_id`（`TASK-NNNN`，与文件名一致）、`level`（`B | C`）、`authority_level`（整数 0..4）、`lifecycle`。可选：`current_slice`（非空字符串）与 `gates`（开放 Gate ID → `pending | in_progress | passed | partial | blocked | not_authorized | not_applicable`）。未定义字段非法。它是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner，不授予批准。没有状态块的任务文件是 legacy（报告、不猜测）；review 台账与 `tasks/archive/` 不带状态块。
 
-`trellium-policy` 位于 `vault/index.md` 开头。必填：`schema_version` 与 `task_storage`（`tracked | local`）；可选 `budgets`（各热文件一项）。它是项目预算与 TASK storage 的唯一来源。首次接入询问 owner 并推荐/默认 `local`；只有任务文件、review 台账与 archive 不进 Git，协作核心仍 tracked，Accepted 结论必须蒸馏进公开位置。需要共享完整流水时选择 `tracked`。local 接入生成窄范围 `vault/tasks/.gitignore`；工具不自动迁移或 untrack。local 任务进入 `accepted` 前在 Memory Updates 记录 Durable knowledge disposition（`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review`/`accepted`）。fresh clone 中被忽略的 local 任务文件不存在：runtime 行只是未验证线索，不授予 Authority；已关闭的 local 任务不保留 runtime 行。
+`trellium-policy` 位于 `vault/index.md` 开头。必填：`schema_version` 与 `task_storage`（`tracked | local`）；可选 `budgets`（各热文件一项）。它是项目预算与 TASK storage 的唯一来源。首次接入询问 owner 并推荐/默认 `local`；只有任务文件、review 台账与 archive 不进 Git，协作核心仍 tracked，Accepted 结论必须蒸馏进公开位置。需要共享完整流水时选择 `tracked`。local 接入生成窄范围 `vault/tasks/.gitignore`；工具不自动迁移或 untrack。local 任务进入 `accepted` 前在 Memory Updates 记录 Durable knowledge disposition（`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review`/`accepted`）。fresh clone 中被忽略的 local 任务文件不存在，这是 storage contract；runtime 不提供恢复副本。
 
 ## 任务生命周期
 
 `draft | active | blocked | ready_for_review | accepted | superseded`
 
-由 `trellium-task-state` 状态块持有；`runtime.md` TASK 行是投影。暂停且暂不推进的工作放 `parked.md`，不是 lifecycle 值。Level A 没有任务文件，`runtime.md` inline 记录即权威。
+`trellium-task-state` 状态块是 lifecycle、Authority、当前 slice 与 Gate 结果的唯一持久化 owner；`runtime.md` 不保存 TASK 投影。暂停且暂不推进的工作放 `parked.md`，不是 lifecycle 值。Level A 不持久化 TASK lifecycle，从工作区、Git diff 与测试结果恢复。
 
 ## 文件职责
 
 - `vault/index.md`：路由表 + `trellium-policy` 项目策略块；不保存运行态。
 - `vault/project.md`：稳定项目目标、范围、边界和当前阶段。
-- `vault/runtime.md`：短当前状态、活跃任务指针表（Focus 行 + Active Tasks 每行一任务）、检查、风险和下一步。支持多任务并行，状态变化只改对应行；TASK 行是各任务状态块的派生投影。
+- `vault/runtime.md`：短项目全局当前状态、可选导航 Focus、检查、风险和下一步；Focus 不拥有 task state、Authority 或活跃任务清单。
 - `vault/governance.md`：任务等级、授权等级、任务生命周期、任务契约、验收门、升级规则和 handoff。
 - `vault/decisions.md`：决策索引与生命周期记录（Active / Superseded / Merged / Expired）；正文拆分后在 `vault/decisions/*`。
-- `vault/handoff.md`：中断或恢复工作时的近期交接上下文；每条交接以任务编号命名，最多 3 条；实时 Git 事实恢复时现场读取，不作为权威记录。
-- `vault/parked.md`：用户挂起事项冷索引；仅被提及时读取，不进默认读取路径；与 runtime 双向流动（挂起降级、提及升回）。
+- `vault/handoff.md`：仅当真实中断留下非可推导恢复事实时才写入的 transient delta；每条（任务编号或 SESSION）只含三小节——Why interrupted、Transient context not captured elsewhere、Exact resume point；恢复先读 TASK/实时 Git/测试，用 delta 补齐后即删。
+- `vault/parked.md`：用户挂起事项冷索引；仅被提及时读取，不进默认读取路径；恢复时升回任务文件。
 - `vault/collaboration.md`：不能覆盖硬治理的软协作偏好。
 - `vault/tasks/*`：追踪或治理任务的契约、执行记录、验证和关闭说明。
 - `skills/*`：可复用 Agent 工作流。
 
 ## 任务等级
 
-- Level A，简单任务：低风险，通常一次会话完成，一到两个文件，不影响架构、API、依赖或数据模型。记录在 `vault/runtime.md`。
-- Level B，追踪任务：多文件、需要审计、需要设计加文档/测试/验证，或可能需要交接。记录在 `vault/tasks/TASK-xxxx-short-title.md`。
-- Level C，治理任务：改变架构、公开 API、数据模型、框架、外部服务、安全、隐私、成本、部署或 Agent 治理。记录在任务文件和 `vault/decisions.md`；通常需要用户确认。
+判定顺序：命中 Level C 风险域 → C；否则中断恢复或协作成本明显较高 → B；否则 → A。规模只提示判断，不单独决定等级。
+
+- Level C，治理任务：命中风险域即治理，一行修改也不例外（安全/隐私、公开 API 或外部契约、持久数据/迁移、部署/生产行为、依赖、成本/配额、架构方向/重大架构决策、治理规则）。记录在任务文件和 `vault/decisions.md`；通常需要用户确认。
+- Level B，追踪任务：非 C 风险域但恢复或协作成本明显较高（跨 session、真实 handoff、多 owner、外部系统状态、多阶段 gate、diff/tests 难以恢复的 execution state）。记录在 `vault/tasks/TASK-xxxx-short-title.md`。
+- Level A，简单任务：低风险、恢复与协调成本低。默认不持久化 TASK lifecycle，从工作区、Git diff 与测试结果恢复。
 
 ## 授权等级
 
@@ -123,7 +125,7 @@ vault/
 3. 适用时同步代码、测试、文档和 vault 记忆。
 4. 更新 `vault/runtime.md`。
 5. 在 `vault/decisions.md` 记录长期决策。
-6. 在任务文件或 `vault/handoff.md` 记录未完成工作或风险。
+6. 在任务文件记录未完成工作或风险（不用普通 handoff）。
 7. 没有隐藏的高影响变更。
 
 测试通过不等于完成。
@@ -132,7 +134,7 @@ vault/
 
 - Plan first：编辑前明确目标、边界、验收、验证、文件和不做范围。
 - Context grounded：先读本地项目上下文，再应用通用建议。
-- Checkpointable：通过任务文件、runtime 和 handoff 让长任务可恢复。
+- Checkpointable：通过任务文件、runtime、实时 Git/测试让长任务可恢复；仅真实中断且留下非可推导 delta 时另有 transient-delta handoff。
 - Human signal：架构、成本、安全、隐私、部署和模糊产品取舍交还用户判断。
 - Review ledger：多轮 review 用 `TASK-xxxx-review.md` 台账批量收敛，每轮一次写入替代消息往返；收敛后归档进任务文件。
 - Workflow compounding：重复稳定工作流沉淀为聚焦 skill，而不是扩写入口文件。
