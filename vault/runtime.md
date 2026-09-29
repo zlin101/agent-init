@@ -35,6 +35,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 
 ## Recent Changes
 
+- 2026-09-29: A1（owner 裁定的 Profile 路由 parity guard，Level A test-only）：`TemplatePackagingTest.test_profile_routing_paragraph_parity_across_append_and_templates` 冻结 agent_entry_section 与 en 模板路由段落全段等价（空白归一化）及三副本（append/en/zh）六项语义不变量（完整 Profile 路径、root 匹配当前路径、仅实际语言、carrier 兼容、重叠 carrier 优先、其余完整 Profile 约束）；F002 残留收口。A2/A3 合并为观察项（等真实定制摩擦），self-hosting Profile 补齐待单独授权评估。
 - 2026-09-29: accepted TASK-0020 H2 after two review/rework rounds and opened TASK-0021 with the reflected/ablated H3 plan; no H3 product implementation or planning handoff was created.
 
 - 2026-09-29: opened TASK-0020 with the reflected/ablated H2 plan; no H2 implementation or planning handoff was created.

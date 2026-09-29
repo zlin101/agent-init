@@ -2961,6 +2961,66 @@ class TemplatePackagingTest(TargetTestCase):
     agent-task template). adopt/upgrade must still render the target project's
     skills/agent-task/SKILL.md via the source-name override."""
 
+    def test_profile_routing_paragraph_parity_across_append_and_templates(self) -> None:
+        """TASK-0023 review residual: the routing semantic contract lives in three
+        hand-maintained copies (en/zh template AGENTS.md plus the appended
+        agent_entry_section). Freeze whole-paragraph parity between the appended
+        copy and the en template, and freeze the shared routing invariants in all
+        three copies, so wording drift cannot silently reintroduce the
+        appended-vs-template divergence TASK-0023 fixed."""
+        repo = Path(__file__).resolve().parents[1]
+
+        def normalize(paragraph: str) -> str:
+            return " ".join(paragraph.split())
+
+        def routing_paragraph(markdown: str) -> str:
+            matches = [
+                p.strip()
+                for p in markdown.split("\n\n")
+                if agent_init.PROFILE_DOCUMENT_DIRECTORY in p
+            ]
+            self.assertEqual(len(matches), 1)
+            return matches[0]
+
+        section = agent_init.agent_entry_section()
+        appended_body = section.split(agent_init.AGENTS_MARKER_START, 1)[1].split(
+            agent_init.AGENTS_MARKER_END, 1
+        )[0]
+        appended_paragraphs = [p.strip() for p in appended_body.strip().split("\n\n") if p.strip()]
+        appended = normalize(appended_paragraphs[-1])
+
+        en_template = (repo / "skills/trellium/assets/templates/AGENTS.md").read_text(encoding="utf-8")
+        zh_template = (repo / "skills/trellium-zh/assets/templates/AGENTS.md").read_text(
+            encoding="utf-8"
+        )
+        en_routing = normalize(routing_paragraph(en_template))
+        zh_routing = normalize(routing_paragraph(zh_template))
+
+        # The appended copy and the en template must stay verbatim-equal
+        # (whitespace-normalized); this equality is exactly what eroded before.
+        self.assertEqual(appended, en_routing)
+
+        # Shared routing invariants, frozen in all three copies.
+        surfaces = {
+            "appended": appended,
+            "en template": en_routing,
+            "zh template": zh_routing,
+        }
+        for surface, paragraph in surfaces.items():
+            with self.subTest(surface=surface):
+                self.assertIn("docs/engineering/profiles/", paragraph)
+                self.assertIn("docs/engineering/code-comments.md", paragraph)
+                if surface == "zh template":
+                    self.assertIn("root 与当前路径匹配", paragraph)
+                    self.assertIn("不读取未匹配语言", paragraph)
+                    self.assertIn("以该兼容文档为项目定制优先", paragraph)
+                    self.assertIn("完整 profile 继续约束其余工程事项", paragraph)
+                else:
+                    self.assertIn("declared root matches the current path", paragraph)
+                    self.assertIn("do not load unmatched languages", paragraph)
+                    self.assertIn("take precedence as project customization", paragraph)
+                    self.assertIn("still governs all other engineering concerns", paragraph)
+
     def test_control_packages_carry_no_discoverable_skill_template(self) -> None:
         repo = Path(__file__).resolve().parents[1]
         for package in ("trellium", "trellium-zh"):
