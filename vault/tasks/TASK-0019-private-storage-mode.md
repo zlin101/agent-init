@@ -7,7 +7,7 @@
   "level": "C",
   "authority_level": 3,
   "lifecycle": "ready_for_review",
-  "current_slice": "M2-hardening-M3-preflight-complete-awaiting-codex-review"
+  "current_slice": "review-round-2-rework-complete-awaiting-codex"
 }
 -->
 
@@ -91,7 +91,8 @@ Forbidden:
 - [x] private 使用 local TASK lifecycle，但文案不声称跨 clone durable。
 - [x] adopt/diff/upgrade/profile 与 managed-file allowlist、dirfd/fallback、link/path 安全边界无回归。
 - [x] 不新增 CLI storage 参数，不自动修改 index/commit/push/history。
-- [x] 双语协议、README、MIGRATIONS、VERSION 与 snapshots 同步。（协议/Skills/MIGRATIONS/snapshots 已同步；README/VERSION 按 owner 收敛计划显式拆分至 Phase 3/Phase 6）
+- [x] 双语协议、Skills、MIGRATIONS 与 snapshots 同步；canonical 三模式合同收齐（private 语义与 preflight 接线）。
+- [ ] README 与 VERSION 同步：owner 已授权拆分至收敛计划 Phase 3（installer/README）与 Phase 6（VERSION/release）；完成后勾选。
 - [ ] 全量测试、check、sync、whitespace 和独立 review 通过，无 open P0/P1/P2。（自测全绿；独立 review = Codex，待进行）
 - [x] 任务停在 `ready_for_review`，由 owner 决定 accepted 和发布。
 
@@ -399,6 +400,32 @@ Risks:
 Next action:
 
 - Codex 复验本轮 rework；通过后按收敛计划进入 Phase 3（TASK-0024）。
+
+### 2026-09-29 - Agent: PI — review round 2 rework（REQUEST_CHANGES：3 P1 + 2 P2）
+
+Context read:
+
+- Codex round 2 结论；`git ls-files`/`ls-tree --full-name` 坐标差异验证；四处 v1-only 残留原文。
+
+Changes made:
+
+- P1-1：`private_preflight` 统一坐标——`git ls-files`（target-relative）归一化为 repo-relative 后与 `ls-tree --full-name` 同坐标系匹配；monorepo staged-only `vault/custom.md` 红测（曾 PASS 漏报，现拒绝）。附带 `private_preflight` 入口 `Path(target)` 强转（修复 Skill 命令的 str AttributeError）。
+- P1-2：双语 Skill 的 preflight 示例改为 argv 传参（`Path(sys.argv[1])` + `profiles=tuple(sys.argv[2:])`，避免路径引号注入且携带所选 profile）；新增 Skill 命令 smoke test（从 SKILL.md 提取精确命令，clean fixture 返回 `[]`、tracked carrier 非零退出并报路径）。
+- P1-3：live 合同三模式收齐——`10-vault:162`、`70:73`（首次选择三模式）、`70:158`（保持既有 storage_mode/mode 迁移）、`SKILL:45` 首次选择补 private；双语 governance/handoff/tasks-README/agent-task 模板与 live governance/tasks-README 的 disposition/lifecycle 限定从 `task_storage=local` 扩展为“采用 local lifecycle 语义（storage_mode=local 或 private）”；补齐同类的 `20-governance:216`、`30-agent-entry:83`。模板合同测试断言同步到新措辞（storage_mode=local / local lifecycle）。
+- P2-1：TASK-0019:94 AC 拆分为两行——已同步部分勾选，README/VERSION 推迟项不勾选（owner 授权拆分）。
+- P2-2：current_slice 更新为 review-round-2 rework 状态。
+
+Checks run:
+
+- PrivateStorageModeTest 40/40 OK（38 + 2 新红→绿：monorepo staged、Skill 命令 smoke 双场景）；全量 OK exit 0；sync `--check` in sync；嵌入副本 byte-identical；check 0/0；`git diff --check` 干净；live 合同 v1-only 残留为零（仅剩 legacy 归一化语境与产品内 v1 字段消息）。
+
+Risks:
+
+- 无 handoff。
+
+Next action:
+
+- Codex 复验；通过后进入收敛计划 Phase 3（TASK-0024）。
 
 ## Memory Updates
 

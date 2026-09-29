@@ -20,7 +20,7 @@ description: 用于执行需要上下文读取、限定范围修改、验证、�
 11. 检查验收门；测试通过不等于完成。
 12. 多轮 review 使用 `vault/tasks/TASK-xxxx-review.md` 台账：findings 编号进入、批量处理、批量回写状态（open/fixed/wont-fix/needs-discussion）；收敛后归档进任务文件 Execution Record。
 13. 仅在 project-global runtime 发生变化时更新 `vault/runtime.md`；需要时调整 Focus，但 Focus 只有导航语义，不拥有 task state、Authority 或活跃任务清单。
-14. 长期决策写入 `vault/decisions.md`。local 任务（`task_storage=local`）进入 `accepted` 前在任务文件 Memory Updates 填写 Durable knowledge disposition：`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`。错误契约直接 `superseded`，不受该 gate 阻塞。
+14. 长期决策写入 `vault/decisions.md`。local 或 private 任务（local lifecycle 语义）进入 `accepted` 前在任务文件 Memory Updates 填写 Durable knowledge disposition：`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`。错误契约直接 `superseded`，不受该 gate 阻塞。
 15. 用户挂起任务或决定时，在 `vault/parked.md` 记条目（含重启触发器）；用户重新提起时升回任务文件（draft）。
 16. 压缩或 storage 决策前，从 `vault/index.md` 的 `trellium-policy` 策略块读取项目预算与 TASK storage；该块是当前数字的唯一来源。缺失时视为 legacy：人工判断按协议初始化默认值执行，并如实报告缺口。
 17. 任一热文件超出预算线时，如实报告 `BUDGET_EXCEEDED` warning（仓库健康信号），不阻塞当前任务验收、不自动扩大本任务 scope；仅当用户显式要求、独立 maintenance TASK 或本任务验收标准明确包含压缩，或热文件结构损坏需要恢复时，才执行压缩五阶段：测量→分类→重组→校验→记录。压缩规则：

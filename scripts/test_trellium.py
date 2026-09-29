@@ -2662,7 +2662,7 @@ class LocalTemplateSemanticsTest(TargetTestCase):
         ):
             text = self.read(relative)
             self.assertIn("Durable Knowledge Disposition", text)
-            self.assertIn("task_storage=local", text)
+            self.assertIn("storage_mode=local", text)
             self.assertIn("superseded", text)
 
     def test_index_templates_carry_local_storage_contract(self) -> None:
@@ -2680,7 +2680,7 @@ class LocalTemplateSemanticsTest(TargetTestCase):
             "skills/trellium/assets/templates/vault/handoff.md",
         ):
             text = self.read(relative)
-            self.assertIn("task_storage=local", text)
+            self.assertIn("local lifecycle", text)
             self.assertNotIn("compress", text.lower())
             self.assertNotIn("压缩", text)
             self.assertNotIn("runtime.md", text)
@@ -4476,6 +4476,69 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         ):
             agent_init.private_preflight(target)
         self.assertEqual(before, self.private_git_fingerprint(target))
+
+    def test_private_preflight_rejects_staged_vault_file_in_monorepo(self) -> None:
+        # Review round 2 P1-1: git ls-files is target-relative while ls-tree
+        # --full-name is repo-relative; a staged-only file in a monorepo
+        # subdir must be caught in the unified repo-relative coordinate.
+        outer = self.root / "monorepo-staged"
+        target = outer / "packages/app"
+        target.mkdir(parents=True)
+        (target / "README.md").write_text("# Demo\n", encoding="utf-8")
+        (target / "vault").mkdir()
+        (target / "vault/custom.md").write_text("# custom\n", encoding="utf-8")
+        self.init_git_repo(outer)
+        self.git(outer, "add", "README.md")
+        self.git(outer, "commit", "-q", "-m", "init")
+        self.git(outer, "add", "-f", "packages/app/vault/custom.md")
+
+        before = self.private_git_fingerprint(target)
+        with self.assertRaises(agent_init.AdoptionError) as rejected:
+            agent_init.private_preflight(target)
+        self.assertIn("vault/custom.md", str(rejected.exception))
+        self.assertEqual(before, self.private_git_fingerprint(target))
+
+    def test_skill_preflight_command_smoke(self) -> None:
+        # Review round 2 P1-2: the exact executable command documented in the
+        # distributed Skill must run, accept argv target/profiles, and catch a
+        # tracked candidate.
+        skill = Path(__file__).resolve().parents[1] / "skills/trellium"
+        text = (skill / "SKILL.md").read_text(encoding="utf-8")
+        quote = chr(34)
+        marker = "python3 -c " + quote
+        start = text.index(marker) + len(marker)
+        end = text.index(quote, start)
+        command = text[start:end]
+
+        clean = self.root / "smoke-clean"
+        clean.mkdir()
+        self.init_git_repo(clean)
+        result = subprocess.run(
+            ["python3", "-c", command, str(clean), "go-backend"],
+            cwd=skill,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("[]", result.stdout)
+
+        tracked = self.root / "smoke-tracked"
+        tracked.mkdir()
+        (tracked / "docs/engineering").mkdir(parents=True)
+        (tracked / "docs/engineering/code-comments.md").write_text("# Rules\n", encoding="utf-8")
+        self.init_git_repo(tracked)
+        self.git(tracked, "add", "docs/engineering/code-comments.md")
+        self.git(tracked, "commit", "-q", "-m", "init")
+        result = subprocess.run(
+            ["python3", "-c", command, str(tracked), "go-backend"],
+            cwd=skill,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("docs/engineering/code-comments.md", result.stderr + result.stdout)
 
     def test_private_adopt_rerun_fails_when_namespace_becomes_tracked(self) -> None:
         # Review round 1 P2-1: the real adopt flow must call the preflight for

@@ -75,7 +75,7 @@ lifecycle、Authority、当前 slice 与 Gate 结果只由任务文件的 `trell
 
 测试通过不等于完成。
 
-`task_storage=local` 的任务进入 `accepted` 前还必须完成 Durable Knowledge Disposition（Memory Updates 中的 `none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`）。契约错误走 `superseded` 立即废止，不受该 gate 阻塞。tracked 任务默认 `not_applicable`。
+采用 local lifecycle 的任务（`storage_mode=local` 或 `private`）进入 `accepted` 前还必须完成 Durable Knowledge Disposition（Memory Updates 中的 `none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`）。契约错误走 `superseded` 立即废止，不受该 gate 阻塞。tracked 任务默认 `not_applicable`。
 
 ## Escalation
 

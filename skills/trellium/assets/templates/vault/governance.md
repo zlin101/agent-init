@@ -75,7 +75,7 @@ Before closing work:
 
 Tests passing alone is not completion.
 
-For `task_storage=local` tasks, entering `accepted` also requires the
+For tasks using local lifecycle semantics (`storage_mode=local` or `private`), entering `accepted` also requires the
 Durable Knowledge Disposition in Memory Updates (`none — <reason>` or
 `distilled — <canonical destinations>`; an unfilled line counts as `pending`
 and blocks `ready_for_review` and `accepted`). Wrong contracts go to

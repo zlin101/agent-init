@@ -12,4 +12,4 @@
 
 分支、HEAD、脏文件在恢复时通过 Git 现场读取，不作为本文件的权威状态。
 
-local 任务（`task_storage=local`）关闭后，删除本文件中与其相关的 transient delta；稳定结论先落入 canonical 文件。
+local 或 private 任务（local lifecycle 语义）关闭后，删除本文件中与其相关的 transient delta；稳定结论先落入 canonical 文件。

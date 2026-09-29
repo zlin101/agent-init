@@ -80,7 +80,7 @@ vault/tasks/<task-id>.md
 11. 仅在真实中断且存在非可推导 transient delta 时更新 `vault/handoff.md`；
 12. 用户挂起任务时记入 `vault/parked.md`，重新提起时升回。
 
-`task_storage=local` 的项目在 fresh clone 中缺少 local TASK 文件符合 storage contract；`runtime.md` 不承担恢复副本职责。继续该任务前先向 owner 取回原任务文件，或经 owner 批准后重建任务契约。
+`storage_mode=local` 或 `private` 的项目在 fresh clone 中缺少 local TASK 文件符合 storage contract；`runtime.md` 不承担恢复副本职责。继续该任务前先向 owner 取回原任务文件，或经 owner 批准后重建任务契约。
 
 ## 禁止内容
 

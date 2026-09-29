@@ -70,7 +70,7 @@ Agent 执行接入前，应只做只读扫描：
 5. 识别项目类型和技术栈，但不改依赖或代码。
 6. 如需语言工程规范，明确 profile 与适用根目录；多语言或同语言多根目录使用重复选择，不自动猜测。
 7. 检查工作区是否已有未说明的变更。
-8. 首次接入由 Agent 询问 owner 选择 TASK storage；推荐 `local`，owner 未指定时按 local 执行，需要共享完整任务流水时选 `tracked`。
+8. 首次接入由 Agent 询问 owner 选择存储模式：推荐 `local`，owner 未指定时按 local 执行；需要共享完整任务流水时选 `tracked`；需要 Trellium 完全不进 Git 时选 `private`（语义与接入顺序见「Private 存储模式」）。
 
 扫描后，Agent 应给出接入计划，列出将创建或修改的协作层文件。
 
@@ -155,7 +155,7 @@ Agent 执行接入前，应只做只读扫描：
 
 接入之后，协议源仍会演进。升级的目标是：协议文件跟进新版，项目数据零损失，项目发展路线不中断。
 
-重复 adopt 和 upgrade 必须保持既有 `task_storage`。显式选择与既有 policy 冲突时，在写入前失败；tracked/local 迁移属于 owner 单独评审动作，工具不自动迁移、不自动 untrack。
+重复 adopt 和 upgrade 必须保持既有 `storage_mode`。显式选择与既有 policy 冲突时，在写入前失败；mode 迁移属于 owner 单独评审动作，工具不自动迁移、不自动 untrack。
 
 升级器是 `trellium.py`，有两种运行位置：仓库 checkout 的 `scripts/trellium.py`（协议开发维护用），或已安装 Skill 包内的 `assets/trellium.py`（最终用户的常规路径，由 `sync-skills.py` 自动分发并与 `scripts/trellium.py` 保持一致）。下文命令中的 `trellium.py` 指两者任一。
 

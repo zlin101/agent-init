@@ -2282,6 +2282,7 @@ def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]
     any collision raises, and any Git query failure fails closed. The probe
     never mutates the worktree, index, HEAD, or the exclude file.
     """
+    target = Path(target)
     candidates = private_preflight_candidates(profiles)
     probe = git_run(target, ["rev-parse", "--show-toplevel"])
     if probe is None:
@@ -2314,6 +2315,10 @@ def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]
         raise AdoptionError(
             "private preflight failed closed: git ls-files failed; the private boundary cannot be verified"
         )
+    # git ls-files reports paths relative to the cwd (the target) while
+    # ls-tree --full-name reports repo-root-relative paths; normalize both to
+    # repo-relative so the namespace/candidate matching sees one coordinate.
+    tracked = {prefix + name for name in tracked}
     head, head_error = git_head_files(target)
     if head_error is not None:
         raise AdoptionError(

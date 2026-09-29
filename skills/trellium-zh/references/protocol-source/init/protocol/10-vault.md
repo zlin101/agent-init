@@ -159,7 +159,7 @@ TASK lifecycle 使用统一枚举（定义见 `20-governance.md`）：`draft | a
 
 Level B/C 任务文件在标题之后、叙事正文之前放置 `trellium-task-state` 状态块，是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner（schema 见下方"状态块与策略块"）。`TASK-*-review.md` 台账与 `tasks/archive/` 是冷历史，不需要状态块。
 
-TASK storage 由 policy 块的 `task_storage` 决定：`local` 时任务文件、review 台账与 archive 不 tracked、不 staged，Accepted 后的结论必须先蒸馏进 `decisions.md` 等公开位置；`tracked` 时完整任务流水纳入版本控制。Skill/Agent 首次接入前询问 owner 并推荐 `local`，owner 未指定时按 local 执行。Agent 在 local 模式创建 `vault/tasks/.gitignore` 的窄规则，不修改项目根 `.gitignore`；storage 迁移由 owner 决定，工具不自动 untrack。
+TASK storage 由 policy 块的 `storage_mode` 决定：`local` 时任务文件、review 台账与 archive 不 tracked、不 staged，Accepted 后的结论必须先蒸馏进 `decisions.md` 等公开位置；`tracked` 时完整任务流水纳入版本控制；`private` 时全部 managed material 留在当前 clone，TASK 采用 local lifecycle 语义（不 tracked、不 staged，Accepted 后蒸馏，fresh clone 不提供恢复承诺）。Skill/Agent 首次接入前询问 owner 并推荐 `local`，owner 未指定时按 local 执行。Agent 在 local 模式创建 `vault/tasks/.gitignore` 的窄规则，不修改项目根 `.gitignore`；private 模式改为维护 `.git/info/exclude` 的 canonical trellium-private block；storage 迁移由 owner 决定，工具不自动 untrack。
 
 local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 而非机器校验）：
 

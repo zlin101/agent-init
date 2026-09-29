@@ -13,7 +13,7 @@ draft -> active -> ready_for_review -> accepted
 
 任务被替代时使用 `superseded`。暂停且暂不推进的工作进入 `vault/parked.md`，不是 lifecycle 值。
 
-local 任务（`task_storage=local`）进入 `accepted` 前必须在 Memory Updates 填写 Durable knowledge disposition：`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`。错误契约走 `superseded` 立即废止，不受该 gate 阻塞，未处置事项显式转交。local 任务关闭后，删除 `vault/handoff.md` 中与其相关的 transient delta（durable 结论先落入 canonical 文件）。tracked 任务默认 `not_applicable`。
+local 或 private 任务（local lifecycle 语义）进入 `accepted` 前必须在 Memory Updates 填写 Durable knowledge disposition：`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`。错误契约走 `superseded` 立即废止，不受该 gate 阻塞，未处置事项显式转交。local 任务关闭后，删除 `vault/handoff.md` 中与其相关的 transient delta（durable 结论先落入 canonical 文件）。tracked 任务默认 `not_applicable`。
 
 ## 任务状态块
 
@@ -123,7 +123,7 @@ Next action:
 - `vault/runtime.md`
 - `vault/decisions.md` if durable decisions were made
 - `vault/handoff.md` only if a real interruption leaves a non-derivable transient delta
-- Durable knowledge disposition (required before `accepted` when `task_storage=local`): not_applicable | pending | none — <reason> | distilled — <canonical destinations>
+- Durable knowledge disposition (required before `accepted` when `storage_mode=local` or `private`): not_applicable | pending | none — <reason> | distilled — <canonical destinations>
 ```
 
 ## Review Ledger

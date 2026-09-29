@@ -12,4 +12,4 @@ Recovery order: read the TASK file, live Git/working tree, and rerun tests first
 
 Branch, HEAD, and dirty files are read live from Git at resume time and are never stored here as authoritative state.
 
-After a local task (`task_storage=local`) closes, delete its related transient deltas here; durable conclusions land in canonical files first.
+After a local or private task (local lifecycle semantics) closes, delete its related transient deltas here; durable conclusions land in canonical files first.

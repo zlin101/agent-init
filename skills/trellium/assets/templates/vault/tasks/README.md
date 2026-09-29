@@ -14,7 +14,7 @@ draft -> active -> ready_for_review -> accepted
 Use `superseded` when replaced by another task. Paused-and-shelved work moves
 to `vault/parked.md`, it is not a lifecycle value.
 
-For local tasks (`task_storage=local`), record the Durable knowledge
+For local or private tasks (local lifecycle semantics), record the Durable knowledge
 disposition line in Memory Updates before entering `accepted`: `none —
 <reason>` or `distilled — <canonical destinations>`; an unfilled line counts
 as `pending`, which blocks `ready_for_review` and `accepted`. Wrong or unsafe
@@ -140,7 +140,7 @@ Next action:
 - `vault/runtime.md`
 - `vault/decisions.md` if durable decisions were made
 - `vault/handoff.md` only if a real interruption leaves a non-derivable transient delta
-- Durable knowledge disposition (required before `accepted` when `task_storage=local`): not_applicable | pending | none — <reason> | distilled — <canonical destinations>
+- Durable knowledge disposition (required before `accepted` when `storage_mode=local` or `private`): not_applicable | pending | none — <reason> | distilled — <canonical destinations>
 ```
 
 ## Review Ledger
