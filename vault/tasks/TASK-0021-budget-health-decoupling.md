@@ -6,14 +6,14 @@
   "task_id": "TASK-0021",
   "level": "C",
   "authority_level": 3,
-  "lifecycle": "ready_for_review",
-  "current_slice": "M0-M4-done-awaiting-codex-review",
+  "lifecycle": "accepted",
+  "current_slice": "accepted-committed-c631e68",
   "gates": {
     "implementation": "passed",
     "warning_exit": "passed",
     "correctness_regression": "passed",
     "distribution_sync": "passed",
-    "review": "pending"
+    "review": "passed"
   }
 }
 -->

@@ -6,8 +6,8 @@
   "task_id": "TASK-0020",
   "level": "C",
   "authority_level": 3,
-  "lifecycle": "ready_for_review",
-  "current_slice": "owner-accepted-awaiting-tracked-commit",
+  "lifecycle": "accepted",
+  "current_slice": "accepted-committed-c631e68",
   "gates": {
     "implementation": "passed",
     "historical_replay": "passed",

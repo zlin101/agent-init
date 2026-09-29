@@ -2,11 +2,9 @@
 
 ## Current Phase
 
-Post-2026.09.9 development: H1–H4 are owner-accepted (tracked closures await owner commit); TASK-0023 (Profile protocol drift cleanup) is implemented and awaiting owner acceptance review; TASK-0019 remains parked at the post-M2 boundary.
+Post-2026.09.9 development: H1–H4 and TASK-0023 are owner-accepted and committed as `c631e68`; TASK-0019 remains parked at the post-M2 boundary until the owner resumes it.
 
 ## Focus
-
-- TASK-0023
 
 Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or active-task inventory; `trellium status` reads TASK state directly from task files.
 
@@ -23,7 +21,8 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 - 2026-09-29: PI implemented TASK-0021 H3 (M0-M4) in one pass: both `BUDGET_EXCEEDED` producers are repository-health warnings (warning-only check/status/CI exit 0; correctness errors retain exit 2), task-close compaction coupling deleted across AGENTS/Skill/routing/compaction protocol and bilingual templates with explicit compaction preserved, MIGRATIONS H3 entry added; owner accepted H3 after review.
 - 2026-09-29: TASK-0022 (H4) implemented M0-M4: task classification rewritten risk-first (canonical three-step flow: Level C risk domain → recovery/coordination cost → default A); all mechanical scale thresholds deleted from live surfaces; MIGRATIONS entry added; 7 red→green contracts in `LocalTemplateSemanticsTest`; historical replay tables in the task file; owner accepted H4 after review.
 - 2026-09-29: TASK-0022 review round 1 (REQUEST_CHANGES) fixed: architecture added as explicit Level C risk domain across canonical + all distribution surfaces; MIGRATIONS upgrade semantics corrected to merge-carrier reality; baseline checksum self-reference removed (21/21 verify) and checker exit corrected to 2; runtime refreshed for H3 acceptance.
-- 2026-09-29: TASK-0023 (Profile protocol drift cleanup) implemented M0-M4: `70-adoption-flow.md` made sole canonical owner for profile engineering rules; "唯一 code-comments" drift removed from INIT/protocol README/READMEs/Skills; `agent_entry_section()` fixed to route the complete profile per D-0011 for existing-AGENTS adoptions; regression test red→green; concise MIGRATIONS entry; ready_for_review for owner.
+- 2026-09-29: TASK-0023 (Profile protocol drift cleanup) implemented M0-M4: `70-adoption-flow.md` made sole canonical owner for profile engineering rules; "唯一 code-comments" drift removed from INIT/protocol README/READMEs/Skills; `agent_entry_section()` fixed to route the complete profile per D-0011 for existing-AGENTS adoptions; regression test red→green; concise MIGRATIONS entry; dual-review loop resolved the stale carrier-only rule in module 50; owner accepted after review.
+- 2026-09-29: owner accepted TASK-0020..0023; H1–H4 + profile drift cleanup committed as `c631e68` (parked TASK-0019 M1/M2 delta included as-is; storage warnings cleared, known owner-local storage errors retained by policy).
 
 ## Constraints
 
@@ -68,4 +67,4 @@ git diff --check
 
 ## Next Steps
 
-- Owner independently re-verifies TASK-0023 review-round-1 P2 fixes (`ready_for_review`); owner decides accept/commit. TASK-0019 stays parked.
+- All four governance tasks (H1–H4) and TASK-0023 are accepted and committed as `c631e68`. TASK-0019 stays parked at the post-M2 boundary until the owner resumes it.

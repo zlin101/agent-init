@@ -6,13 +6,13 @@
   "task_id": "TASK-0022",
   "level": "C",
   "authority_level": 3,
-  "lifecycle": "ready_for_review",
-  "current_slice": "M0-M4-done-awaiting-review",
+  "lifecycle": "accepted",
+  "current_slice": "accepted-committed-c631e68",
   "gates": {
     "implementation": "passed",
     "historical_replay": "passed",
     "distribution_sync": "passed",
-    "review": "pending"
+    "review": "passed"
   }
 }
 -->
