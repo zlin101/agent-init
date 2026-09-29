@@ -4,8 +4,8 @@
 
 <!-- trellium-policy
 {
-  "schema_version": 1,
-  "task_storage": "tracked",
+  "schema_version": 2,
+  "storage_mode": "tracked",
   "budgets": {
     "runtime": {"max_lines": 120, "max_recent_entries": 10},
     "handoff": {"max_lines": 100, "max_entries": 3},
@@ -16,7 +16,7 @@
 }
 -->
 
-上方策略块是项目预算与 TASK storage 的唯一来源。`task_storage: tracked` 表示任务文件纳入版本控制；`local` 表示任务文件、review 台账与 archive 不进 Git（Accepted 后的结论必须蒸馏进 `decisions.md` 等公开位置）。协议其他位置的预算数字是初始化默认值，不是项目当前策略。策略块缺失即 legacy 项目：如实报告，不用隐藏默认值替代。
+上方策略块是项目预算与 TASK storage 的唯一来源。`storage_mode: tracked` 表示任务文件纳入版本控制；`local` 表示任务文件、review 台账与 archive 不进 Git（Accepted 后的结论必须蒸馏进 `decisions.md` 等公开位置）；`private` 表示全部 Trellium managed material 不进 Git，只留在当前 clone（由 `.git/info/exclude` 的 canonical trellium-private block 强制）。协议其他位置的预算数字是初始化默认值，不是项目当前策略。策略块缺失即 legacy 项目：如实报告，不用隐藏默认值替代。
 
 ## 任务与授权速查表
 
@@ -86,6 +86,6 @@
 - 仅在真实中断且存在非可推导 transient delta 时更新 `handoff.md`。
 - 用户挂起任务时在 `parked.md` 记条目；重新提起时升回任务文件。
 - 将长细节移出 `runtime.md`。
-- local 任务（`task_storage=local`）在 fresh clone 中缺失符合 storage contract；`runtime.md` 不承担恢复副本职责（见 governance.md）。
+- local 任务（`storage_mode=local`）在 fresh clone 中缺失符合 storage contract；`runtime.md` 不承担恢复副本职责（见 governance.md）。
 - 更新热文件时检查预算线；当前上限以上方 `trellium-policy` 策略块为唯一来源。
 - 预算超出只在 `trellium.py check` 中呈现为健康 warning，不阻塞任务验收；压缩由显式意图（用户要求/独立 maintenance TASK/任务契约）触发：测量→分类→重组→校验→记录；语义判定（Superseded/Merged/Expired）只提案，用户确认前保持 Active。

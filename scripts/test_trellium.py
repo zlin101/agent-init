@@ -2671,7 +2671,7 @@ class LocalTemplateSemanticsTest(TargetTestCase):
             "skills/trellium/assets/templates/vault/index.md",
         ):
             text = self.read(relative)
-            self.assertIn("task_storage=local", text)
+            self.assertIn("storage_mode=local", text)
             self.assertIn("storage contract", text)
 
     def test_handoff_templates_carry_local_close_deletion(self) -> None:
@@ -3483,7 +3483,7 @@ class AdoptionDurabilityTest(VaultCheckMixin, TargetTestCase):
         index = target / "vault/index.md"
         index.write_text(
             index.read_text(encoding="utf-8").replace(
-                '"task_storage": "tracked"', '"task_storage": "local"'
+                '"storage_mode": "tracked"', '"storage_mode": "local"'
             ),
             encoding="utf-8",
         )
@@ -4433,6 +4433,91 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(
             self.findings_with(payload, "PRIVATE_STORAGE_UNVERIFIED"), payload["findings"]
         )
+
+    def test_private_preflight_rejects_tracked_vault_namespace_file(self) -> None:
+        # Review round 1 P1-1: the checker manages whole namespaces (vault/,
+        # skills/agent-task/, .agent-init-backup/); the preflight must reject
+        # ANY tracked file under them, not only its fixed file candidates.
+        target = self.root / "preflight-vault-namespace"
+        target.mkdir()
+        (target / "README.md").write_text("# Demo\n", encoding="utf-8")
+        (target / "vault").mkdir()
+        (target / "vault/custom.md").write_text("# custom\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md", "vault/custom.md")
+        self.git(target, "commit", "-q", "-m", "init")
+
+        before = self.private_git_fingerprint(target)
+        with self.assertRaises(agent_init.AdoptionError) as rejected:
+            agent_init.private_preflight(target)
+        self.assertIn("vault/custom.md", str(rejected.exception))
+        self.assertEqual(before, self.private_git_fingerprint(target))
+
+    def test_private_preflight_git_unavailable_fails_closed(self) -> None:
+        # Review round 1 P1-2: an unusable git binary is a query failure and
+        # must fail closed; only a genuine non-Git target may pass.
+        target = self.root / "preflight-git-unavailable"
+        target.mkdir()
+        (target / "README.md").write_text("# Demo\n", encoding="utf-8")
+        (target / "AGENTS.md").write_text("# Custom entry\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md")
+        self.git(target, "commit", "-q", "-m", "init")
+        original_git_run = agent_init.git_run
+
+        def unavailable_git_run(target_path, arguments, input_bytes=None):
+            if arguments and arguments[0] == "rev-parse":
+                return None
+            return original_git_run(target_path, arguments, input_bytes=input_bytes)
+
+        before = self.private_git_fingerprint(target)
+        with patch.object(agent_init, "git_run", unavailable_git_run), self.assertRaises(
+            agent_init.AdoptionError
+        ):
+            agent_init.private_preflight(target)
+        self.assertEqual(before, self.private_git_fingerprint(target))
+
+    def test_private_adopt_rerun_fails_when_namespace_becomes_tracked(self) -> None:
+        # Review round 1 P2-1: the real adopt flow must call the preflight for
+        # an existing private project, so a newly tracked managed path fails
+        # the adoption instead of silently passing.
+        target = self.private_repo("private-readopt-tracked")
+        (target / "vault/custom.md").write_text("# custom\n", encoding="utf-8")
+        self.git(target, "add", "-f", "vault/custom.md")
+
+        code, _, err = self.adopt(target)
+
+        self.assertNotEqual(code, 0)
+        self.assertIn("private", err)
+
+    def test_private_complete_upgrade_does_not_suggest_commit(self) -> None:
+        # Review round 1 P1-3: private upgrade completion must keep the
+        # clone-only contract end to end - through a real conflict proposal
+        # round, --complete must not suggest committing the upgrade.
+        target = self.private_repo("private-complete", "--profile", "go-backend=.")
+        governance = target / "vault/governance.md"
+        governance.write_text(
+            governance.read_text(encoding="utf-8") + "\n<!-- local customization -->\n",
+            encoding="utf-8",
+        )
+
+        with self.patched_templates() as templates:
+            template = templates / "vault/governance.md"
+            template.write_text(
+                template.read_text(encoding="utf-8").replace(
+                    "测试通过不等于完成。",
+                    "测试通过不等于完成。\n\n<!-- upstream change -->",
+                ),
+                encoding="utf-8",
+            )
+            code, out, err = self.run_agent_init("upgrade", str(target), "--apply")
+        self.assertEqual(code, agent_init.EXIT_CONFLICT, err)
+
+        code, out, err = self.run_agent_init("upgrade", str(target), "--complete")
+
+        self.assertEqual(code, 0, err)
+        self.assertNotIn("commit this upgrade", out)
+        self.assertIn("private", out.lower())
 
 
 if __name__ == "__main__":

@@ -2283,8 +2283,32 @@ def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]
     never mutates the worktree, index, HEAD, or the exclude file.
     """
     candidates = private_preflight_candidates(profiles)
-    if not git_in_worktree(target):
-        return []
+    probe = git_run(target, ["rev-parse", "--show-toplevel"])
+    if probe is None:
+        raise AdoptionError(
+            "private preflight failed closed: git is unavailable; the private boundary cannot be verified"
+        )
+    if probe.returncode != 0:
+        if b"not a git repository" in probe.stderr:
+            return []
+        raise AdoptionError(
+            "private preflight failed closed: git rev-parse failed: "
+            + probe.stderr.decode("utf-8", "surrogateescape").strip()
+        )
+    prefix = git_root_prefix(target)
+    namespaces = ("vault/", "skills/agent-task/", ".agent-init-backup/")
+    candidate_set = set(candidates) | {"AGENTS.md"}
+
+    def collides(repo_relative: str) -> bool:
+        if prefix:
+            if not repo_relative.startswith(prefix):
+                return False
+            repo_relative = repo_relative[len(prefix) :]
+        return (
+            repo_relative in candidate_set
+            or repo_relative.startswith(namespaces)
+        )
+
     tracked = git_tracked_files(target)
     if tracked is None:
         raise AdoptionError(
@@ -2295,9 +2319,7 @@ def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]
         raise AdoptionError(
             f"private preflight failed closed: {head_error}; the private boundary cannot be verified"
         )
-    collisions = sorted(
-        candidate for candidate in candidates if candidate in tracked or candidate in head
-    )
+    collisions = sorted({r for r in (*tracked, *head) if collides(r)})
     if collisions:
         raise AdoptionError(
             "private adoption rejected: "
@@ -3794,7 +3816,14 @@ def complete_upgrade(target: Path, stamp: dict) -> int:
     for relative in pending:
         print(f"  - {relative}")
     print_playbook([section for section in read_migration_sections() if section[0] == version])
-    print("next: commit this upgrade as a standalone, revertable change")
+    if target_storage_mode(target) == "private":
+        print(
+            "next: private storage - keep all Trellium material untracked and covered by the"
+            " trellium-private block in .git/info/exclude; never commit Trellium material;"
+            " re-run check to confirm the boundary"
+        )
+    else:
+        print("next: commit this upgrade as a standalone, revertable change")
     return 0
 
 
@@ -3978,6 +4007,11 @@ def adopt_project(args: argparse.Namespace) -> int:
         return fail(f"refusing to adopt into filesystem root: {target}")
     if not target_exists and not args.create:
         return fail(f"target does not exist: {target}")
+    if target_exists and target_storage_mode(target) == "private":
+        try:
+            private_preflight(target, profiles=tuple(item["id"] for item in profiles))
+        except AdoptionError as exc:
+            return fail(str(exc))
     try:
         if target_exists and not target.is_dir():
             return fail(f"target is not a directory: {target}")

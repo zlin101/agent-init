@@ -91,7 +91,7 @@ Forbidden:
 - [x] private 使用 local TASK lifecycle，但文案不声称跨 clone durable。
 - [x] adopt/diff/upgrade/profile 与 managed-file allowlist、dirfd/fallback、link/path 安全边界无回归。
 - [x] 不新增 CLI storage 参数，不自动修改 index/commit/push/history。
-- [ ] 双语协议、README、MIGRATIONS、VERSION 与 snapshots 同步。（协议/Skills/MIGRATIONS/snapshots 已同步；README 与 VERSION 分别落在收敛计划 Phase 3 与 Phase 6）
+- [x] 双语协议、README、MIGRATIONS、VERSION 与 snapshots 同步。（协议/Skills/MIGRATIONS/snapshots 已同步；README/VERSION 按 owner 收敛计划显式拆分至 Phase 3/Phase 6）
 - [ ] 全量测试、check、sync、whitespace 和独立 review 通过，无 open P0/P1/P2。（自测全绿；独立 review = Codex，待进行）
 - [x] 任务停在 `ready_for_review`，由 owner 决定 accepted 和发布。
 
@@ -366,6 +366,39 @@ Risks:
 Next action:
 
 - Codex 独立验收 review；owner 决定 accepted。PI 停在 review 门，不进入收敛计划 Phase 3。
+
+### 2026-09-29 - Agent: PI — review round 1 rework（REQUEST_CHANGES：4 P1 + 2 P2）
+
+Context read:
+
+- Codex 验收结论；`private_preflight`/`check_private_boundary`/`complete_upgrade`/`adopt_project` 现状；四处合同漂移面原文。
+
+Changes made:
+
+- P1-1：preflight 碰撞判定改为命名空间感知——tracked/HEAD 下任一文件落在 `vault/`、`skills/agent-task/`、`.agent-init-backup/`（target-scoped）或精确候选（stamp、Comment Policy、所选 Profile docs、AGENTS.md）即拒绝。红测：tracked `vault/custom.md` 曾返回 `[]`，现 `AdoptionError`。
+- P1-2：rev-parse 探针区分真实非 Git 目标（放行）与 git 不可用/异常（fail-closed `AdoptionError`）。红测：mock rev-parse → None 曾返回 `[]`。
+- P1-3：`complete_upgrade` 补 private 分支——完成提示为保持 untracked/ignored + 重跑 check，不提示 commit。红 e2e：private repo + 本地定制 + patched upstream → `--apply` 冲突 → `--complete` 输出断言。
+- P1-4 合同同步：`10-vault.md` policy 节重写为 v2 canonical（schema_version 2 + storage_mode 三模式 + v1 legacy 归一化）；`60-initialization-flow.md` step 5 三模式选择 + step 8 private exclude 语义；双语 vault/index 模板 policy block 迁移到 schema v2（storage_mode，渲染默认值仍 tracked，纯合同同步）并同步说明文字；双语 `protocol-model.md` policy 段重写。TASK-0019:94 AC 按 owner 收敛计划显式拆分（README→Phase 3、VERSION→Phase 6）后勾选。
+- P2-1：双语 Skill 补可执行模块加载调用形式；`adopt_project` 对既有 private 项目 re-adopt 时真实调用 `private_preflight`（失败则 adopt 拒绝）。红测：private 项目新增 tracked managed path 后 re-adopt 曾静默通过。
+- P2-2：runtime Known Risks 的 CORE_STORAGE 条目替换为 Phase 0 后现实（check 0/0）。
+- 测试同步：两个模板合同测试断言更新到 v2 字段名（rendered-policy replace 与 storage_mode=local 断言）——owner 指示模板迁移的直接后果，非行为变更。
+
+Checks run:
+
+- PrivateStorageModeTest 38/38 OK；全量 OK exit 0（0 expected / 0 unexpected）；sync `--check` in sync；嵌入副本 byte-identical；self check 0/0；`git diff --check` 干净。
+
+Review and reflection:
+
+- M0 时代的模板合同测试（task_storage 字段名断言）随 v2 模板迁移同步更新——属合同演进，非放松。
+- 私有冲突制造必须用 patched_templates 造 upstream delta（同版本下仅改本地文件不产生 upgrade 冲突）。
+
+Risks:
+
+- 无 handoff。
+
+Next action:
+
+- Codex 复验本轮 rework；通过后按收敛计划进入 Phase 3（TASK-0024）。
 
 ## Memory Updates
 

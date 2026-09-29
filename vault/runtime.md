@@ -55,8 +55,8 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 
 ## Known Risks
 
-- The owner-local stamp and engineering document intentionally make the current worktree checker report two `CORE_STORAGE_UNCOMMITTED` errors; this task must neither hide nor modify them.
-- Unversioned `install.sh` still follows GitHub `releases/latest`, so after tag-only releases it does not discover the newest tag; explicit `--version` is the documented safe path.
+- Owner-local files were removed in convergence Phase 0 (stamp restored to HEAD, owner-local carrier deleted); the former two `CORE_STORAGE_UNCOMMITTED` errors are gone and check is 0/0.
+- Unversioned `install.sh` still follows GitHub `releases/latest`, so after tag-only releases it does not discover the newest tag; explicit `--version` is the documented safe path (remediation queued as convergence Phase 3, TASK-0024).
 - The checker cannot validate arbitrary natural-language summaries; durable counts remain single-sourced in `vault/details/shadow-run-2026-09.md` (D-0005).
 - Private support has two Kill Gates: ignored/untracked AGENTS discovery across supported Agents, and deterministic detection of forced-added managed files.
 

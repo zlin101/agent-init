@@ -6,8 +6,8 @@ surface.
 
 <!-- trellium-policy
 {
-  "schema_version": 1,
-  "task_storage": "tracked",
+  "schema_version": 2,
+  "storage_mode": "tracked",
   "budgets": {
     "runtime": {"max_lines": 120, "max_recent_entries": 10},
     "handoff": {"max_lines": 100, "max_entries": 3},
@@ -19,9 +19,11 @@ surface.
 -->
 
 The block above is the single source for project budgets and TASK storage.
-`task_storage: tracked` keeps task files in version control; `local` keeps
+`storage_mode: tracked` keeps task files in version control; `local` keeps
 task files, review ledgers, and archive out of Git (Accepted conclusions must
-then be distilled into `decisions.md` or other published truth). Budget
+then be distilled into `decisions.md` or other published truth); `private`
+keeps every Trellium-managed file out of Git entirely (clone-only, enforced
+by the canonical trellium-private block in `.git/info/exclude`). Budget
 numbers elsewhere in the protocol are initialization defaults, not project
 policy. A missing policy block means a legacy project: report it, and do not
 substitute hidden defaults.
@@ -94,6 +96,6 @@ When the user mentions a parked, shelved, or suspended item:
 - Update `handoff.md` only when a real interruption leaves a non-derivable transient delta.
 - Record parked items in `parked.md` when the user suspends them; promote back to a task file when mentioned again.
 - Move long details out of `runtime.md`.
-- For local tasks (`task_storage=local`), absence from a fresh clone follows the storage contract; `runtime.md` is not a recovery copy (see governance.md).
+- For local tasks (`storage_mode=local`), absence from a fresh clone follows the storage contract; `runtime.md` is not a recovery copy (see governance.md).
 - Check hot-file budgets when updating them; current limits live in the `trellium-policy` block above.
 - A budget exceed appears only as a repository-health warning in `trellium.py check` and never blocks task acceptance; compaction is triggered by explicit intent (owner request / independent maintenance TASK / task contract): measure → classify → restructure → verify → record. Semantic judgments (Superseded / Merged / Expired) are proposals only; keep Active until the user confirms.

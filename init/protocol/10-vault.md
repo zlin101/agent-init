@@ -206,15 +206,15 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 - 每个任务实体恰好零或一个状态块：零个是 legacy（报 warning，不猜状态），多个非法。
 - 状态块不授予批准：Allowed、Requires Approval、Forbidden 和验收条件仍由任务正文与用户指令决定。
 
-### trellium-policy v1（项目策略块）
+### trellium-policy v2（项目策略块）
 
 固定标记 `trellium-policy`，放在 `vault/index.md` 开头说明之后：
 
 ```html
 <!-- trellium-policy
 {
-  "schema_version": 1,
-  "task_storage": "tracked",
+  "schema_version": 2,
+  "storage_mode": "tracked",
   "budgets": {
     "runtime": {"max_lines": 120, "max_recent_entries": 10},
     "handoff": {"max_lines": 100, "max_entries": 3},
@@ -226,7 +226,9 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 -->
 ```
 
-- 必填：`schema_version`（整数 `1`）、`task_storage`（`tracked | local`）。`budgets` 可选。
+- 必填：`schema_version`（整数 `2`）、`storage_mode`（`tracked | local | private`）。`budgets` 可选；v2 内不得出现 `task_storage`。
+- `storage_mode` 语义：`tracked` 协作核心与任务流水都进 Git；`local` 仅 TASK/review/archive 留本地；`private` 全部 managed material 只留在当前 clone（完整语义见 `70-adoption-flow.md`「Private 存储模式」）。
+- legacy schema v1（`task_storage: tracked | local`）继续可解析并归一化到同一 mode 概念；既有 v1 不自动改写。
 - 预算是可选正整数；键或对象缺失表示"不设该上限"。模板中的数字是初始化默认值，不是猜测出的普适阈值。
 - 本协议与模板其他位置出现的预算数字都是初始化默认值；项目当前预算以该块为唯一来源。缺失策略块的项目是 legacy：人工判断按初始化默认值，机械校验只测量、不套用默认值。
 - 新接入项目由 Agent 先询问 owner并推荐 `local`；owner 未指定时默认 local。`tracked` 用于需要共享完整任务流水的项目。
