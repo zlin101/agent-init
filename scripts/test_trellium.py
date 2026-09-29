@@ -4499,46 +4499,55 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(before, self.private_git_fingerprint(target))
 
     def test_skill_preflight_command_smoke(self) -> None:
-        # Review round 2 P1-2: the exact executable command documented in the
-        # distributed Skill must run, accept argv target/profiles, and catch a
-        # tracked candidate.
-        skill = Path(__file__).resolve().parents[1] / "skills/trellium"
-        text = (skill / "SKILL.md").read_text(encoding="utf-8")
-        quote = chr(34)
-        marker = "python3 -c " + quote
-        start = text.index(marker) + len(marker)
-        end = text.index(quote, start)
-        command = text[start:end]
+        # Review round 2 P1-2 / round 3 P2-3: the exact executable command in
+        # BOTH distributed Skills must run, pass the selected profile ids
+        # through argv (a tracked profile document is only caught with them),
+        # and reject a tracked candidate.
+        commands = []
+        for package in ("trellium", "trellium-zh"):
+            skill = Path(__file__).resolve().parents[1] / "skills" / package
+            text = (skill / "SKILL.md").read_text(encoding="utf-8")
+            quote = chr(34)
+            marker = "python3 -c " + quote
+            start = text.index(marker) + len(marker)
+            end = text.index(quote, start)
+            commands.append((skill, text[start:end]))
+        self.assertEqual(len(commands), 2)
 
         clean = self.root / "smoke-clean"
         clean.mkdir()
         self.init_git_repo(clean)
-        result = subprocess.run(
-            ["python3", "-c", command, str(clean), "go-backend"],
-            cwd=skill,
-            capture_output=True,
-            text=True,
-            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("[]", result.stdout)
-
         tracked = self.root / "smoke-tracked"
-        tracked.mkdir()
-        (tracked / "docs/engineering").mkdir(parents=True)
-        (tracked / "docs/engineering/code-comments.md").write_text("# Rules\n", encoding="utf-8")
+        tracked.mkdir(parents=True)
+        profile_doc = tracked / "docs/engineering/profiles/go-backend.md"
+        profile_doc.parent.mkdir(parents=True)
+        profile_doc.write_text("# Profile\n", encoding="utf-8")
         self.init_git_repo(tracked)
-        self.git(tracked, "add", "docs/engineering/code-comments.md")
+        self.git(tracked, "add", "docs/engineering/profiles/go-backend.md")
         self.git(tracked, "commit", "-q", "-m", "init")
-        result = subprocess.run(
-            ["python3", "-c", command, str(tracked), "go-backend"],
-            cwd=skill,
-            capture_output=True,
-            text=True,
-            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("docs/engineering/code-comments.md", result.stderr + result.stdout)
+
+        for skill, command in commands:
+            with self.subTest(skill=skill.name):
+                result = subprocess.run(
+                    ["python3", "-c", command, str(clean), "go-backend"],
+                    cwd=skill,
+                    capture_output=True,
+                    text=True,
+                    env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("[]", result.stdout)
+
+                result = subprocess.run(
+                    ["python3", "-c", command, str(tracked), "go-backend"],
+                    cwd=skill,
+                    capture_output=True,
+                    text=True,
+                    env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                )
+                self.assertNotEqual(result.returncode, 0)
+                joined = result.stderr + result.stdout
+                self.assertIn("docs/engineering/profiles/go-backend.md", joined)
 
     def test_private_adopt_rerun_fails_when_namespace_becomes_tracked(self) -> None:
         # Review round 1 P2-1: the real adopt flow must call the preflight for

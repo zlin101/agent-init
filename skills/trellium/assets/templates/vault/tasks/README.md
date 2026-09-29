@@ -19,7 +19,7 @@ disposition line in Memory Updates before entering `accepted`: `none —
 <reason>` or `distilled — <canonical destinations>`; an unfilled line counts
 as `pending`, which blocks `ready_for_review` and `accepted`. Wrong or unsafe
 contracts go to `superseded` immediately — the gate never blocks that, and
-undisposed facts become an explicit handover. After a local task closes,
+undisposed facts become an explicit handover. After a local or private task (local lifecycle semantics) closes,
 delete its related transient deltas from `vault/handoff.md`; durable
 conclusions live in canonical files first. Tracked tasks default to
 `not_applicable`.

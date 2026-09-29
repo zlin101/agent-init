@@ -232,7 +232,7 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 - 预算是可选正整数；键或对象缺失表示"不设该上限"。模板中的数字是初始化默认值，不是猜测出的普适阈值。
 - 本协议与模板其他位置出现的预算数字都是初始化默认值；项目当前预算以该块为唯一来源。缺失策略块的项目是 legacy：人工判断按初始化默认值，机械校验只测量、不套用默认值。
 - 新接入项目由 Agent 先询问 owner并推荐 `local`；owner 未指定时默认 local。`tracked` 用于需要共享完整任务流水的项目。
-- 重复接入与升级保持既有选择；tracked/local 迁移由 owner 单独评审，工具不自动 untrack 或改写既有 storage。
+- 重复接入与升级保持既有选择；`storage_mode` 迁移（含 private）由 owner 单独评审，工具不自动 untrack 或改写既有 storage。
 
 `python3 trellium.py check <target>` 对以上结构与投影做只读确定性校验。
 

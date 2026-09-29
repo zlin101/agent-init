@@ -7,7 +7,7 @@
   "level": "C",
   "authority_level": 3,
   "lifecycle": "ready_for_review",
-  "current_slice": "review-round-2-rework-complete-awaiting-codex"
+  "current_slice": "review-round-3-closeout-complete-awaiting-codex"
 }
 -->
 
@@ -92,7 +92,7 @@ Forbidden:
 - [x] adopt/diff/upgrade/profile 与 managed-file allowlist、dirfd/fallback、link/path 安全边界无回归。
 - [x] 不新增 CLI storage 参数，不自动修改 index/commit/push/history。
 - [x] 双语协议、Skills、MIGRATIONS 与 snapshots 同步；canonical 三模式合同收齐（private 语义与 preflight 接线）。
-- [ ] README 与 VERSION 同步：owner 已授权拆分至收敛计划 Phase 3（installer/README）与 Phase 6（VERSION/release）；完成后勾选。
+- [ ] README 与 VERSION 同步保留在本任务验收内（owner 选定方案 b）：README 落在收敛计划 Phase 3（TASK-0024 安装契约），VERSION 落在 Phase 6（release-prep）；两项完成并验收后勾选，TASK-0019 方可 accepted。
 - [ ] 全量测试、check、sync、whitespace 和独立 review 通过，无 open P0/P1/P2。（自测全绿；独立 review = Codex，待进行）
 - [x] 任务停在 `ready_for_review`，由 owner 决定 accepted 和发布。
 
@@ -418,6 +418,27 @@ Changes made:
 Checks run:
 
 - PrivateStorageModeTest 40/40 OK（38 + 2 新红→绿：monorepo staged、Skill 命令 smoke 双场景）；全量 OK exit 0；sync `--check` in sync；嵌入副本 byte-identical；check 0/0；`git diff --check` 干净；live 合同 v1-only 残留为零（仅剩 legacy 归一化语境与产品内 v1 字段消息）。
+
+Risks:
+
+- 无 handoff。
+
+Next action:
+
+- Codex 复验；通过后进入收敛计划 Phase 3（TASK-0024）。
+
+### 2026-09-29 - Agent: PI — review round 3 closeout（3 P2 + 验收门选项 b）
+
+Changes made:
+
+- P2-1：`10-vault.md:235` 迁移条款改为“`storage_mode` 迁移（含 private）由 owner 单独评审”，消除 private 迁移不在授权门内的歧义。
+- P2-2：关闭语义后半句统一——“采用 local lifecycle 的任务关闭后”覆盖 private（`20-governance:216`、live `vault/tasks/README:16`、双语 tasks/README 模板、双语 en tasks/README 模板英文句）。
+- P2-3：smoke test 重构——提取并分别执行双语 Skill 的精确命令；tracked fixture 改用 `docs/engineering/profiles/go-backend.md`（不传 profiles 即 PASS，冻结 argv 透传）；子测试覆盖 clean/tracked 双场景。
+- 验收门：选定方案 b——README/VERSION 验收项保留在 TASK-0019 内不勾选，README 落 Phase 3（TASK-0024）、VERSION 落 Phase 6（release-prep），两项完成并验收后 TASK-0019 方可 accepted；current_slice 同步。
+
+Checks run:
+
+- PrivateStorageModeTest 40/40 OK；全量 OK exit 0；sync `--check` in sync；check 0/0；`git diff --check` 干净。
 
 Risks:
 
