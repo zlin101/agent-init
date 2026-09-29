@@ -3978,7 +3978,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
             ["LOCAL_BOUNDARY_UNCONFIGURED"],
         )
 
-    @unittest.expectedFailure
     def test_policy_v2_private_mode_is_recognized(self) -> None:
         target = self.make_project(policy=v2_policy("private"))
 
@@ -3992,7 +3991,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
     # -------------------------------------------------------------- P1 red
     # Private reverse privacy Gate contract (turns green in M2).
 
-    @unittest.expectedFailure
     def test_private_clean_fixture_is_healthy(self) -> None:
         # Go Gate (prereg section 9): clean private fixture reaches 0/0 with
         # all managed material untracked, staged-free, and ignored.
@@ -4006,7 +4004,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(payload["summary"], {"errors": 0, "warnings": 0})
         self.assertEqual(payload["findings"], [])
 
-    @unittest.expectedFailure
     def test_private_forced_add_is_reported(self) -> None:
         # Kill Gate 2 contract: git add -f of a managed path must fail closed
         # through read-only index queries, with no hooks and no index writes.
@@ -4020,7 +4017,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(tracked_findings, payload["findings"])
         self.assertIn("vault/index.md", self.reported_paths(tracked_findings))
 
-    @unittest.expectedFailure
     def test_private_committed_head_is_reported(self) -> None:
         # A managed path that reached HEAD stays a privacy error; private
         # never scans history, but the current tree must not pass.
@@ -4035,7 +4031,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(tracked_findings, payload["findings"])
         self.assertIn("AGENTS.md", self.reported_paths(tracked_findings))
 
-    @unittest.expectedFailure
     def test_private_missing_exclude_block_is_unconfigured(self) -> None:
         target = self.adopted_repo()
         self.write_index_policy(target, private_policy())
@@ -4047,7 +4042,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(unconfigured, payload["findings"])
         self.assertTrue(all(item["severity"] == "error" for item in unconfigured))
 
-    @unittest.expectedFailure
     def test_private_overbroad_exclude_is_overreach(self) -> None:
         target = self.adopted_repo()
         self.write_index_policy(target, private_policy())
@@ -4060,7 +4054,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(overreach, payload["findings"])
         self.assertIn("/docs/", " ".join(item["message"] for item in overreach))
 
-    @unittest.expectedFailure
     def test_private_git_failure_is_unverified(self) -> None:
         target = self.private_repo()
         real_git_run = agent_init.git_run
@@ -4078,7 +4071,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(unverified, payload["findings"])
         self.assertTrue(all(item["severity"] == "error" for item in unverified))
 
-    @unittest.expectedFailure
     def test_private_non_git_target_warns(self) -> None:
         # Non-Git targets have no Git upload surface but no mechanically
         # verifiable privacy boundary either: warning, never silence.
@@ -4095,7 +4087,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(unverified, payload["findings"])
         self.assertTrue(all(item["severity"] == "warning" for item in unverified), payload["findings"])
 
-    @unittest.expectedFailure
     def test_private_task_lifecycle_follows_local_semantics(self) -> None:
         target = self.private_repo()
         (target / "vault/runtime.md").write_text(
@@ -4115,7 +4106,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         self.assertTrue(self.findings_with(payload, "TASK_STORAGE_MISMATCH"), payload["findings"])
 
-    @unittest.expectedFailure
     def test_private_monorepo_subdir_fixture_is_healthy(self) -> None:
         repo = self.root / "monorepo"
         app = repo / "packages" / "app"
@@ -4145,7 +4135,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(unconfigured, payload["findings"])
         self.assertTrue(all(item["severity"] == "error" for item in unconfigured))
 
-    @unittest.expectedFailure
     def test_private_duplicate_marker_blocks_are_unconfigured(self) -> None:
         target = self.private_repo()
         self.write_private_exclude(target)  # second complete block, same identity
@@ -4155,7 +4144,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         self.assert_unconfigured(payload)
 
-    @unittest.expectedFailure
     def test_private_unterminated_marker_block_is_unconfigured(self) -> None:
         target = self.adopted_repo()
         self.write_index_policy(target, private_policy())
@@ -4168,7 +4156,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         self.assert_unconfigured(payload)
 
-    @unittest.expectedFailure
     def test_private_crossed_marker_blocks_are_unconfigured(self) -> None:
         target = self.adopted_repo()
         self.write_index_policy(target, private_policy())
@@ -4189,7 +4176,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         self.assert_unconfigured(payload)
 
-    @unittest.expectedFailure
     def test_private_marker_identity_mismatch_is_unconfigured(self) -> None:
         target = self.adopted_repo()
         self.write_index_policy(target, private_policy())
@@ -4203,7 +4189,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         self.assert_unconfigured(payload)
 
-    @unittest.expectedFailure
     def test_private_non_anchored_pattern_is_overreach(self) -> None:
         # "vault/" without a leading slash reaches any nested directory of
         # the same name; the frozen contract requires anchored patterns.
@@ -4220,7 +4205,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         self.assertTrue(self.findings_with(payload, "PRIVATE_STORAGE_OVERREACH"), payload["findings"])
 
-    @unittest.expectedFailure
     def test_private_out_of_target_pattern_is_overreach(self) -> None:
         # A monorepo child block may never reach into a sibling target's
         # namespace.
@@ -4245,7 +4229,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         self.assertTrue(self.findings_with(payload, "PRIVATE_STORAGE_OVERREACH"), payload["findings"])
 
-    @unittest.expectedFailure
     def test_private_tracked_carrier_fails_closed_without_writes(self) -> None:
         # A tracked AGENTS.md is a hard private conflict: the checker must
         # report it (never silently merge semantics) and detection itself
@@ -4330,7 +4313,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(agent_init.private_preflight(target), [])
         self.assertEqual(before, self.private_git_fingerprint(target))
 
-    @unittest.expectedFailure
     def test_private_profile_managed_paths_require_exact_ignore(self) -> None:
         # Stamp-managed paths outside the base namespaces (profile documents)
         # must be covered exactly before a private adoption counts healthy.
@@ -4361,7 +4343,6 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, 0, payload["findings"])
         self.assertEqual(payload["summary"], {"errors": 0, "warnings": 0})
 
-    @unittest.expectedFailure
     def test_private_profile_forced_add_is_reported(self) -> None:
         # Profile paths are inside the managed scope: forcing one into the
         # index is the same privacy violation as forcing vault/index.md.
