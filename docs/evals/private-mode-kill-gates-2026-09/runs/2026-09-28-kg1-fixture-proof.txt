@@ -1,0 +1,23 @@
+== fixture: /tmp/trellium-m0-kg1-i4cK
+
+$ git rev-parse --show-toplevel
+/tmp/trellium-m0-kg1-i4cK
+
+$ git status --porcelain -- AGENTS.md
+(empty above = clean: ignored and untracked)
+
+$ git ls-files --cached -- AGENTS.md | wc -l
+0
+
+$ git check-ignore -v AGENTS.md
+.git/info/exclude:8:/AGENTS.md	AGENTS.md
+
+$ git log --oneline
+1335a95 init
+
+$ ls AGENTS.md vault/
+AGENTS.md
+
+vault/:
+index.md
+runtime.md

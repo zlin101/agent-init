@@ -1,0 +1,22 @@
+== Kill Gate 2 probe: forced-add detectability via read-only Git queries
+== date: 2026-09-28, git 2.43.0
+
+Fixture: fresh git repo, canonical trellium-private block in .git/info/exclude,
+managed material created but untracked (no hooks installed).
+
+$ git ls-files --cached -- vault/index.md          # before
+(empty)
+
+$ git add -f vault/index.md
+
+$ git ls-files --cached -- vault/index.md          # after (index query)
+vault/index.md
+
+$ git status --porcelain -- vault/index.md         # after (status query)
+A  vault/index.md
+
+$ git check-ignore -v --no-index -- vault/index.md # rule view: blind to the add
+.git/info/exclude:9:/vault/	vault/index.md
+
+$ ls .git/hooks/ | grep -v sample || echo "no active hooks"
+no active hooks

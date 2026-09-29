@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 import importlib.util
 from io import StringIO
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
 import unittest
-from typing import Iterator
 from unittest.mock import patch
 
 
@@ -38,6 +39,14 @@ def tracked_policy() -> str:
 
 def local_policy() -> str:
     return policy_block({"schema_version": 1, "task_storage": "local"})
+
+
+def v2_policy(mode: str) -> str:
+    return policy_block({"schema_version": 2, "storage_mode": mode})
+
+
+def private_policy() -> str:
+    return v2_policy("private")
 
 
 def valid_state(task_id: str = "TASK-0001", lifecycle: str = "draft", **overrides) -> dict:
@@ -1503,7 +1512,7 @@ class EmbeddedSkillLayoutTest(TargetTestCase):
 
         # Upstream drift inside the package's own templates must be detected
         # by the embedded script without any repo paths.
-        with patch.object(embedded, "TEMPLATES_ROOT", copied / "assets" / "templates") as patcher:
+        with patch.object(embedded, "TEMPLATES_ROOT", copied / "assets" / "templates"):
             (copied / "assets" / "templates" / "vault" / "index.md").write_text(
                 "package-updated index\n", encoding="utf-8"
             )
@@ -3050,7 +3059,7 @@ class TemplatePackagingTest(TargetTestCase):
         repo = Path(__file__).resolve().parents[1]
         for package in ("trellium", "trellium-zh"):
             templates = repo / "skills" / package / "assets" / "templates"
-            discoverable = [p for p in templates.rglob("SKILL.md")]
+            discoverable = list(templates.rglob("SKILL.md"))
             self.assertEqual(discoverable, [], f"{package} leaks a discoverable template: {discoverable}")
             packaged = templates / "skills" / "agent-task" / "AGENT_TASK_SKILL.template"
             self.assertTrue(packaged.is_file(), f"missing renamed template source: {packaged}")
@@ -3661,6 +3670,744 @@ class AdoptionDurabilityTest(VaultCheckMixin, TargetTestCase):
         unverified = self.findings_with(payload, "CORE_STORAGE_UNVERIFIED")
         self.assertTrue(unverified, payload["findings"])
         self.assertEqual(unverified[0]["severity"], "warning")
+
+
+class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
+    """TASK-0019 M0 contract and red tests (prereg:
+    docs/superpowers/plans/2026-09-28-private-storage-mode-plan.md sections 9
+    and 12-M0).
+
+    P0 freezes the 2026.09.9 verdict on the A0 ablation (local policy plus a
+    hand-maintained exclude over the whole core) to prove a docs-only private
+    mode is unusable. P1 red tests follow the TASK-0013 M0 convention: the
+    frozen v2/privacy contract is committed with expectedFailure markers and
+    stays red until M1/M2 turn each test green and remove its marker in the
+    same change. The two Kill Gates (ignored-AGENTS discovery in fresh agent
+    sessions; forced-add visibility through read-only Git queries) are
+    real-agent/runtime probes recorded in the task file, not unit tests.
+    """
+
+    PRIVATE_BASE_PATTERNS = (
+        "/AGENTS.md",
+        "/vault/",
+        "/skills/agent-task/",
+        "/.agent-init-backup/",
+    )
+
+    def adopted_repo(self, name: str = "project", *adopt_extra: str) -> Path:
+        target = self.root / name
+        target.mkdir()
+        (target / "README.md").write_text("# Demo\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md")
+        self.git(target, "commit", "-q", "-m", "init")
+        code, _, err = self.adopt(target, *adopt_extra)
+        self.assertEqual(code, 0, err)
+        return target
+
+    def stamp_extra_patterns(self, target: Path, prefix: str = "") -> tuple[str, ...]:
+        """Exact anchored patterns for stamp-managed paths outside the base namespaces."""
+        stamp = self.read_stamp(target)
+        patterns = []
+        for relative in sorted(stamp.get("files", {})):
+            if relative == "AGENTS.md" or relative.startswith(("vault/", "skills/agent-task/")):
+                continue
+            patterns.append(f"/{prefix}{relative}")
+        return tuple(patterns)
+
+    def private_repo(self, name: str = "private-project", *adopt_extra: str) -> Path:
+        """Adopted repo as the Agent-native private workflow would leave it."""
+        target = self.adopted_repo(name, *adopt_extra)
+        self.write_index_policy(target, private_policy())
+        self.write_private_exclude(target, extra_patterns=self.stamp_extra_patterns(target))
+        return target
+
+    def check_payload(self, target: Path) -> tuple[int, dict]:
+        code, out, err = self.run_agent_init("check", str(target), "--format", "json")
+        return code, json.loads(out)
+
+    def status_payload(self, target: Path) -> tuple[int, dict]:
+        code, out, err = self.run_agent_init("status", str(target), "--format", "json")
+        return code, json.loads(out)
+
+    def private_git_fingerprint(self, target: Path) -> tuple:
+        """Write-proof snapshot: worktree files, index stages, HEAD, exclude bytes.
+
+        `.git/` internals are excluded from the file snapshot because git
+        opportunistically refreshes index stat-cache metadata; logical index
+        state is covered by `git ls-files -s` and `git status --porcelain`.
+        """
+        files = {
+            relative: content
+            for relative, content in self.snapshot(target).items()
+            if not relative.startswith(".git/")
+        }
+        return (
+            files,
+            self.git(target, "status", "--porcelain").stdout,
+            self.git(target, "ls-files", "-s").stdout,
+            self.git(target, "rev-parse", "HEAD").stdout,
+            self.git_path(target, "info/exclude").read_bytes(),
+        )
+
+    @staticmethod
+    def findings_with(payload: dict, code: str) -> list[dict]:
+        return [finding for finding in payload["findings"] if finding["code"] == code]
+
+    @staticmethod
+    def reported_paths(findings: list[dict]) -> str:
+        return " ".join(str(finding.get("path", "")) for finding in findings)
+
+    def git_path(self, target: Path, argument: str) -> Path:
+        """Resolve `git rev-parse --git-path` without assuming .git is a dir."""
+        result = self.git(target, "rev-parse", "--git-path", argument)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        value = Path(result.stdout.decode("utf-8").strip())
+        return value if value.is_absolute() else (target / value)
+
+    def write_index_policy(self, target: Path, policy: str) -> None:
+        """Replace the adopted policy block the way the Agent workflow does."""
+        index = target / "vault/index.md"
+        text = index.read_text(encoding="utf-8")
+        updated, count = re.subn(
+            r"<!-- trellium-policy\n.*?\n-->", policy, text, count=1, flags=re.S
+        )
+        self.assertEqual(count, 1, "adopted vault/index.md must hold one policy block")
+        index.write_text(updated, encoding="utf-8")
+
+    def private_block_lines(
+        self,
+        *,
+        prefix: str = "",
+        extra_patterns: tuple[str, ...] = (),
+        raw_patterns: tuple[str, ...] = (),
+    ) -> list[str]:
+        """Canonical block lines: identity, scoped anchored patterns, raw extras."""
+        identity = prefix if prefix else "."
+        scoped = [
+            f"/{prefix}{pattern}" if prefix else pattern
+            for pattern in (*self.PRIVATE_BASE_PATTERNS, *extra_patterns)
+        ]
+        return [
+            f"# trellium-private:start {identity}",
+            *scoped,
+            *raw_patterns,
+            f"# trellium-private:end {identity}",
+        ]
+
+    def write_private_exclude(
+        self,
+        target: Path,
+        *,
+        prefix: str = "",
+        extra_patterns: tuple[str, ...] = (),
+        raw_patterns: tuple[str, ...] = (),
+    ) -> Path:
+        """Append the canonical trellium-private block frozen by M0.
+
+        Identity is the Git-root-relative target ("." for a repo-root
+        target); patterns are anchored and Git-root-relative, carrying the
+        target prefix for monorepo children. Only the approved managed scope
+        is ever written: AGENTS.md, vault/, skills/agent-task/, the backup
+        directory, plus exact extra managed paths. `raw_patterns` exists for
+        negative fixtures that must exercise out-of-scope lines.
+        """
+        exclude = self.git_path(target, "info/exclude")
+        with exclude.open("a", encoding="utf-8") as handle:
+            handle.write(
+                "\n".join(
+                    self.private_block_lines(
+                        prefix=prefix,
+                        extra_patterns=extra_patterns,
+                        raw_patterns=raw_patterns,
+                    )
+                )
+                + "\n"
+            )
+        return exclude
+
+    # ------------------------------------------------------------------ M0
+    # Preregistered ablations and golden freezes (green against 2026.09.9).
+
+    def test_p0_local_with_core_hand_ignored_stays_unhealthy(self) -> None:
+        # P0 (prereg section 9): local policy + the same .git/info/exclude
+        # carrier a private mode would use. The current checker must refuse
+        # to call this healthy: every ignored core path is CORE_STORAGE_IGNORED
+        # and the broad vault/ rule overreaches onto durable namespaces.
+        target = self.adopted_repo()
+        self.write_index_policy(target, local_policy())
+        exclude = self.write_private_exclude(target)
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assertEqual(payload["summary"]["warnings"], 0)
+        ignored = self.reported_paths(self.findings_with(payload, "CORE_STORAGE_IGNORED"))
+        for core in ("AGENTS.md", "vault/index.md", agent_init.STAMP_RELATIVE, "skills/agent-task/SKILL.md"):
+            self.assertIn(core, ignored)
+        overreach = self.reported_paths(self.findings_with(payload, "LOCAL_BOUNDARY_OVERREACH"))
+        self.assertIn("vault/decisions/D-0000-sentinel.md", overreach)
+        self.assertIn("vault/details/sentinel.md", overreach)
+
+        # Weakening the rules does not reach health either: the uncovered
+        # remainder flips to CORE_STORAGE_UNCOMMITTED because nothing that is
+        # not ignored ever reaches HEAD.
+        kept = [
+            line
+            for line in exclude.read_text(encoding="utf-8").splitlines(keepends=True)
+            if "/AGENTS.md" not in line and "/skills/" not in line
+        ]
+        exclude.write_text("".join(kept), encoding="utf-8")
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        uncommitted = self.reported_paths(self.findings_with(payload, "CORE_STORAGE_UNCOMMITTED"))
+        self.assertIn("AGENTS.md", uncommitted)
+        self.assertIn("skills/agent-task/SKILL.md", uncommitted)
+
+    def test_tracked_and_local_goldens_stay_clean(self) -> None:
+        # M0 golden freeze: canonical tracked and local adoptions are 0/0.
+        # M1/M2 must not drift these outputs; only private policies may gain
+        # private-mode findings.
+        tracked = self.adopted_repo(name="tracked-golden")
+        self.git(tracked, "add", "-A")
+        self.git(tracked, "commit", "-q", "-m", "adopt trellium")
+        check_code, payload = self.check_payload(tracked)
+        self.assertEqual(check_code, 0, payload["findings"])
+        self.assertEqual(payload["findings"], [])
+
+        local = self.adopted_repo(name="local-golden")
+        self.write_index_policy(local, local_policy())
+        tasks_gitignore = local / "vault/tasks/.gitignore"
+        tasks_gitignore.write_text("TASK-*.md\n*-review.md\narchive/\n", encoding="utf-8")
+        self.git(local, "add", "-A")
+        self.git(local, "commit", "-q", "-m", "adopt trellium as local")
+        check_code, payload = self.check_payload(local)
+        self.assertEqual(check_code, 0, payload["findings"])
+        self.assertEqual(payload["findings"], [])
+
+    def test_check_and_status_goldens_healthy(self) -> None:
+        # M0 golden freeze (review round 1): the healthy tracked adoption
+        # freezes `status` alongside `check`; M1/M2 must not drift either.
+        tracked = self.adopted_repo(name="tracked-golden")
+        self.git(tracked, "add", "-A")
+        self.git(tracked, "commit", "-q", "-m", "adopt trellium")
+
+        check_code, payload = self.check_payload(tracked)
+        self.assertEqual(check_code, 0, payload["findings"])
+        self.assertEqual(payload["findings"], [])
+
+        status_code, status_payload = self.status_payload(tracked)
+        self.assertEqual(status_code, 0, status_payload["findings"])
+        self.assertEqual(status_payload["findings"], [])
+        self.assertEqual(
+            status_payload["summary"],
+            {
+                "active": 0,
+                "blocked": 0,
+                "closed": 0,
+                "draft": 0,
+                "ready_for_review": 0,
+                "unresolved": 0,
+            },
+        )
+        self.assertEqual(
+            status_payload["tasks"],
+            {
+                "active": [],
+                "blocked": [],
+                "draft": [],
+                "ready_for_review": [],
+                "unresolved": [],
+            },
+        )
+
+    def test_check_and_status_goldens_single_storage_error(self) -> None:
+        # One deterministic violation: a closed (accepted) task that never
+        # reached Git under tracked policy. check reports exactly one error;
+        # status carries the same single finding and must NOT turn the
+        # storage failure into an unresolved lifecycle bucket.
+        tracked = self.adopted_repo(name="tracked-golden-error")
+        self.git(tracked, "add", "-A")
+        self.git(tracked, "commit", "-q", "-m", "adopt trellium")
+        (tracked / "vault/tasks/TASK-0002-done.md").write_text(
+            "# TASK-0002 - Done\n\n"
+            + state_block(valid_state(task_id="TASK-0002", lifecycle="accepted"))
+            + "\n",
+            encoding="utf-8",
+        )
+
+        check_code, payload = self.check_payload(tracked)
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assertEqual([item["code"] for item in payload["findings"]], ["TASK_STORAGE_MISMATCH"])
+        self.assertEqual(payload["summary"], {"errors": 1, "warnings": 0})
+
+        status_code, status_payload = self.status_payload(tracked)
+        self.assertEqual(status_code, agent_init.CHECK_ERROR_EXIT)
+        self.assertEqual([item["code"] for item in status_payload["findings"]], ["TASK_STORAGE_MISMATCH"])
+        self.assertEqual(status_payload["tasks"]["unresolved"], [])
+        self.assertEqual(status_payload["summary"]["closed"], 1)
+        self.assertEqual(status_payload["summary"]["unresolved"], 0)
+
+    def test_policy_v2_malformed_variants_stay_rejected(self) -> None:
+        # M1 guard (green today, must stay green): v2 only parses with an
+        # exact storage_mode and no legacy/unknown fields.
+        cases = {
+            "missing-mode": '{"schema_version": 2}',
+            "legacy-and-v2-fields": '{"schema_version": 2, "storage_mode": "local", "task_storage": "tracked"}',
+            "unknown-mode": '{"schema_version": 2, "storage_mode": "hybrid"}',
+            "string-schema": '{"schema_version": "2", "storage_mode": "local"}',
+            "unknown-field": '{"schema_version": 2, "storage_mode": "local", "extra": true}',
+        }
+        for name, payload_text in cases.items():
+            with self.subTest(case=name):
+                target = self.make_project(policy=policy_block(text=payload_text))
+                code, out, err = self.check(target)
+                self.assertEqual(code, agent_init.CHECK_ERROR_EXIT, out)
+                self.assertIn("POLICY_INVALID", out)
+
+    def test_policy_v1_rejects_private_task_storage(self) -> None:
+        # M1 guard: v1 keeps exactly its two legacy values; private never
+        # becomes a task_storage value.
+        target = self.make_project(
+            policy=policy_block({"schema_version": 1, "task_storage": "private"})
+        )
+        code, out, err = self.check(target)
+        self.assertEqual(code, agent_init.CHECK_ERROR_EXIT, out)
+        self.assertIn("POLICY_INVALID", out)
+
+    # -------------------------------------------------------------- P1 red
+    # Policy v2 normalization contract (turns green in M1).
+
+    @unittest.expectedFailure
+    def test_policy_v2_tracked_mode_drives_tracked_semantics(self) -> None:
+        target = self.adopted_repo(name="v2-tracked")
+        (target / "vault/runtime.md").write_text(
+            build_runtime(rows=(("TASK-0001", "active", "obj"),)), encoding="utf-8"
+        )
+        (target / "vault/tasks/TASK-0001-entry.md").write_text(
+            "# TASK-0001 - Entry\n\n" + state_block(valid_state(lifecycle="active")) + "\n",
+            encoding="utf-8",
+        )
+        self.write_index_policy(target, v2_policy("tracked"))
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertNotIn("POLICY_INVALID", self.codes(payload))
+        pending = self.findings_with(payload, "TASK_STORAGE_PENDING")
+        self.assertTrue(pending, payload["findings"])
+        self.assertEqual([item["task_id"] for item in pending], ["TASK-0001"])
+
+    @unittest.expectedFailure
+    def test_policy_v2_local_mode_drives_local_boundary_semantics(self) -> None:
+        target = self.make_project(policy=v2_policy("local"))
+        self.init_git_repo(target)
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertNotIn("POLICY_INVALID", self.codes(payload))
+        self.assertEqual(
+            [item["code"] for item in payload["findings"] if item["code"] == "LOCAL_BOUNDARY_UNCONFIGURED"],
+            ["LOCAL_BOUNDARY_UNCONFIGURED"],
+        )
+
+    @unittest.expectedFailure
+    def test_policy_v2_private_mode_is_recognized(self) -> None:
+        target = self.make_project(policy=v2_policy("private"))
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertNotIn("POLICY_INVALID", self.codes(payload))
+        unverified = self.findings_with(payload, "PRIVATE_STORAGE_UNVERIFIED")
+        self.assertTrue(unverified, payload["findings"])
+        self.assertTrue(all(item["severity"] == "warning" for item in unverified), payload["findings"])
+
+    # -------------------------------------------------------------- P1 red
+    # Private reverse privacy Gate contract (turns green in M2).
+
+    @unittest.expectedFailure
+    def test_private_clean_fixture_is_healthy(self) -> None:
+        # Go Gate (prereg section 9): clean private fixture reaches 0/0 with
+        # all managed material untracked, staged-free, and ignored.
+        target = self.private_repo()
+        tracked = self.git(target, "ls-files", "--cached", "--", "AGENTS.md", "vault", "skills/agent-task")
+        self.assertEqual(tracked.stdout, b"")
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, 0, payload["findings"])
+        self.assertEqual(payload["summary"], {"errors": 0, "warnings": 0})
+        self.assertEqual(payload["findings"], [])
+
+    @unittest.expectedFailure
+    def test_private_forced_add_is_reported(self) -> None:
+        # Kill Gate 2 contract: git add -f of a managed path must fail closed
+        # through read-only index queries, with no hooks and no index writes.
+        target = self.private_repo()
+        self.git(target, "add", "-f", "vault/index.md")
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        tracked_findings = self.findings_with(payload, "PRIVATE_STORAGE_TRACKED")
+        self.assertTrue(tracked_findings, payload["findings"])
+        self.assertIn("vault/index.md", self.reported_paths(tracked_findings))
+
+    @unittest.expectedFailure
+    def test_private_committed_head_is_reported(self) -> None:
+        # A managed path that reached HEAD stays a privacy error; private
+        # never scans history, but the current tree must not pass.
+        target = self.private_repo()
+        self.git(target, "add", "-f", "AGENTS.md")
+        self.git(target, "commit", "-q", "-m", "leak")
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        tracked_findings = self.findings_with(payload, "PRIVATE_STORAGE_TRACKED")
+        self.assertTrue(tracked_findings, payload["findings"])
+        self.assertIn("AGENTS.md", self.reported_paths(tracked_findings))
+
+    @unittest.expectedFailure
+    def test_private_missing_exclude_block_is_unconfigured(self) -> None:
+        target = self.adopted_repo()
+        self.write_index_policy(target, private_policy())
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        unconfigured = self.findings_with(payload, "PRIVATE_STORAGE_UNCONFIGURED")
+        self.assertTrue(unconfigured, payload["findings"])
+        self.assertTrue(all(item["severity"] == "error" for item in unconfigured))
+
+    @unittest.expectedFailure
+    def test_private_overbroad_exclude_is_overreach(self) -> None:
+        target = self.adopted_repo()
+        self.write_index_policy(target, private_policy())
+        self.write_private_exclude(target, extra_patterns=("/docs/",))
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        overreach = self.findings_with(payload, "PRIVATE_STORAGE_OVERREACH")
+        self.assertTrue(overreach, payload["findings"])
+        self.assertIn("/docs/", " ".join(item["message"] for item in overreach))
+
+    @unittest.expectedFailure
+    def test_private_git_failure_is_unverified(self) -> None:
+        target = self.private_repo()
+        real_git_run = agent_init.git_run
+
+        def failing_ls_files(cwd: Path, arguments: list[str], input_bytes: bytes | None = None):
+            if arguments and arguments[0] == "ls-files":
+                return subprocess.CompletedProcess(["git", *arguments], 128, b"", b"failure")
+            return real_git_run(cwd, arguments, input_bytes)
+
+        with patch.object(agent_init, "git_run", side_effect=failing_ls_files):
+            check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        unverified = self.findings_with(payload, "PRIVATE_STORAGE_UNVERIFIED")
+        self.assertTrue(unverified, payload["findings"])
+        self.assertTrue(all(item["severity"] == "error" for item in unverified))
+
+    @unittest.expectedFailure
+    def test_private_non_git_target_warns(self) -> None:
+        # Non-Git targets have no Git upload surface but no mechanically
+        # verifiable privacy boundary either: warning, never silence.
+        target = self.root / "plain-private"
+        target.mkdir()
+        code, _, err = self.adopt(target)
+        self.assertEqual(code, 0, err)
+        self.write_index_policy(target, private_policy())
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, 0, payload["findings"])
+        unverified = self.findings_with(payload, "PRIVATE_STORAGE_UNVERIFIED")
+        self.assertTrue(unverified, payload["findings"])
+        self.assertTrue(all(item["severity"] == "warning" for item in unverified), payload["findings"])
+
+    @unittest.expectedFailure
+    def test_private_task_lifecycle_follows_local_semantics(self) -> None:
+        target = self.private_repo()
+        (target / "vault/runtime.md").write_text(
+            build_runtime(rows=(("TASK-0001", "draft", "obj"),)), encoding="utf-8"
+        )
+        (target / "vault/tasks/TASK-0001-entry.md").write_text(
+            "# TASK-0001 - Entry\n\n" + state_block(valid_state(lifecycle="draft")) + "\n",
+            encoding="utf-8",
+        )
+
+        check_code, payload = self.check_payload(target)
+        self.assertEqual(payload["summary"]["errors"], 0, payload["findings"])
+        self.assertEqual(self.findings_with(payload, "TASK_STORAGE_MISMATCH"), [])
+
+        self.git(target, "add", "-f", "vault/tasks/TASK-0001-entry.md")
+        check_code, payload = self.check_payload(target)
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assertTrue(self.findings_with(payload, "TASK_STORAGE_MISMATCH"), payload["findings"])
+
+    @unittest.expectedFailure
+    def test_private_monorepo_subdir_fixture_is_healthy(self) -> None:
+        repo = self.root / "monorepo"
+        app = repo / "packages" / "app"
+        app.mkdir(parents=True)
+        (app / "README.md").write_text("# App\n", encoding="utf-8")
+        self.init_git_repo(repo)
+        self.git(repo, "add", "packages/app/README.md")
+        self.git(repo, "commit", "-q", "-m", "init")
+        code, _, err = self.adopt(app)
+        self.assertEqual(code, 0, err)
+        self.write_index_policy(app, private_policy())
+        self.write_private_exclude(app, prefix="packages/app")
+
+        tracked = self.git(repo, "ls-files", "--cached", "--", "packages/app/AGENTS.md", "packages/app/vault")
+        self.assertEqual(tracked.stdout, b"")
+        check_code, payload = self.check_payload(app)
+
+        self.assertEqual(check_code, 0, payload["findings"])
+        self.assertEqual(payload["summary"], {"errors": 0, "warnings": 0})
+
+    # ---------------------------------------------------- P1 red (round 2)
+    # Marker-block integrity: the canonical block is only valid when it is
+    # unique, well-formed, uncrossed, and named for this exact target.
+
+    def assert_unconfigured(self, payload: dict) -> None:
+        unconfigured = self.findings_with(payload, "PRIVATE_STORAGE_UNCONFIGURED")
+        self.assertTrue(unconfigured, payload["findings"])
+        self.assertTrue(all(item["severity"] == "error" for item in unconfigured))
+
+    @unittest.expectedFailure
+    def test_private_duplicate_marker_blocks_are_unconfigured(self) -> None:
+        target = self.private_repo()
+        self.write_private_exclude(target)  # second complete block, same identity
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assert_unconfigured(payload)
+
+    @unittest.expectedFailure
+    def test_private_unterminated_marker_block_is_unconfigured(self) -> None:
+        target = self.adopted_repo()
+        self.write_index_policy(target, private_policy())
+        exclude = self.git_path(target, "info/exclude")
+        with exclude.open("a", encoding="utf-8") as handle:
+            handle.write("# trellium-private:start .\n/AGENTS.md\n/vault/\n")
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assert_unconfigured(payload)
+
+    @unittest.expectedFailure
+    def test_private_crossed_marker_blocks_are_unconfigured(self) -> None:
+        target = self.adopted_repo()
+        self.write_index_policy(target, private_policy())
+        exclude = self.git_path(target, "info/exclude")
+        with exclude.open("a", encoding="utf-8") as handle:
+            handle.write(
+                "# trellium-private:start .\n"
+                "/AGENTS.md\n"
+                "# trellium-private:start other\n"
+                "/vault/\n"
+                "# trellium-private:end .\n"
+                "/skills/agent-task/\n"
+                "# trellium-private:end other\n"
+            )
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assert_unconfigured(payload)
+
+    @unittest.expectedFailure
+    def test_private_marker_identity_mismatch_is_unconfigured(self) -> None:
+        target = self.adopted_repo()
+        self.write_index_policy(target, private_policy())
+        exclude = self.git_path(target, "info/exclude")
+        # A complete, well-formed block that names a different target is not
+        # this target's boundary.
+        exclude.write_text("\n".join(self.private_block_lines(prefix="packages/other")) + "\n", encoding="utf-8")
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assert_unconfigured(payload)
+
+    @unittest.expectedFailure
+    def test_private_non_anchored_pattern_is_overreach(self) -> None:
+        # "vault/" without a leading slash reaches any nested directory of
+        # the same name; the frozen contract requires anchored patterns.
+        target = self.adopted_repo()
+        self.write_index_policy(target, private_policy())
+        exclude = self.write_private_exclude(target)
+        exclude.write_text(
+            exclude.read_text(encoding="utf-8").replace("/vault/", "vault/"),
+            encoding="utf-8",
+        )
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assertTrue(self.findings_with(payload, "PRIVATE_STORAGE_OVERREACH"), payload["findings"])
+
+    @unittest.expectedFailure
+    def test_private_out_of_target_pattern_is_overreach(self) -> None:
+        # A monorepo child block may never reach into a sibling target's
+        # namespace.
+        repo = self.root / "monorepo-cross"
+        app = repo / "packages" / "app"
+        app.mkdir(parents=True)
+        (app / "README.md").write_text("# App\n", encoding="utf-8")
+        self.init_git_repo(repo)
+        self.git(repo, "add", "packages/app/README.md")
+        self.git(repo, "commit", "-q", "-m", "init")
+        code, _, err = self.adopt(app)
+        self.assertEqual(code, 0, err)
+        self.write_index_policy(app, private_policy())
+        self.write_private_exclude(
+            app,
+            prefix="packages/app",
+            raw_patterns=("/packages/other/",),
+        )
+
+        check_code, payload = self.check_payload(app)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assertTrue(self.findings_with(payload, "PRIVATE_STORAGE_OVERREACH"), payload["findings"])
+
+    @unittest.expectedFailure
+    def test_private_tracked_carrier_fails_closed_without_writes(self) -> None:
+        # A tracked AGENTS.md is a hard private conflict: the checker must
+        # report it (never silently merge semantics) and detection itself
+        # must leave index, HEAD, worktree, and the exclude file untouched.
+        target = self.root / "tracked-carrier"
+        target.mkdir()
+        (target / "README.md").write_text("# Demo\n", encoding="utf-8")
+        (target / "AGENTS.md").write_text("# Custom entry\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md", "AGENTS.md")
+        self.git(target, "commit", "-q", "-m", "init")
+        code, _, err = self.adopt(target)
+        self.assertEqual(code, 0, err)
+        self.write_index_policy(target, private_policy())
+        self.write_private_exclude(target)
+
+        before = self.private_git_fingerprint(target)
+        check_code, payload = self.check_payload(target)
+        after = self.private_git_fingerprint(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        tracked_findings = self.findings_with(payload, "PRIVATE_STORAGE_TRACKED")
+        self.assertTrue(tracked_findings, payload["findings"])
+        self.assertIn("AGENTS.md", self.reported_paths(tracked_findings))
+        self.assertEqual(before, after)
+
+    @unittest.expectedFailure
+    def test_private_preflight_rejects_tracked_agents_without_writes(self) -> None:
+        # Plan §6.2 (1/3): the Agent-native preflight runs BEFORE adopt; a
+        # tracked AGENTS.md must be rejected explicitly and leave the
+        # pre-adopt worktree, index, HEAD, and exclude file byte-identical.
+        # The probe is a read-only library call; no storage CLI parameter.
+        target = self.root / "preflight-agents"
+        target.mkdir()
+        (target / "README.md").write_text("# Demo\n", encoding="utf-8")
+        (target / "AGENTS.md").write_text("# Custom entry\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md", "AGENTS.md")
+        self.git(target, "commit", "-q", "-m", "init")
+
+        before = self.private_git_fingerprint(target)
+        with self.assertRaises(agent_init.AdoptionError) as rejected:
+            agent_init.private_preflight(target)
+        self.assertIn("AGENTS.md", str(rejected.exception))
+        self.assertEqual(before, self.private_git_fingerprint(target))
+
+    @unittest.expectedFailure
+    def test_private_preflight_rejects_tracked_profile_carrier_without_writes(self) -> None:
+        # Plan §6.2 (2/3): with a profile selected, its tracked engineering
+        # document is a carrier on its own - isolated here from AGENTS.md so
+        # the profile rejection cannot hide behind the entry-carrier case,
+        # and fingerprinted so mutation during the rejection fails.
+        target = self.root / "preflight-profile"
+        target.mkdir()
+        (target / "README.md").write_text("# Demo\n", encoding="utf-8")
+        carrier = target / "docs/engineering/code-comments.md"
+        carrier.parent.mkdir(parents=True, exist_ok=True)
+        carrier.write_text("# Rules\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md", "docs/engineering/code-comments.md")
+        self.git(target, "commit", "-q", "-m", "init")
+
+        before = self.private_git_fingerprint(target)
+        with self.assertRaises(agent_init.AdoptionError) as rejected:
+            agent_init.private_preflight(target, profiles=("go-backend",))
+        self.assertIn("docs/engineering/code-comments.md", str(rejected.exception))
+        self.assertEqual(before, self.private_git_fingerprint(target))
+
+    @unittest.expectedFailure
+    def test_private_preflight_allows_untracked_carrier_without_writes(self) -> None:
+        # Plan §6.2 (3/3): untracked carriers are adoptable for private mode;
+        # the probe itself must stay read-only there too.
+        target = self.root / "preflight-clean"
+        target.mkdir()
+        (target / "README.md").write_text("# Demo\n", encoding="utf-8")
+        (target / "AGENTS.md").write_text("# Custom entry\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md")
+        self.git(target, "commit", "-q", "-m", "init")
+
+        before = self.private_git_fingerprint(target)
+        self.assertEqual(agent_init.private_preflight(target), [])
+        self.assertEqual(before, self.private_git_fingerprint(target))
+
+    @unittest.expectedFailure
+    def test_private_profile_managed_paths_require_exact_ignore(self) -> None:
+        # Stamp-managed paths outside the base namespaces (profile documents)
+        # must be covered exactly before a private adoption counts healthy.
+        target = self.adopted_repo("profile-private", "--profile", "go-backend=services/api")
+        self.write_index_policy(target, private_policy())
+        extra = self.stamp_extra_patterns(target)
+        self.assertEqual(
+            extra,
+            ("/docs/engineering/code-comments.md", "/docs/engineering/profiles/go-backend.md"),
+        )
+        self.write_private_exclude(target)  # base namespaces only
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        self.assert_unconfigured(payload)
+        reported = self.reported_paths(payload["findings"]) + " " + " ".join(
+            item["message"] for item in payload["findings"]
+        )
+        self.assertIn("docs/engineering/code-comments.md", reported)
+        self.assertIn("docs/engineering/profiles/go-backend.md", reported)
+
+        # The same fixture with the exact stamp paths covered reaches health.
+        exclude = self.git_path(target, "info/exclude")
+        exclude.write_text("\n".join(self.private_block_lines(extra_patterns=extra)) + "\n", encoding="utf-8")
+
+        check_code, payload = self.check_payload(target)
+        self.assertEqual(check_code, 0, payload["findings"])
+        self.assertEqual(payload["summary"], {"errors": 0, "warnings": 0})
+
+    @unittest.expectedFailure
+    def test_private_profile_forced_add_is_reported(self) -> None:
+        # Profile paths are inside the managed scope: forcing one into the
+        # index is the same privacy violation as forcing vault/index.md.
+        target = self.private_repo("profile-forced", "--profile", "go-backend=services/api")
+        self.git(target, "add", "-f", "docs/engineering/code-comments.md")
+
+        check_code, payload = self.check_payload(target)
+
+        self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
+        tracked_findings = self.findings_with(payload, "PRIVATE_STORAGE_TRACKED")
+        self.assertTrue(tracked_findings, payload["findings"])
+        self.assertIn("docs/engineering/code-comments.md", self.reported_paths(tracked_findings))
 
 
 if __name__ == "__main__":
