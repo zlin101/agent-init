@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Post-2026.09.9 convergence: H1–H4 + TASK-0023 accepted/committed (`c631e68`); A1 parity guard landed (`437941b`); TASK-0019 resumed from parked — Phase 0-2 of the convergence plan complete, TASK-0019 at `ready_for_review` for Codex.
+Post-2026.09.9 convergence: H1–H4 + TASK-0023 accepted/committed (`c631e68`); A1 parity guard landed (`437941b`); TASK-0019 Phase 0-2 done and round-3 approved (README/VERSION deferred to TASK-0024/Phase 6, lifecycle `active`); Phase 3 TASK-0024 (installer explicit-version contract + README H1 drift fix) complete at `ready_for_review`.
 
 ## Focus
 
@@ -26,6 +26,8 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 - 2026-09-29: TASK-0023 (Profile protocol drift cleanup) implemented M0-M4: `70-adoption-flow.md` made sole canonical owner for profile engineering rules; "唯一 code-comments" drift removed from INIT/protocol README/READMEs/Skills; `agent_entry_section()` fixed to route the complete profile per D-0011 for existing-AGENTS adoptions; regression test red→green; concise MIGRATIONS entry; dual-review loop resolved the stale carrier-only rule in module 50; owner accepted after review.
 - 2026-09-29: owner accepted TASK-0020..0023; H1–H4 + profile drift cleanup committed as `c631e68` (parked TASK-0019 M1/M2 delta included as-is; storage warnings cleared, known owner-local storage errors retained by policy).
 - 2026-09-29: convergence plan Phases 0-1 done: owner-local stamp restored to HEAD + owner-local carrier deleted (check 0/0); `4ddbfe6` retired 19 satisfied M1/M2 markers.
+- 2026-09-29: TASK-0019 review round 3 closeout accepted (storage_mode migration wording, local-lifecycle close semantics, both-Skill command smoke); owner approved Phase 0-2 and authorized Phase 3; TASK-0019 flipped back to `active` with README/VERSION deferred to TASK-0024/Phase 6.
+- 2026-09-29: Phase 3 TASK-0024 complete — install.sh requires explicit --version for network installs (latest-release resolver removed, fail-closed before any network), bilingual README install sections updated, README.en H1 runtime-projection drift fixed, --fetch scoped to adopt/diff/upgrade across READMEs and 70-adoption-flow, ReadmeContractTest added; ready_for_review.
 - 2026-09-29: TASK-0019 Phase 2 complete — M2 hardening (stamp-missing / post-block negation / check-ignore failure / missing sole copy all fail-closed; actual `git check-ignore` outcome verification), M3 read-only `private_preflight` probe wired into protocol + Skills, Private upgrade/adopt completion semantics, plan-doc ablation, MIGRATIONS private entry; last 3 markers removed, full suite fully green; ready_for_review for Codex.
 
 ## Constraints

@@ -241,7 +241,7 @@ vault/governance.md
 
 ### 升级已接入项目
 
-协议源演进后，已接入的项目可以安全跟进，且不影响项目自身的发展路线（Skill 包用户将 `scripts/trellium.py` 替换为 `<skill 目录>/assets/trellium.py`；任何命令可加 `--fetch` 直接拉取最新 tag release，无需等待 Skill 重装）：
+协议源演进后，已接入的项目可以安全跟进，且不影响项目自身的发展路线（Skill 包用户将 `scripts/trellium.py` 替换为 `<skill 目录>/assets/trellium.py`；adopt/diff/upgrade 可加 `--fetch` 直接拉取最新 tag release，无需等待 Skill 重装）：
 
 ```bash
 python3 scripts/trellium.py diff /path/to/project              # 只读报告

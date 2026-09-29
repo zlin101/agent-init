@@ -159,7 +159,7 @@ Agent 执行接入前，应只做只读扫描：
 
 升级器是 `trellium.py`，有两种运行位置：仓库 checkout 的 `scripts/trellium.py`（协议开发维护用），或已安装 Skill 包内的 `assets/trellium.py`（最终用户的常规路径，由 `sync-skills.py` 自动分发并与 `scripts/trellium.py` 保持一致）。下文命令中的 `trellium.py` 指两者任一。
 
-任何命令可加 `--fetch`：从 GitHub 拉取最新 tag release（缓存于 `~/.cache/trellium/`），以该版本的脚本与模板执行——协议内容更新因此不需要重装 Skill 包；目标版本低于项目已装版本时拒绝执行。`--templates <dir>` 可覆盖模板目录（版本信息仍随运行脚本）。
+adopt/diff/upgrade 可加 `--fetch`：从 GitHub 拉取最新 tag release（缓存于 `~/.cache/trellium/`），以该版本的脚本与模板执行——协议内容更新因此不需要重装 Skill 包；目标版本低于项目已装版本时拒绝执行。`--templates <dir>` 可覆盖模板目录（版本信息仍随运行脚本）。
 
 ### Profile 工程规范
 

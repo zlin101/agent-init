@@ -6,8 +6,8 @@
   "task_id": "TASK-0019",
   "level": "C",
   "authority_level": 3,
-  "lifecycle": "ready_for_review",
-  "current_slice": "review-round-3-closeout-complete-awaiting-codex"
+  "lifecycle": "active",
+  "current_slice": "convergence-phase-3-README-VERSION-deferred-to-TASK-0024-and-Phase-6"
 }
 -->
 

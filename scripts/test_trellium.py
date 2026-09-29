@@ -2903,6 +2903,36 @@ class LocalTemplateSemanticsTest(TargetTestCase):
         self.assertIn("仅当 project-global runtime 发生变化时更新 `vault/runtime.md`", text)
 
 
+class ReadmeContractTest(unittest.TestCase):
+    """TASK-0024: README contract regressions - H1-era runtime projection
+    wording must stay out of README.en, and --fetch scoping must match the
+    adopt/diff/upgrade parsers."""
+
+    def read(self, name: str) -> str:
+        return (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+
+    def test_readme_en_has_no_h1_runtime_projection_drift(self) -> None:
+        text = self.read("README.en.md")
+        for legacy in (
+            "Active Tasks rows",
+            "runtime projection",
+            "TASK_RUNTIME_LOCAL_UNRESOLVED",
+            "TASK_RUNTIME_CLOSED_LOCAL",
+            "TASK_RUNTIME_DRIFT",
+            "runtime rows contribute",
+        ):
+            self.assertNotIn(legacy, text)
+        self.assertIn("reads TASK state blocks directly", text)
+
+    def test_fetch_scoping_matches_supported_commands(self) -> None:
+        en = self.read("README.en.md")
+        zh = self.read("README.md")
+        self.assertNotIn("any command accepts `--fetch`", en)
+        self.assertIn("adopt/diff/upgrade commands accept `--fetch`", en)
+        self.assertNotIn("任何命令可加", zh)
+        self.assertIn("adopt/diff/upgrade 可加 `--fetch`", zh)
+
+
 class StatusDefectRegressionsTest(VaultCheckMixin, TargetTestCase):
     """TASK-0010: three reproduced status defects (owner adjudicated P1/P1/P2).
 

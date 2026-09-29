@@ -193,7 +193,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
 
 Restart Codex after installing so the new Skill takes effect.
 
-An installed Skill does not auto-upgrade from the GitHub repository. **Protocol-template and updater changes do not require reinstalling the Skill**: add `--fetch` to any command to pull the latest tagged release and run it (cached under `~/.cache/trellium/`; downgrades are refused). Reinstalling is only needed when the Skill workflow (`SKILL.md`) or the script itself changes; the Codex installer refuses to overwrite an existing directory by default. Before reinstalling, confirm the local Skill directory has no custom modifications you want to keep.
+An installed Skill does not auto-upgrade from the GitHub repository. **Protocol-template and updater changes do not require reinstalling the Skill**: add `--fetch` to the adopt/diff/upgrade commands to pull the latest tagged release and run it (cached under `~/.cache/trellium/`; downgrades are refused). Reinstalling is only needed when the Skill workflow (`SKILL.md`) or the script itself changes; the Codex installer refuses to overwrite an existing directory by default. Before reinstalling, confirm the local Skill directory has no custom modifications you want to keep.
 
 If the repository has not been pushed to GitHub yet, first push a commit that includes `skills/trellium-zh/` or `skills/trellium/`, then let Codex install it.
 
@@ -239,7 +239,7 @@ vault/governance.md
 
 ### Upgrading adopted projects
 
-When the protocol source evolves, adopted projects can follow along safely, without disturbing their own trajectory (Skill users: replace `scripts/trellium.py` with `<skill dir>/assets/trellium.py`; any command accepts `--fetch` to pull the latest tagged release without reinstalling the Skill):
+When the protocol source evolves, adopted projects can follow along safely, without disturbing their own trajectory (Skill users: replace `scripts/trellium.py` with `<skill dir>/assets/trellium.py`; the adopt/diff/upgrade commands accept `--fetch` to pull the latest tagged release without reinstalling the Skill):
 
 ```bash
 python3 scripts/trellium.py diff /path/to/project              # read-only report
@@ -261,8 +261,8 @@ python3 scripts/trellium.py check /path/to/project --format json  # stable JSON
 `check` is a fully read-only, deterministic validation command for the minimal state layer introduced in 2026.09.2:
 
 - `trellium-task-state` blocks: the strict JSON block at the top of Level B/C task files, the single owner of lifecycle, authority level, current slice, and gate results;
-- the `trellium-policy` block: project policy in `vault/index.md`, the single source for budgets and TASK storage (`tracked | local`);
-- runtime projection: consistency between `runtime.md` Active Tasks rows and each task's block lifecycle; in `local` projects an open row whose task file is absent raises the clone-safe warning `TASK_RUNTIME_LOCAL_UNRESOLVED` (explaining fresh clone vs local loss, recovery actions, and that the summary grants no authority), while a leftover closed local row raises the `TASK_RUNTIME_CLOSED_LOCAL` error;
+- the `trellium-policy` block: project policy in `vault/index.md`, the single source for budgets and TASK storage (`tracked | local | private`);
+- `runtime.md`: project-global current state plus an optional navigation Focus; it owns no TASK lifecycle, authority, or projection, and `status` reads TASK state blocks directly. In `local` or `private` projects an absent task file in a fresh clone follows the storage contract (no recovery copy);
 - budget measurements: hot-file lines, UTF-8 bytes, max line size, and entry counts are always reported; only explicitly configured policy thresholds raise `BUDGET_EXCEEDED` warnings (repository-health signals that never block acceptance);
 - TASK storage: actual Git state compared against the configured strategy (tracked/local).
 
@@ -270,7 +270,7 @@ Exit codes: `2` when any error finding exists; `0` with warnings only, but the s
 
 Legacy projects fail closed: historical task files without a state block produce legacy warnings and their lifecycle is never guessed; a missing policy block is never replaced with hidden defaults. State blocks never grant approvals — Allowed, Requires Approval, Forbidden, and acceptance always stay owned by the task body and user instructions.
 
-For `task_storage=local` tasks, the Durable knowledge disposition line in Memory Updates must be completed by hand before `accepted` (`none — <reason>` or `distilled — <canonical destinations>`; unfilled counts as `pending` and blocks `accepted`). Wrong contracts go to `superseded` immediately — the gate never blocks that.
+For tasks using local lifecycle semantics (`storage_mode=local` or `private`), the Durable knowledge disposition line in Memory Updates must be completed by hand before `accepted` (`none — <reason>` or `distilled — <canonical destinations>`; unfilled counts as `pending` and blocks `accepted`). Wrong contracts go to `superseded` immediately — the gate never blocks that.
 
 ### Viewing the owner status summary (status, 2026.09.5)
 
@@ -282,9 +282,9 @@ python3 scripts/trellium.py status /path/to/project --format json  # stable JSON
 `status` is a fully read-only, deterministic owner status summary (introduced in 2026.09.5) that removes the repeated cost of having an agent re-read runtime and task files by hand just to report progress. It only compiles the same state layer `check` already validates and adds no new fact source:
 
 - the Focus line marks each pointer resolved/unresolved;
-- open tasks are classified as `draft / active / blocked / ready_for_review`, each with its `authority_level`, task file path, and optional `current_slice`/`gates` verbatim; runtime rows contribute the `objective`/`next` projection — duplicated or enum-invalid rows contribute none;
+- open tasks are classified as `draft / active / blocked / ready_for_review`, each with its `authority_level`, task file path, and optional `current_slice`/`gates` verbatim;
 - `accepted`/`superseded` tasks appear only in the closed count, never in action lists;
-- tasks whose state cannot be determined are listed explicitly under `unresolved` with the blocking finding codes (such as `TASK_RUNTIME_DRIFT` or `TASK_RUNTIME_LOCAL_UNRESOLVED`); lifecycle and authority are never inferred, and a runtime row that conflicts with its state block demotes the task to unresolved instead of picking a side;
+- tasks whose state cannot be determined are listed explicitly under `unresolved` with the blocking finding codes (such as `TASK_STATE_INVALID` or `TASK_ID_DUPLICATE`); lifecycle and authority are never inferred;
 - exit codes match `check` (`2` for errors, `0` with warnings only, `1` for operational failures).
 
 It is a status summary, not a full owner approval inbox: blocked tasks and pending gates are shown verbatim, never translated into "the owner must approve". Text and JSON render from one result; JSON v1 always carries the `schema_version/target/focus/summary/tasks/findings` keys. `status` never writes to the target, never accesses the network, and never executes commands found in documents.
