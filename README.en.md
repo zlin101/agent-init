@@ -155,7 +155,7 @@ Reinstalling the Skill delivers the new templates, protocol snapshot, and bundle
 ### One-line install (any agent)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zlin101/trellium/develop/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/zlin101/trellium/develop/scripts/install.sh | sh -s -- --version 2026.09.9
 ```
 
 Installs the English Skill package into the auto-detected agent directory (`$CODEX_HOME`/`~/.codex` → Codex; `~/.claude` → Claude Code). Common options:
@@ -165,11 +165,11 @@ Installs the English Skill package into the auto-detected agent directory (`$COD
 ... | sh -s -- --agent all            # install for both Codex and Claude Code
                                      # when omitted: auto-detects $CODEX_HOME/~/.codex → codex, ~/.claude → claude
 ... | sh -s -- --project              # into ./.claude/skills/ of the current project
-... | sh -s -- --version 2026.09.2    # pin a version (default: resolves latest GitHub release)
+... | sh -s -- --version <tag>        # required for network installs (e.g. --version 2026.09.9)
 ... | sh -s -- --dir <path>           # any destination directory
 ```
 
-Re-running the command upgrades in place (the package directory is replaced). The script does exactly three things: resolve the latest release via the `releases/latest` redirect, download the release tarball from GitHub, and copy one directory — audit it first with `curl -fsSL <url> | less` if you prefer.
+Re-running the command upgrades in place (the package directory is replaced). The script requires an explicit `--version` tag for network installs and does exactly two things: download that tagged release tarball from GitHub and copy one directory — audit it first with `curl -fsSL <url> | less` if you prefer. Latest-release resolution is not supported; pick a tag from the repository's tagged releases. Use `--source <dir>` for local checkouts (no version needed).
 
 ### Installing the Skill via Codex
 

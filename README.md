@@ -169,7 +169,7 @@ curl -fsSL https://raw.githubusercontent.com/zlin101/trellium/develop/scripts/in
 ... | sh -s -- --dir <路径>           # 任意目标目录
 ```
 
-重复执行即原地升级（替换整个包目录）。脚本按 `--version` 从 GitHub tag 下载 tarball 并拷贝一个目录，可先 `curl -fsSL <url> | less` 审计再执行。不传版本的 legacy fallback 仍解析 `releases/latest`，在 tag-only 发布策略下不会发现 2026.09.8 之后的新版本，因此不再作为推荐安装方式。
+重复执行即原地升级（替换整个包目录）。脚本按 `--version` 从 GitHub tag 下载 tarball 并拷贝一个目录，可先 `curl -fsSL <url> | less` 审计再执行。不传版本的安装会直接失败（latest-release 解析已按 TASK-0024 移除）：网络安装必须显式 `--version <tag>`，本地安装用 `--source <dir>` 无需版本。
 
 ### 使用 Codex 安装 Skill
 

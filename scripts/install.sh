@@ -10,11 +10,13 @@
 #     [--lang en|zh] [--agent codex|claude|all] [--version TAG] [--dir PATH] [--project] [--source DIR]
 #
 # Defaults: --lang en; agent auto-detected ($CODEX_HOME or ~/.codex -> codex,
-# then ~/.claude -> claude); version = latest GitHub release.
+# then ~/.claude -> claude); network installs require an explicit --version
+# tag (local --source installs need no version).
 #
-# Audit note: this script only resolves the latest release via a redirect,
-# downloads one tarball from codeload.github.com over HTTPS, and copies one
-# directory. It never edits shell configs or elevates privileges.
+# Audit note: this script downloads one tagged tarball from codeload.github.com
+# over HTTPS (only when --version is given) and copies one directory. It never
+# edits shell configs or elevates privileges, and it never resolves
+# "latest release" aliases.
 
 set -eu
 
@@ -34,7 +36,8 @@ usage: install.sh [--lang en|zh] [--agent codex|claude|all] [--version TAG]
   --lang      package language: en (default) or zh
   --agent     skills directory owner: codex, claude, or all
               when omitted: auto-detects $CODEX_HOME/~/.codex -> codex, ~/.claude -> claude
-  --version   release tag to install (default: resolves latest GitHub release)
+  --version   release tag to install (required for network installs;
+              --source installs are local and need no version)
   --dir       explicit destination skills directory
   --project   install into ./.claude/skills of the current directory
   --source    install from a local checkout/release tree instead of downloading
@@ -61,13 +64,8 @@ case "$LANG_OPT" in
   *) echo "error: --lang must be en or zh" >&2; exit 1 ;;
 esac
 
-resolve_latest_version() {
-  url=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest") || return 1
-  case "$url" in
-    */tag/*) printf '%s' "${url##*/tag/}" ;;
-    *) return 1 ;;
-  esac
-}
+# Removed (TASK-0024): latest-release resolution is not supported. Network
+# installs require an explicit --version tag and fail closed without one.
 
 TEMP_ROOT=$(mktemp -d) || exit 1
 trap 'rm -rf "$TEMP_ROOT"' EXIT INT TERM
@@ -81,10 +79,10 @@ if [ -n "$SOURCE_DIR" ]; then
   VERSION_DESC="local source"
 else
   if [ -z "$VERSION" ]; then
-    VERSION=$(resolve_latest_version) || {
-      echo "error: could not resolve the latest release of $REPO (offline?)" >&2
-      exit 1
-    }
+    echo "error: network installs require an explicit --version TAG (for example: --version 2026.09.10)" >&2
+    echo "       latest-release resolution is not supported; pick a tag from the repository's tagged releases," >&2
+    echo "       or use --source <dir> to install from a local checkout without a version." >&2
+    exit 1
   fi
   echo "==> fetching $REPO tag $VERSION"
   curl -fsSL "https://codeload.github.com/$REPO/tar.gz/refs/tags/$VERSION" -o "$TEMP_ROOT/release.tar.gz"

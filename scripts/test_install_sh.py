@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -84,6 +84,21 @@ class InstallScriptTest(unittest.TestCase):
         result = self.run_installer("--bogus")
         self.assertEqual(result.returncode, 2)
         self.assertIn("unknown option", result.stderr)
+
+    def test_network_install_without_version_fails_closed(self) -> None:
+        # TASK-0024: network installs require an explicit --version tag;
+        # latest-release resolution was removed, and the failure must happen
+        # before any network access.
+        result = subprocess.run(
+            ["sh", str(INSTALL_SCRIPT)],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("--version", result.stderr)
+        self.assertNotIn("http", result.stderr)
 
 
 if __name__ == "__main__":
