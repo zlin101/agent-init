@@ -12,7 +12,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 
 ## Current Progress
 
-- Convergence Phases 0-3 complete on develop: H1–H4, TASK-0023, A1 parity guard, TASK-0019 private mode (Phase 0-2: hardening + preflight, round 3 approved), and TASK-0024 explicit-version installer all committed. TASK-0019 (README/VERSION deferred to Phase 3/6, option b) and TASK-0024 await review/acceptance; TASK-0019 remains `active` under option b until Phase 6 completes its deferred item.
+- Convergence Phases 0-5 implemented on develop: Phase 0 cleanup, Phase 1 green baseline (`4ddbfe6`), Phase 2 TASK-0019 private mode (`172fa19`/`5061cd6`/`c5fa637`, round 3 approved), Phase 3 TASK-0024 installer (`6b6747a`/`1380d6f`), Phase 4 TASK-0025 ownership (`995e7a0`), Phase 5 bookkeeping (`c9939b1`). Awaiting: owner acceptance of TASK-0024/0025, then Phase 6 (VERSION 2026.09.10, deferred-item completion, final verification, TASK-0019 final accepted, tag).
 - `2026.09.9` is published as a tag-only release (D-0013); Phase 6 will tag `2026.09.10` the same way.
 - Owner-local files were removed in Phase 0; `check` is 0/0.
 

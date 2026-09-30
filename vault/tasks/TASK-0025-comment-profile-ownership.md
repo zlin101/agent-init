@@ -6,12 +6,12 @@
   "task_id": "TASK-0025",
   "level": "C",
   "authority_level": 3,
-  "lifecycle": "ready_for_review",
+  "lifecycle": "accepted",
   "current_slice": "M1-ownership-complete-awaiting-review",
   "gates": {
     "implementation": "passed",
     "distribution_sync": "passed",
-    "review": "pending"
+    "review": "passed"
   }
 }
 -->
@@ -60,7 +60,7 @@ Checks run:
 
 ## Execution Record
 
-### 2026-09-29 - Agent: PI — M1 ownership complete（round 2 rework：P1-1 三分支路由、P1-2 残留清零、P1-3 双语 README 三模式/private；详见 commit `2c786bd`）
+### 2026-09-29 - Agent: PI — M1 ownership complete（round 2 rework：P1-1 三分支路由、P1-2 残留清零、P1-3 双语 README 三模式/private；该轮内容最终以 amend 后提交 `08e6fe9` 落库）
 
 - 路由三分支重写 4 副本；30-agent-entry:64、50:88 句首、protocol README:26、zh SKILL:45 carrier 残留清零；README.md zh H1/private 漂移（policy 三模式、TASK storage 三模式+private、反向 privacy Gate、disposition local lifecycle）；README.en TASK storage bullet 补 private 反向 privacy Gate；TASK-0025 契约补全。
 - A1 parity 测试冻结三分支语义；全量 OK exit 0；sync/check/嵌入/diff-check 全绿。
@@ -126,11 +126,11 @@ Forbidden:
 
 ## Acceptance Criteria
 
-- [ ] Go/Python canonical profile 与双语模板的注释表达 bullets 已移除，且逐条确认 Comment Policy 覆盖（无唯一规则丢失）。
-- [ ] Profile 仅保留短职责指针（Comment Policy 唯一 owner + 三分支并读规则）。
-- [ ] 路由三分支（实现→Profile；纯注释→Policy；公开 API/行为+注释→两者）在 AGENTS 双语模板、`agent_entry_section` 与 self-host AGENTS 一致。
-- [ ] live 面（protocol/Skills/README）“兼容载体/compatibility carrier”措辞清零；MIGRATIONS 历史语境保留。
-- [ ] A1 parity guard 冻结新路由；全部测试绿。
+- [x] Go/Python canonical profile 与双语模板的注释表达 bullets 已移除，且逐条确认 Comment Policy 覆盖（无唯一规则丢失）。
+- [x] Profile 仅保留短职责指针（Comment Policy 唯一 owner + 三分支并读规则）。
+- [x] 路由三分支（实现→Profile；纯注释→Policy；公开 API/行为+注释→两者）在 AGENTS 双语模板、`agent_entry_section` 与 self-host AGENTS 一致。
+- [x] live 面（protocol/Skills/README）“兼容载体/compatibility carrier”措辞清零；MIGRATIONS 历史语境保留。
+- [x] A1 parity guard 冻结新路由；全部测试绿。
 
 ## Handoff Requirement
 
