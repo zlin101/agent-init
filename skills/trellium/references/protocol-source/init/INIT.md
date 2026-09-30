@@ -48,7 +48,7 @@
 - Agentic 执行模式；
 - 可演化协作画像；
 - 仅在所选 profile 需要时创建项目源码、测试和依赖文件；
-- 仅在显式选择 profile 时生成项目工程文档：完整 `docs/engineering/profiles/<profile>.md` 加兼容载体 `docs/engineering/code-comments.md`，由 AGENTS 入口按 root 与实际语言一跳路由（完整规则见 `protocol/70-adoption-flow.md`「Profile 工程规范」）；
+- 仅在显式选择 profile 时生成项目工程文档：完整 `docs/engineering/profiles/<profile>.md` 加 Comment/API Documentation Policy `docs/engineering/code-comments.md`，由 AGENTS 入口按 root 与实际语言一跳路由（完整规则见 `protocol/70-adoption-flow.md`「Profile 工程规范」）；
 - `README.md`；
 - 记录最终初始化状态的 `vault/runtime.md`。
 

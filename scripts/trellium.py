@@ -812,7 +812,7 @@ Read `vault/governance.md` in full for Level B or Level C work, unclear classifi
 
 Use `vault/project.md` on first entry, `vault/handoff.md` when resuming interrupted work, and `vault/tasks/` for tracked or governed tasks.
 
-When modifying or reviewing source code, public APIs, dependencies, builds, concurrency, lifecycle, comments, or TODO/FIXME items, read the profile under `docs/engineering/profiles/` whose declared root matches the current path. Apply only the profile for the file's actual language; do not load unmatched languages. For compatibility, also read `docs/engineering/code-comments.md` for comment/API work when it exists. Its overlapping comment/API rules take precedence as project customization; the complete profile still governs all other engineering concerns.
+When modifying or reviewing source code, public APIs, dependencies, builds, concurrency, lifecycle, comments, or TODO/FIXME items, read the profile under `docs/engineering/profiles/` whose declared root matches the current path. Apply only the profile for the file's actual language; do not load unmatched languages. `docs/engineering/code-comments.md` is the Comment/API Documentation Policy - the sole owner of comment, doc comment, docstring, TODO/FIXME, directive, and API-documentation expression; read it alone for pure documentation work, and together with the profile when a public API changes or behavior and comments change together. Where both address the same expression rule, the Comment Policy wins; API behavior, security, errors, and compatibility stay governed by the profile.
 {AGENTS_MARKER_END}
 """
 

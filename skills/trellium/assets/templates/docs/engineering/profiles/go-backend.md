@@ -32,12 +32,10 @@ Put executable assembly in `cmd/<name>/main.go`, keeping it focused on wiring, s
 
 Logical dependency direction is transport to application/use-case to domain; adapters implement application-owned minimal interfaces and communicate with external systems. Handlers perform protocol conversion, validation, use-case calls, and response mapping—not complex business logic. Application code owns orchestration and transaction boundaries. Repositories own persistence; clients/adapters own external systems. Define interfaces at the consumer, only when substitution is needed. Prefer explicit constructors and concrete return types; avoid mutable global singletons and hidden initialization order.
 
-## Go style and API documentation
+## Go style
 
 - Format changed Go files with `gofmt` (or the repository's existing `goimports`).
-- Give each package a package comment and each exported declaration a doc comment. Start with the name and document caller-visible results, side effects, errors, panics, blocking, concurrency safety, zero values, and resource ownership.
-- Do not repeat signatures with Javadoc-style parameter lists. Document complex unexported declarations only when code cannot express the constraint reliably.
-- Preserve `//go:`, `//line`, and `//export` directives exactly.
+- Comment, doc comment, docstring, TODO/FIXME, directive, and API-documentation expression guidance is owned solely by the project's Comment Policy (`docs/engineering/code-comments.md`); read it alone for pure documentation work, and together with this profile when a public API changes or behavior and comments change together.
 - Prefer useful zero values. Use pointers for mutation, identity, material copy cost, or a meaningful unset state.
 - Preserve API distinctions among nil/empty slices and maps, especially during serialization.
 - Do not hide network calls, goroutines, or material initialization in `init()`.

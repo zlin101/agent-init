@@ -28,7 +28,7 @@
 16. 只在需要时创建 `vault/details/*` 文件。
 17. 创建 `skills/`。
 18. 创建必要初始 skill。
-19. 为每个选定语言生成完整的 `docs/engineering/profiles/<profile>.md`（含声明 roots），并在 `AGENTS.md` 写入一跳条件路由；保留 `docs/engineering/code-comments.md` 兼容载体，未选语言不生成，已有工程规范不覆盖。完整规则见 `70-adoption-flow.md`「Profile 工程规范」。
+19. 为每个选定语言生成完整的 `docs/engineering/profiles/<profile>.md`（含声明 roots），并在 `AGENTS.md` 写入一跳条件路由；保留 `docs/engineering/code-comments.md`（Comment/API Documentation Policy），未选语言不生成，已有工程规范不覆盖。完整规则见 `70-adoption-flow.md`「Profile 工程规范」。
 20. 仅按选定 profile 的需要初始化源码、测试和依赖文件。
 21. 更新 `README.md`。
 22. 运行最小检查。

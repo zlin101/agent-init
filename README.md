@@ -217,7 +217,7 @@ python3 scripts/trellium.py adopt /path/to/project \
   --profile python-backend=services/model
 ```
 
-这会为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`（含 roots），并在 `AGENTS.md` 添加按当前路径和实际语言触发的一跳路由；未选 profile 不生成，后续会话不依赖再次发现 Trellium Skill。`docs/engineering/code-comments.md` 作为既有注释/API 规则的兼容载体继续保留：重叠的注释/API 规则以它为项目定制优先，其余工程事项由完整 profile 约束。工程规范正文不进入 Vault；roots、已有文件保护与升级 proposal 等完整规则见 `init/protocol/70-adoption-flow.md`「Profile 工程规范」。
+这会为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`（含 roots），并在 `AGENTS.md` 添加按当前路径和实际语言触发的一跳路由；未选 profile 不生成，后续会话不依赖再次发现 Trellium Skill。`docs/engineering/code-comments.md` 作为项目的 Comment/API Documentation Policy 继续保留：注释/API 文档表达规范由它唯一拥有，其余工程事项由完整 profile 约束。工程规范正文不进入 Vault；roots、已有文件保护与升级 proposal 等完整规则见 `init/protocol/70-adoption-flow.md`「Profile 工程规范」。
 
 `adopt` 默认只新增缺失的 Agent 协作文件：
 

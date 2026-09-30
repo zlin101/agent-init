@@ -25,7 +25,7 @@
 
 追踪任务或治理任务读取 `vault/tasks/` 下的活跃任务文件。
 
-修改、生成或评审源码、公共 API、依赖、构建、并发、生命周期、注释或 TODO/FIXME 时，读取 `docs/engineering/profiles/` 下 root 与当前路径匹配的 profile；只应用当前文件实际语言的 profile，不读取未匹配语言。兼容项目若存在 `docs/engineering/code-comments.md`，处理注释/API 文档时也直接读取；重叠的注释/API 规则以该兼容文档为项目定制优先，完整 profile 继续约束其余工程事项。
+修改或评审源码、公共 API、依赖、构建、并发、生命周期、注释或 TODO/FIXME 时，读取 `docs/engineering/profiles/` 下 root 与当前路径匹配的 profile；只应用当前文件实际语言的 profile，不读取未匹配语言。`docs/engineering/code-comments.md` 是 Comment/API Documentation Policy——注释、Doc Comment、docstring、TODO/FIXME、directive 与 API 文档表达规范的唯一 owner：纯注释/文档工作直接读它；公开 API 变化或行为与注释同时修改时与 profile 并读。两者对同一表达规则都有表述时以 Comment Policy 为准；API 行为、安全、错误与兼容性仍由完整 profile 约束。
 
 ## Working Principles
 

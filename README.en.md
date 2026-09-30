@@ -215,7 +215,7 @@ python3 scripts/trellium.py adopt /path/to/project \
   --profile python-backend=services/model
 ```
 
-This creates a complete `docs/engineering/profiles/<profile>.md` for every selected profile, embeds its roots, and adds a one-hop AGENTS route scoped by current path and actual language. Unselected profiles are not generated, and later sessions do not need to rediscover the Trellium Skill. `docs/engineering/code-comments.md` remains as a compatibility carrier for the existing comment/API rules: overlapping comment/API rules follow the carrier as project customization, while the complete profile governs all other engineering concerns. Engineering policy stays outside Vault; the full rules on roots, overwrite protection, and upgrade proposals live in `init/protocol/70-adoption-flow.md` (“Profile 工程规范”).
+This creates a complete `docs/engineering/profiles/<profile>.md` for every selected profile, embeds its roots, and adds a one-hop AGENTS route scoped by current path and actual language. Unselected profiles are not generated, and later sessions do not need to rediscover the Trellium Skill. `docs/engineering/code-comments.md` serves as the project's Comment/API Documentation Policy: it solely owns comment/API-documentation expression, while the complete profile governs all other engineering concerns. Engineering policy stays outside Vault; the full rules on roots, overwrite protection, and upgrade proposals live in `init/protocol/70-adoption-flow.md` (“Profile 工程规范”).
 
 `adopt` only adds Agent collaboration files that are missing, by default:
 

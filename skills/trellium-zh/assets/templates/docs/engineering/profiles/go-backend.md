@@ -124,10 +124,7 @@ Adapter   -> External System
 ## Go 风格
 
 - 提交前对修改过的 Go 文件运行 `gofmt`；项目已使用 `goimports` 时沿用它。
-- 每个 package 应有 package comment；每个导出的 type、func、method、const、var 应有 Doc Comment。
-- Doc Comment 通常用完整句子并以被描述的标识符开头；从调用者视角说明返回结果或副作用，并让重要错误、panic、阻塞、并发安全、零值和资源所有权语义可见。
-- 不用 Javadoc 式参数清单机械重复 Go 签名；复杂的未导出声明只在职责或约束无法从代码可靠理解时补充注释。
-- 保持 `//go:`、`//line`、`//export` 等 directive 的语法、位置和机器语义，不按普通注释改写。
+- 注释、Doc Comment、docstring、TODO/FIXME、directive 与 API 文档表达规范由项目 Comment Policy（`docs/engineering/code-comments.md`）唯一拥有；纯注释/文档工作直接读它，公开 API 或行为与注释同时修改时与本 profile 并读。
 - 优先让零值可用。使用指针应有可变性、共享身份、较大复制成本或区分“未设置”的明确理由。
 - 明确区分 nil slice、空 slice、nil map 和空 map 在序列化及 API 契约中的行为。
 - 不在 `init()` 中执行网络访问、启动 goroutine 或隐藏重要业务初始化。

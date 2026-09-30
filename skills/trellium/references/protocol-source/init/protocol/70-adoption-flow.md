@@ -38,7 +38,7 @@
 - `skills/`
 - `skills/agent-task/SKILL.md`
 - `docs/engineering/profiles/<profile>.md`，仅在 owner 显式选择语言 profile 时生成；每个已选 profile 一份完整工程规范
-- `docs/engineering/code-comments.md`，作为 2026.09.7 注释/API 规则的兼容载体保留；它与完整 profile 都是项目工程文档，不是 Vault 数据
+- `docs/engineering/code-comments.md`，项目的 Comment/API Documentation Policy（注释/API 文档表达规范的唯一 owner）；它与完整 profile 都是项目工程文档，不是 Vault 数据
 
 可选修改：
 
@@ -173,7 +173,7 @@ python3 trellium.py adopt <target> \
   --profile python-backend=services/model
 ```
 
-工具为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`，把该 profile 的全部 roots 写入文件，并让 `AGENTS.md` 一跳按当前路径与实际语言读取；多语言不共享正文，也不加载未匹配 profile。`docs/engineering/code-comments.md` 继续作为兼容载体生成/保留，避免 2026.09.7 项目定制丢失；两者同时存在时，仅在注释/API 规则重叠处由兼容文档作为项目定制优先，完整 profile 继续约束其他工程事项。Profile 必须显式选择，不自动猜测；未选 profile 不生成任何工程文档。选择、roots 与完整源 hash 记录在 `.agent-init.json`，stamp 分别记录完整 profile（`project_profile`）与兼容载体（`project_rules`）两个文件角色的项目路径，便于确定性升级；人类可读规范仍以项目文档为准。已有规范（包括 `adopt --force`）不静默覆盖，后续上游与本地同时变化时走 proposal。改变既有 profile 集属于显式评审迁移，不由重复 adopt 偷偷改写。
+工具为每个已选 profile 生成完整的 `docs/engineering/profiles/<profile>.md`，把该 profile 的全部 roots 写入文件，并让 `AGENTS.md` 一跳按当前路径与实际语言读取；多语言不共享正文，也不加载未匹配 profile。`docs/engineering/code-comments.md` 生成/保留为项目的 Comment/API Documentation Policy（注释/API 文档表达规范的唯一 owner）；2026.09.7 项目定制继续保留在其中。表达规则重叠处以 Comment Policy 为准，其余工程事项由完整 profile 约束。Profile 必须显式选择，不自动猜测；未选 profile 不生成任何工程文档。选择、roots 与完整源 hash 记录在 `.agent-init.json`，stamp 分别记录完整 profile（`project_profile`）与兼容载体（`project_rules`）两个文件角色的项目路径，便于确定性升级；人类可读规范仍以项目文档为准。已有规范（包括 `adopt --force`）不静默覆盖，后续上游与本地同时变化时走 proposal。改变既有 profile 集属于显式评审迁移，不由重复 adopt 偷偷改写。
 
 ### Private 存储模式
 

@@ -3039,7 +3039,8 @@ class TemplatePackagingTest(TargetTestCase):
         # (whitespace-normalized); this equality is exactly what eroded before.
         self.assertEqual(appended, en_routing)
 
-        # Shared routing invariants, frozen in all three copies.
+        # Shared routing invariants, frozen in all three copies (TASK-0025
+        # ownership: the Comment Policy solely owns expression guidance).
         surfaces = {
             "appended": appended,
             "en template": en_routing,
@@ -3049,16 +3050,18 @@ class TemplatePackagingTest(TargetTestCase):
             with self.subTest(surface=surface):
                 self.assertIn("docs/engineering/profiles/", paragraph)
                 self.assertIn("docs/engineering/code-comments.md", paragraph)
+                self.assertIn("Comment/API Documentation Policy", paragraph)
                 if surface == "zh template":
                     self.assertIn("root 与当前路径匹配", paragraph)
                     self.assertIn("不读取未匹配语言", paragraph)
-                    self.assertIn("以该兼容文档为项目定制优先", paragraph)
-                    self.assertIn("完整 profile 继续约束其余工程事项", paragraph)
+                    self.assertIn("唯一 owner", paragraph)
+                    self.assertIn("以 Comment Policy 为准", paragraph)
+                    self.assertIn("仍由完整 profile 约束", paragraph)
                 else:
                     self.assertIn("declared root matches the current path", paragraph)
                     self.assertIn("do not load unmatched languages", paragraph)
-                    self.assertIn("take precedence as project customization", paragraph)
-                    self.assertIn("still governs all other engineering concerns", paragraph)
+                    self.assertIn("the Comment Policy wins", paragraph)
+                    self.assertIn("stay governed by the profile", paragraph)
 
     def test_control_packages_carry_no_discoverable_skill_template(self) -> None:
         repo = Path(__file__).resolve().parents[1]
@@ -3101,11 +3104,11 @@ class TemplatePackagingTest(TargetTestCase):
             self.assertIn(agent_init.PROFILE_RULES_RELATIVE, agents)
             self.assertIn(agent_init.PROFILE_DOCUMENT_DIRECTORY, agents)
             if package == "trellium":
-                self.assertIn("take precedence as project customization", agents)
-                self.assertIn("still governs all other engineering concerns", agents)
+                self.assertIn("Comment/API Documentation Policy", agents)
+                self.assertIn("the Comment Policy wins", agents)
             else:
-                self.assertIn("以该兼容文档为项目定制优先", agents)
-                self.assertIn("完整 profile 继续约束其余工程事项", agents)
+                self.assertIn("唯一 owner", agents)
+                self.assertIn("以 Comment Policy 为准", agents)
             for profile_id in agent_init.PROFILE_IDS:
                 durable = templates / agent_init.PROFILE_DOCUMENT_TEMPLATE_DIRECTORY / f"{profile_id}.md"
                 self.assertTrue(durable.is_file())
@@ -3122,7 +3125,7 @@ class TemplatePackagingTest(TargetTestCase):
                             "Context and concurrency",
                             "HTTP and service lifecycle",
                             "Tests and verification",
-                            "API documentation",
+                            "Go style",
                         ),
                         "python-backend": (
                             "Packages and dependencies",

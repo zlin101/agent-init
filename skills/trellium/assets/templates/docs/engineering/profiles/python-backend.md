@@ -28,7 +28,7 @@ Centralize configuration through pydantic-settings/environment variables with a 
 
 Follow the repository formatter/linter; defaults are Black/isort/flake8 with consistent 120-character configuration. Type all function parameters and returns. Prefer async for network, messaging, and database IO and never call blocking synchronous IO on an async path. Use centralized/structured logging, not `print`.
 
-Document public modules, classes, functions, and methods. Publicness follows `__all__`, naming, project convention, and published docs together. Use triple-double-quoted docstrings with a summary line, then a blank line for detail. Explain caller-visible parameter/return meaning, exceptions, side effects, constraints, lifecycle, decorators, context managers, async/generator behavior, thread safety, and resource ownership without repeating signatures/types. Follow the repository's Google/NumPy/Sphinx style. Inline comments explain rationale and invariants. TODO/FIXME states the concrete problem and removal condition. Keep machine directives and generated sources intact.
+Comment, docstring, TODO/FIXME, and API-documentation expression guidance is owned solely by the project's Comment Policy (`docs/engineering/code-comments.md`); read it alone for pure documentation work, and together with this profile when a public API changes or behavior and comments change together.
 
 ## Async and resource lifecycle
 
