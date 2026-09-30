@@ -6,8 +6,8 @@
   "task_id": "TASK-0024",
   "level": "C",
   "authority_level": 3,
-  "lifecycle": "ready_for_review",
-  "current_slice": "M1-installer-M2-docs-complete-awaiting-review",
+  "lifecycle": "accepted",
+  "current_slice": "accepted-review-passed",
   "gates": {
     "implementation": "passed",
     "distribution_sync": "passed",
