@@ -129,7 +129,7 @@ Forbidden:
 - [x] Go/Python canonical profile 与双语模板的注释表达 bullets 已移除，且逐条确认 Comment Policy 覆盖（无唯一规则丢失）。
 - [x] Profile 仅保留短职责指针（Comment Policy 唯一 owner + 三分支并读规则）。
 - [x] 路由三分支（实现→Profile；纯注释→Policy；公开 API/行为+注释→两者）在 AGENTS 双语模板、`agent_entry_section` 与 self-host AGENTS 一致。
-- [x] live 面（protocol/Skills/README）“兼容载体/compatibility carrier”措辞清零；MIGRATIONS 历史语境保留。
+- [x] live 面（protocol/Skills/README）“兼容载体/compatibility carrier”措辞清零（stamp 角色命名 `project_rules` 除外——该字段名属 stamp schema，不在本轮文字替换范围内）；MIGRATIONS 历史语境保留。
 - [x] A1 parity guard 冻结新路由；全部测试绿。
 
 ## Handoff Requirement
