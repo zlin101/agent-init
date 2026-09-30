@@ -7,7 +7,7 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
-## Unreleased — private storage mode
+## 2026.09.10 — private storage mode
 
 - Added: policy schema v2 `storage_mode`（`tracked | local | private`；默认 local）与 legacy v1 `task_storage` normalization；既有 v1 policy 不自动改写。
 - Added: `storage_mode=private` 反向 privacy Gate——managed material 必须 untracked 且被 `.git/info/exclude` 的 canonical `trellium-private` block 精确忽略；`PRIVATE_STORAGE_TRACKED`（含 `git add -f`）、`PRIVATE_STORAGE_UNCONFIGURED`（block 缺失/畸形/重复，或按实际 `git check-ignore` 结果未被 ignore，包括后置 negation）、`PRIVATE_STORAGE_OVERREACH`、`PRIVATE_STORAGE_UNVERIFIED`（Git 查询失败、缺 stamp、stamp 声明的唯一副本缺失或非普通文件）全部 error fail-closed；非 Git 目标为 warning。
@@ -15,32 +15,32 @@
 - Changed: Private 模式下 upgrade 的 untracked managed 文件不再视为 dirty；无冲突完成提示改为保持 untracked/ignored 并重跑 check，不提示 commit；diff/upgrade/proposal 依旧零 Git 写入。
 - Agent migration: 既有 tracked/local 项目不自动迁移；Private 接入是 Agent-native 显式流程（preflight → adopt → private policy → exclude block → check）。tracked AGENTS 与 private 冲突时 preflight 拒绝并给出 local 退路。
 
-## Unreleased — Profile 路由 conformance
+## 2026.09.10 — Profile 路由 conformance
 
 - Fixed: 既有 `AGENTS.md` 上追加的 Trellium 入口从只路由 `docs/engineering/code-comments.md` 修正为同时按 root 与实际语言路由完整 `docs/engineering/profiles/<profile>.md`，与 D-0011 及新项目模板路由一致；重叠注释/API 规则仍以兼容载体为项目定制优先。CLI、文件布局、Profile 内容、stamp schema 与 merge/overwrite/proposal 行为均不变。
 - Auto: 双语嵌入脚本与 generated snapshots 同步为对齐后的路由语义。
 
-## Unreleased — risk-first 任务分级
+## 2026.09.10 — risk-first 任务分级
 
 - Breaking: 未来任务分级改为 canonical 三步流程——命中 Level C 风险域 → C；否则中断恢复或协作成本明显较高 → B；否则 → A。删除“涉及 2 个以上文件”“验收标准超过 3 条”“1-2 个文件”等单一规模充分条件：规模只可提示进一步判断，不能单独决定等级。Level C 风险域为安全/隐私、公开 API 或外部契约、持久数据/迁移、部署/生产行为、依赖变更、实质成本/配额、架构方向/重大架构决策、治理规则/策略；一行高风险修改也可能是 C。不因任务后来意外跨 session 或中断而回溯改写历史任务分级。
 - Auto: 双语 governance/index/agent-task 模板、`protocol-model.md` 简明引用与 generated snapshots 同步为 risk-first 语义。无 schema、checker、finding、评分或 API 变化：分级仍是 Agent 语义判断，不进入工具校验。
 - Agent migration: `vault/governance.md` 与 `vault/index.md` 是 merge 角色的 protocol 载体：pristine 文件升级时自动刷新为 risk-first 语义；定制过的文件不被覆盖，而是生成 proposal，由 Agent 按提案人工把本地 Task Levels 与速查表中的规模阈值替换为三步流程语义；`trellium-policy` 策略块等用户数据保留。历史 TASK 文件与既有 runtime 记录不回溯重分类。
 
-## Unreleased — budget health decoupling
+## 2026.09.10 — budget health decoupling
 
 - Breaking: `BUDGET_EXCEEDED`（热文件预算与 `max_active_tasks`）从 correctness `error` 降为仓库健康 `warning`：仅有 budget warning 时 `check`、`status` 与 CI 直调均退出 `0`；普通业务任务不因预算超出而无法验收。finding code、消息、measurement schema 与 policy 字段不变。结构/规范化损坏仍是 error（exit `2`）：`POLICY_INVALID`、`TASK_STATE_INVALID`、`FILE_UNREADABLE`、symlink/non-regular canonical 输入与 storage 安全契约损坏（`CORE_STORAGE_*` error 态）；而 `POLICY_MISSING`、legacy `TASK_STATE_MISSING`、`REQUIRED_FILE_MISSING` 本就是 warning，不变。
 - Removed: AGENTS、agent-task Skill、Vault routing 与 compaction protocol 中“任务收尾超预算即自动五阶段压缩”的默认耦合；预算超出只报告为健康信号，不自动扩大当前 TASK scope、不产生额外提交。
 - Auto: 新接入项目的双语 AGENTS/index/agent-task 模板与 generated snapshots 同步为 warning 语义；显式 compaction 能力（五阶段、安全边界、独立提交）原样保留。
 - Agent migration: `vault/index.md` 的 `trellium-policy` 策略块是 protected data，不由升级脚本覆盖。升级时人工删除项目内“超预算即收尾压缩”类规则，改为“报告 warning；仅在用户显式要求、独立 maintenance TASK、任务契约明确包含或热文件结构损坏需要恢复时执行压缩”。已有压缩流程与算法不变。
 
-## Unreleased — handoff 收敛为 transient delta
+## 2026.09.10 — handoff 收敛为 transient delta
 
 - Changed: handoff 契约收敛为三小节（`Why interrupted` / `Transient context not captured elsewhere` / `Exact resume point`）；旧七字段（Objective/Completed/In Progress/Failed Attempts/Blockers/Next Best Action/Files To Read First）全部废除，其内容不再有任何持久化副本义务。写入触发改为双重条件：真实中断 + 存在无法从 canonical 状态（TASK/Git/工作区/重跑测试/durable knowledge）低成本推导的恢复事实。
 - Removed: 模板中示例 `## TASK-` / `## SESSION` 标题全部移除（预算计数器会把它们算成真实条目）；空模板必须测得 `handoff.entries == 0`。普通完成、等待 acceptance、完成 review、open lifecycle 不再触发 handoff。
 - Auto: 新接入项目的双语 handoff 模板为空模板态（零可数条目、仅记载三小节形态）；protocol、Skill、concise references 与 generated snapshots 同步为 transient-delta 语义；恢复顺序固定 TASK → Git/工作区/测试 → handoff delta。
 - Agent migration: `vault/handoff.md` 是 protected data，不由升级脚本覆盖。升级时对每条现有 handoff 做三分法判定，禁止整段搬运：(1) 完全可从 canonical 状态推导 → 直接删除；(2) 含唯一 durable 事实（长期约束、安全边界、失败结论）→ 先以最短形式蒸馏进 TASK Execution Record 或 decision，再删除条目——只搬结论一句，不搬叙述、进展或测试历史；(3) 含非可推导 transient delta → 改写为三小节保留，消费后删除。历史 Git 版本与已归档任务不回溯迁移。
 
-## Unreleased — 删除 runtime TASK projection
+## 2026.09.10 — 删除 runtime TASK projection
 
 - Breaking: `trellium-task-state` 状态块成为 lifecycle、Authority、slice 与 Gates 的唯一持久化 owner；`runtime.md` 不再保存 Active Tasks 表。Focus 可保留，但只有导航语义，指向不存在的 TASK 时只显示 navigation unresolved，不使 TASK lifecycle unresolved。
 - Removed: `check` 删除 `TASK_PROJECTION_MISSING`、`TASK_RUNTIME_CLOSED_LOCAL`、`TASK_RUNTIME_DRIFT`、`TASK_RUNTIME_DUPLICATE`、`TASK_RUNTIME_INVALID`、`TASK_RUNTIME_LOCAL_UNRESOLVED`、`TASK_RUNTIME_MISSING`、`TASK_RUNTIME_UNRESOLVED`。`status` 直接扫描 TASK 状态块，JSON 不再输出 `runtime_projection`，文本不再输出 runtime objective/next action。
