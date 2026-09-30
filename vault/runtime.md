@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Post-2026.09.9 convergence: H1–H4 + TASK-0023 accepted/committed (`c631e68`); A1 parity guard landed (`437941b`); TASK-0019 Phase 0-2 done and round-3 approved (README/VERSION deferred to TASK-0024/Phase 6, lifecycle `active`); Phase 3 TASK-0024 (installer explicit-version contract + README H1 drift fix) complete at `ready_for_review`.
+Post-2026.09.9 convergence CLOSED: Phases 0-6 executed — Phase 6 bumped VERSION to 2026.09.10, dated the six migration sections, ran the full suite + clean-clone check E2E green, pushed develop and the lightweight tag `2026.09.10` (no GitHub Release per D-0013). TASK-0019/0024/0025 accepted.
 
 ## Focus
 
@@ -12,7 +12,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 
 ## Current Progress
 
-- Convergence Phases 0-5 implemented on develop: Phase 0 cleanup, Phase 1 green baseline (`4ddbfe6`), Phase 2 TASK-0019 private mode (`172fa19`/`5061cd6`/`c5fa637`, round 3 approved), Phase 3 TASK-0024 installer (`6b6747a`/`1380d6f`), Phase 4 TASK-0025 ownership (`995e7a0`), Phase 5 bookkeeping (`c9939b1`). Awaiting: owner acceptance of TASK-0024/0025, then Phase 6 (VERSION 2026.09.10, deferred-item completion, final verification, TASK-0019 final accepted, tag).
+- Convergence Phases 0-5 implemented (`4ddbfe6`/`172fa19`/`5061cd6`/`c5fa637`/`6b6747a`/`1380d6f`/`995e7a0`/`c9939b1`); Phase 6 executed (`051fad6` release-prep, `8765012` acceptances): full suite + clean-clone check 0/0, network installer E2E on tag `2026.09.10`, TASK-0019 deferred item closed and flipped accepted.
 - `2026.09.9` is published as a tag-only release (D-0013); Phase 6 will tag `2026.09.10` the same way.
 - Owner-local files were removed in Phase 0; `check` is 0/0.
 
@@ -57,4 +57,4 @@ git diff --check
 
 ## Next Steps
 
-- Sequencing per owner: review/accept the implemented work (TASK-0024/0025, TASK-0019 private mode), then Phase 6 completes TASK-0019's README/VERSION deferred item and the final verification, then TASK-0019 becomes finally accepted and `2026.09.10` is tagged.
+- Convergence plan closed: Phase 6 executed (final verification + VERSION/MIGRATIONS + tag `2026.09.10`); TASK-0019 finally accepted after its deferred item completed. No open PI work.
