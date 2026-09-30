@@ -11,7 +11,7 @@
   "gates": {
     "implementation": "passed",
     "distribution_sync": "passed",
-    "review": "pending"
+    "review": "passed"
   }
 }
 -->

@@ -93,7 +93,7 @@ Forbidden:
 - [x] 不新增 CLI storage 参数，不自动修改 index/commit/push/history。
 - [x] 双语协议、Skills、MIGRATIONS 与 snapshots 同步；canonical 三模式合同收齐（private 语义与 preflight 接线）。
 - [x] README 与 VERSION 同步保留在本任务验收内（owner 选定方案 b）：README 落在收敛计划 Phase 3（TASK-0024 安装契约，已验收），VERSION 落在 Phase 6（2026.09.10 release-prep 已提交、tag 已推送）；两项完成并验收，TASK-0019 进入最终 accepted。
-- [ ] 全量测试、check、sync、whitespace 和独立 review 通过，无 open P0/P1/P2。（自测全绿；独立 review = Codex，待进行）
+- [x] 全量测试、check、sync、whitespace 和独立 review 通过，无 open P0/P1/P2。（自测全绿；独立 review 三轮完成——round 3 owner APPROVE，无 open P0/P1/P2）
 - [x] 任务停在 `ready_for_review`，由 owner 决定 accepted 和发布。
 
 ## Verification

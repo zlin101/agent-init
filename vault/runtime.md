@@ -13,7 +13,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 ## Current Progress
 
 - Convergence Phases 0-5 implemented (`4ddbfe6`/`172fa19`/`5061cd6`/`c5fa637`/`6b6747a`/`1380d6f`/`995e7a0`/`c9939b1`); Phase 6 executed (`051fad6` release-prep, `8765012` acceptances): full suite + clean-clone check 0/0, network installer E2E on tag `2026.09.10`, TASK-0019 deferred item closed and flipped accepted.
-- `2026.09.9` is published as a tag-only release (D-0013); Phase 6 will tag `2026.09.10` the same way.
+- `2026.09.9` and `2026.09.10` are published as tag-only releases (D-0013); the lightweight tag `2026.09.10` was pushed at `051fad6`.
 - Owner-local files were removed in Phase 0; `check` is 0/0.
 
 ## Constraints

@@ -7,7 +7,7 @@
   "level": "C",
   "authority_level": 3,
   "lifecycle": "accepted",
-  "current_slice": "M1-ownership-complete-awaiting-review",
+  "current_slice": "accepted-ownership-round-1",
   "gates": {
     "implementation": "passed",
     "distribution_sync": "passed",
