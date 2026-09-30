@@ -61,7 +61,7 @@ vault/parked.md
 vault/tasks/<task-id>.md
 ```
 
-修改、生成或评审源码、公共 API、依赖、构建、并发、生命周期、注释或 TODO/FIXME 时，读取 `docs/engineering/profiles/` 下声明 root 与当前路径匹配的 profile，并只应用当前文件实际语言；不读取未匹配语言。兼容项目若存在 `docs/engineering/code-comments.md`，处理注释/API 文档时也直接读取；重叠的注释/API 规则以该兼容文档为项目定制优先，完整 profile 继续约束其余工程事项。非工程任务不加载这些正文。
+修改或评审源码、公共 API、依赖、构建、并发或生命周期行为时，读取 `docs/engineering/profiles/` 下 root 与当前路径匹配的 profile，只应用当前文件实际语言的 profile；纯注释/文档工作（注释、Doc Comment、docstring、TODO/FIXME、directive 排布）只读 Comment/API Documentation Policy `docs/engineering/code-comments.md`；公开 API 变化或行为与注释同时修改时两者并读，表达规范以 Policy 为准。非工程任务不加载这些正文。
 
 ## 必备工作规则
 

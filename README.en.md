@@ -264,7 +264,7 @@ python3 scripts/trellium.py check /path/to/project --format json  # stable JSON
 - the `trellium-policy` block: project policy in `vault/index.md`, the single source for budgets and TASK storage (`tracked | local | private`);
 - `runtime.md`: project-global current state plus an optional navigation Focus; it owns no TASK lifecycle, authority, or projection, and `status` reads TASK state blocks directly. In `local` or `private` projects an absent task file in a fresh clone follows the storage contract (no recovery copy);
 - budget measurements: hot-file lines, UTF-8 bytes, max line size, and entry counts are always reported; only explicitly configured policy thresholds raise `BUDGET_EXCEEDED` warnings (repository-health signals that never block acceptance);
-- TASK storage: actual Git state compared against the configured strategy (tracked/local).
+- TASK storage: actual Git state compared against the configured strategy (tracked/local/private). In `private` projects the forward HEAD-durability gate is replaced by the reverse privacy gate: all managed material must stay untracked and precisely ignored via the trellium-private block, with local-lifecycle TASK semantics.
 
 Exit codes: `2` when any error finding exists; `0` with warnings only, but the summary always shows them (never an unconditional PASS); `1` for operational failures such as an invalid target. `check` never auto-fixes, never writes to the target, never accesses the network, and never executes commands found in documents.
 

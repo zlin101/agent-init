@@ -2924,6 +2924,16 @@ class ReadmeContractTest(unittest.TestCase):
             self.assertNotIn(legacy, text)
         self.assertIn("reads TASK state blocks directly", text)
 
+    def test_readmes_carry_three_mode_storage_and_private_boundary(self) -> None:
+        en = self.read("README.en.md")
+        self.assertIn("tracked/local/private", en)
+        self.assertIn("reverse privacy", en)
+        zh = self.read("README.md")
+        self.assertIn("`storage_mode`", zh)
+        self.assertIn("`tracked | local | private`", zh)
+        self.assertIn("反向 privacy Gate", zh)
+        self.assertIn("storage_mode=local` 或 `private", zh)
+
     def test_fetch_scoping_matches_supported_commands(self) -> None:
         en = self.read("README.en.md")
         zh = self.read("README.md")
@@ -3057,11 +3067,24 @@ class TemplatePackagingTest(TargetTestCase):
                     self.assertIn("唯一 owner", paragraph)
                     self.assertIn("以 Comment Policy 为准", paragraph)
                     self.assertIn("仍由完整 profile 约束", paragraph)
+                    self.assertIn("纯注释/文档工作", paragraph)
+                    self.assertIn("并读", paragraph)
+                    self.assertNotIn(
+                        "注释或 TODO/FIXME 时，读取 `docs/engineering/profiles/`",
+                        paragraph,
+                    )
                 else:
                     self.assertIn("declared root matches the current path", paragraph)
                     self.assertIn("do not load unmatched languages", paragraph)
                     self.assertIn("the Comment Policy wins", paragraph)
                     self.assertIn("stay governed by the profile", paragraph)
+                    self.assertIn("Pure documentation work", paragraph)
+                    self.assertIn("read both the profile and", paragraph)
+                    # Three-branch exclusivity: pure documentation work must
+                    # NOT be routed to the profile.
+                    self.assertNotIn(
+                        "comments, or TODO/FIXME items, read the profile", paragraph
+                    )
 
     def test_control_packages_carry_no_discoverable_skill_template(self) -> None:
         repo = Path(__file__).resolve().parents[1]

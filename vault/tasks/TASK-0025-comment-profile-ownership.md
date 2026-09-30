@@ -60,6 +60,11 @@ Checks run:
 
 ## Execution Record
 
+### 2026-09-29 - Agent: PI — M1 ownership complete（round 2 rework：P1-1 三分支路由、P1-2 残留清零、P1-3 双语 README 三模式/private；详见 commit `2c786bd`）
+
+- 路由三分支重写 4 副本；30-agent-entry:64、50:88 句首、protocol README:26、zh SKILL:45 carrier 残留清零；README.md zh H1/private 漂移（policy 三模式、TASK storage 三模式+private、反向 privacy Gate、disposition local lifecycle）；README.en TASK storage bullet 补 private 反向 privacy Gate；TASK-0025 契约补全。
+- A1 parity 测试冻结三分支语义；全量 OK exit 0；sync/check/嵌入/diff-check 全绿。
+
 ### 2026-09-29 - Agent: PI — M1 ownership routing + content surgery complete（ready_for_review）
 
 Context read:
@@ -86,6 +91,50 @@ Risks:
 Next action:
 
 - Codex/owner 复验；通过后进入收敛计划 Phase 5/6。
+
+## Context Required
+
+- `AGENTS.md`
+- `vault/runtime.md`
+- `init/protocol/profiles/go-backend.md`、`python-backend.md`
+- `skills/trellium/assets/templates/docs/engineering/CODE_COMMENTS.template` 与双语派生模板
+- `skills/trellium/assets/templates/AGENTS.md`、`agent_entry_section()`（scripts/trellium.py）
+- `vault/decisions/D-0011-durable-language-profiles.md`
+
+## Capability Tags
+
+- documentation
+- testing
+- agent-governance
+
+## Authority
+
+Allowed:
+
+- 修改两份 canonical profile、双语派生模板与双语 CODE_COMMENTS/AGENTS 模板中的 ownership 措辞与路由三分支。
+- 修改双语 SKILL/README 中 carrier 措辞；同步 generated snapshots。
+- 更新 A1 parity guard、LocalTemplateSemanticsTest 与 ReadmeContractTest 断言到新契约。
+
+Requires Approval:
+
+- accepted、push、tag、Release。
+
+Forbidden:
+
+- 修改文件路径、`project_rules`/`project_profile`、stamp schema、CLI、输出文件集合、pristine/custom/proposal 行为或 Profile 独立选择方式。
+- 进入 Profile 知识压缩；重引入任何 “compatibility carrier/兼容载体” live 措辞。
+
+## Acceptance Criteria
+
+- [ ] Go/Python canonical profile 与双语模板的注释表达 bullets 已移除，且逐条确认 Comment Policy 覆盖（无唯一规则丢失）。
+- [ ] Profile 仅保留短职责指针（Comment Policy 唯一 owner + 三分支并读规则）。
+- [ ] 路由三分支（实现→Profile；纯注释→Policy；公开 API/行为+注释→两者）在 AGENTS 双语模板、`agent_entry_section` 与 self-host AGENTS 一致。
+- [ ] live 面（protocol/Skills/README）“兼容载体/compatibility carrier”措辞清零；MIGRATIONS 历史语境保留。
+- [ ] A1 parity guard 冻结新路由；全部测试绿。
+
+## Handoff Requirement
+
+仅真实中断且存在非可推导 transient delta 时写三小节 handoff；ownership 状态、措辞位置与测试结果均可从 TASK、Git 与测试恢复，不得进入 handoff。
 
 ## Memory Updates
 

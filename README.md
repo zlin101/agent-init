@@ -263,17 +263,17 @@ python3 scripts/trellium.py check /path/to/project --format json  # 稳定 JSON
 `check` 是完全只读、确定性的校验命令，面向 2026.09.2 引入的最小状态层：
 
 - `trellium-task-state` 状态块：Level B/C 任务文件顶部的严格 JSON 块，是 lifecycle、授权等级、当前 slice 与 Gate 结果的唯一 owner；
-- `trellium-policy` 策略块：`vault/index.md` 中的项目策略，唯一配置预算与 TASK storage（`tracked | local`）；
+- `trellium-policy` 策略块：`vault/index.md` 中的项目策略，唯一配置预算与 `storage_mode`（`tracked | local | private`）；
 - 预算测量：热文件行数、UTF-8 字节、最大单行、条目数始终报告；只有策略块显式配置的阈值会触发 `BUDGET_EXCEEDED` warning（仓库健康信号，不阻塞验收）；
-- TASK storage：按策略对比 Git 实际状态（tracked/local）；tracked 模式还从 Git index 只读识别已索引 TASK 在 working tree 中被删除；
-- 接入持久性（2026.09.8）：从安装版本戳派生协作核心集合（含 stamp 自身）并逐路径核对 Git `HEAD`——当前 stamp 损坏报 `CORE_STORAGE_INVALID` error，未提交或 HEAD stamp 与当前协议版本/核心集合不相容报 `CORE_STORAGE_UNCOMMITTED` error，被 ignore 规则误伤报 `CORE_STORAGE_IGNORED` error（附命中规则）；Git 验证失败报 `CORE_STORAGE_UNVERIFIED` error，非 Git 目标报同码 warning。fresh clone 是 local/生产接入的一次性验收动作，不进入日常 check；
+- TASK storage：按 `storage_mode` 对比 Git 实际状态（tracked/local/private）；tracked 模式还从 Git index 只读识别已索引 TASK 在 working tree 中被删除；private 模式要求全部 managed material untracked 且被 trellium-private block 精确忽略，TASK 使用 local lifecycle 语义；
+- 接入持久性（2026.09.8）：从安装版本戳派生协作核心集合（含 stamp 自身）并逐路径核对 Git `HEAD`——当前 stamp 损坏报 `CORE_STORAGE_INVALID` error，未提交或 HEAD stamp 与当前协议版本/核心集合不相容报 `CORE_STORAGE_UNCOMMITTED` error，被 ignore 规则误伤报 `CORE_STORAGE_IGNORED` error（附命中规则）；Git 验证失败报 `CORE_STORAGE_UNVERIFIED` error，非 Git 目标报同码 warning。private 模式跳过该正向 Gate，改用反向 privacy Gate：managed material 必须 untracked 且被 trellium-private block 精确忽略，tracked/staged 即 `PRIVATE_STORAGE_TRACKED` error。fresh clone 是 local/生产接入的一次性验收动作，不进入日常 check；
 - local 边界（2026.09.8；2026.09.9 默认接入）：`task_storage=local` 时用无写入 sentinel 验证未来 TASK/review/archive 会被忽略（未覆盖报 `LOCAL_BOUNDARY_UNCONFIGURED` warning），并验证 `vault/tasks/README.md`、`vault/decisions/`、`vault/details/` 等 durable namespace 不被宽泛规则误伤（命中报 `LOCAL_BOUNDARY_OVERREACH` error，附规则与修复方向）；Git 边界命令失败报 `LOCAL_BOUNDARY_UNVERIFIED` error。新 local 接入生成窄范围 `vault/tasks/.gitignore`，但 checker 本身仍只读，既有项目也不会被自动迁移或修改根 `.gitignore`。
 
 退出码：发现 error 退出 `2`；只有 warning 退出 `0`，但 summary 必须显示 warning，不会显示无条件 PASS；目标无效等操作错误退出 `1`。`check` 不会自动修复任何文件、不写入目标项目、不访问网络、不执行文档中出现的命令。
 
 对旧项目是 fail-closed 的：没有状态块的历史 TASK 报 legacy warning，不推断状态；没有策略块时不套用隐藏默认值。状态块不授予批准——Allowed、Requires Approval、Forbidden 与验收始终由任务正文与用户指令决定。
 
-`task_storage=local` 的任务进入 `accepted` 前还需人工完成 Memory Updates 中的 Durable knowledge disposition（`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending` 并阻塞 `accepted`）；错误契约走 `superseded` 立即废止，不受该 gate 阻塞。
+采用 local lifecycle 语义（`storage_mode=local` 或 `private`）的任务进入 `accepted` 前还需人工完成 Memory Updates 中的 Durable knowledge disposition（`none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending` 并阻塞 `accepted`）；错误契约走 `superseded` 立即废止，不受该 gate 阻塞。
 
 ### 查看所有者状态摘要（status，2026.09.5）
 

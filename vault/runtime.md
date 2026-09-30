@@ -57,4 +57,4 @@ git diff --check
 
 ## Next Steps
 
-- Next: Codex review of TASK-0024/TASK-0025 and owner acceptance of TASK-0019/0024/0025, then Phase 6 (final acceptance + tag `2026.09.10`).
+- Sequencing per owner: review/accept the implemented work (TASK-0024/0025, TASK-0019 private mode), then Phase 6 completes TASK-0019's README/VERSION deferred item and the final verification, then TASK-0019 becomes finally accepted and `2026.09.10` is tagged.
