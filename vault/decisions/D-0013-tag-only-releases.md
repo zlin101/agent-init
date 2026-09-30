@@ -18,4 +18,4 @@ Trellium 后续版本只创建并推送版本 tag，不创建 GitHub Release，�
 
 ## Impact
 
-D-0003 被本决策取代，既有 Release 作为历史事实保留。`trellium.py --fetch` 已读取 GitHub tags、按版本号选择最新 tag，并保留缓存、tarball 安全解包与降级保护；`install.sh --version <tag>` 也直接下载对应 tag，因此无需新增 fetch 功能。只有不传 `--version` 的安装仍解析 `releases/latest`，在 tag-only 策略下会停留在最后一个既有 Release；发布与安装说明必须要求显式版本，不得声称该默认路径能发现最新 tag。
+D-0003 被本决策取代，既有 Release 作为历史事实保留。`trellium.py --fetch` 已读取 GitHub tags、按版本号选择最新 tag，并保留缓存、tarball 安全解包与降级保护；`install.sh --version <tag>` 也直接下载对应 tag，因此无需新增 fetch 功能。TASK-0024（2026-09-29）已移除该解析：不传 `--version` 的网络安装在任何联网动作前直接失败，tag-only 契约由工具强制执行而非仅文档约定；发布与安装说明要求显式版本。

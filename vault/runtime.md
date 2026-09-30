@@ -35,7 +35,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 - Preserve owner changes and never include `vault/.agent-init.json` or `docs/engineering/` in TASK-0019.
 - Do not operate on Orion or any other repository.
 - Publish future Trellium versions by tag only; do not create GitHub Releases or release prose (D-0013).
-- Prefer explicit `install.sh --version`; unversioned install still resolves the last GitHub Release, not the newest tag.
+- Require explicit `install.sh --version`; unversioned installs fail closed before any network access (TASK-0024 removed latest-release resolution).
 - Decision-state changes require owner confirmation; this compaction is structural only.
 - Private must not weaken TASK-0013 durability/security gates for tracked/local projects or use hidden Git index state.
 
@@ -58,7 +58,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 ## Known Risks
 
 - Owner-local files were removed in convergence Phase 0 (stamp restored to HEAD, owner-local carrier deleted); the former two `CORE_STORAGE_UNCOMMITTED` errors are gone and check is 0/0.
-- Unversioned `install.sh` still follows GitHub `releases/latest`, so after tag-only releases it does not discover the newest tag; explicit `--version` is the documented safe path (remediation queued as convergence Phase 3, TASK-0024).
+- Unversioned `install.sh` now fails closed before any network access (TASK-0024 removed latest-release resolution); existing user scripts that relied on the implicit fallback must add an explicit `--version` tag.
 - The checker cannot validate arbitrary natural-language summaries; durable counts remain single-sourced in `vault/details/shadow-run-2026-09.md` (D-0005).
 - Private support has two Kill Gates: ignored/untracked AGENTS discovery across supported Agents, and deterministic detection of forced-added managed files.
 
@@ -74,4 +74,4 @@ git diff --check
 
 ## Next Steps
 
-- All four governance tasks (H1–H4) and TASK-0023 are accepted and committed as `c631e68`. TASK-0019 is back in review (Codex验收); 收敛计划 Phase 3-6（TASK-0024 installer、TASK-0025 ownership、vault maintenance、release 2026.09.10）按序等待。
+- Convergence Phase 0-3 complete (Phase 3 = TASK-0024, `ready_for_review`); TASK-0019 in review with README/VERSION deferred to Phase 3/6. Next: Codex review of TASK-0019/TASK-0024, then Phase 4 (TASK-0025 ownership), Phase 5 (vault maintenance), Phase 6 (final acceptance + tag 2026.09.10).

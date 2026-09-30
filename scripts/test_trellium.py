@@ -2931,6 +2931,15 @@ class ReadmeContractTest(unittest.TestCase):
         self.assertIn("adopt/diff/upgrade commands accept `--fetch`", en)
         self.assertNotIn("任何命令可加", zh)
         self.assertIn("adopt/diff/upgrade 可加 `--fetch`", zh)
+        # 分布式 Skill 的 --fetch 契约与 README 同步（TASK-0024 round 1 P1-1）。
+        for name in (
+            "skills/trellium/SKILL.md",
+            "skills/trellium-zh/SKILL.md",
+        ):
+            skill_text = self.read(name)
+            self.assertNotIn("to any command", skill_text)
+            self.assertNotIn("任何命令加 `--fetch`", skill_text)
+            self.assertIn("adopt/diff/upgrade", skill_text)
 
 
 class StatusDefectRegressionsTest(VaultCheckMixin, TargetTestCase):

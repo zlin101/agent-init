@@ -18,4 +18,4 @@
 - D-0010 · Git 接入持久性 Gate · Active · checker 对协作核心的 HEAD、ignore 与 local 边界 fail-closed；不自动执行 Git 写操作 · 2026-09-18 · 正文见 `vault/decisions/D-0010-git-durability-gate.md`
 - D-0011 · 完整语言 Profile 的项目级持久化 · Active · 显式选择的完整 profile 进入项目 core 和 upgrade/diff 管理，不自动猜语言 · 2026-09-18 · 正文见 `vault/decisions/D-0011-durable-language-profiles.md`
 - D-0012 · 首次接入默认 local TASK storage · Active · Skill/Agent 先询问并推荐 local，未指定时按 local 执行；只有 TASK/review/archive 留在本地，核心仍 tracked；不新增 CLI API，存量策略不自动迁移 · 2026-09-28 · 正文见 `vault/decisions/D-0012-local-default-task-storage.md`
-- D-0013 · Trellium 静默发布仅推送 tag · Active · 后续版本不创建 GitHub Release，也不生成 release 文本；`--fetch` 与显式 `install.sh --version` 已支持 tag，未指定版本的安装只会停留在最后一个 Release · 2026-09-28 · 正文见 `vault/decisions/D-0013-tag-only-releases.md`
+- D-0013 · Trellium 静默发布仅推送 tag · Active · 后续版本不创建 GitHub Release，也不生成 release 文本；`--fetch` 与显式 `install.sh --version` 已支持 tag；未指定版本的安装已改为 fail-closed（TASK-0024 移除 latest-release 解析） · 2026-09-28 · 正文见 `vault/decisions/D-0013-tag-only-releases.md`

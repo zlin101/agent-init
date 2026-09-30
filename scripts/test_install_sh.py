@@ -88,17 +88,32 @@ class InstallScriptTest(unittest.TestCase):
     def test_network_install_without_version_fails_closed(self) -> None:
         # TASK-0024: network installs require an explicit --version tag;
         # latest-release resolution was removed, and the failure must happen
-        # before any network access.
+        # before any network access. A recording fake curl on PATH proves no
+        # network tool is invoked at all.
+        fake_bin = self.root / "bin"
+        fake_bin.mkdir()
+        call_log = self.root / "curl-calls.log"
+        (fake_bin / "curl").write_text(
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$CURL_CALL_LOG\"\n",
+            encoding="utf-8",
+        )
+        (fake_bin / "curl").chmod(0o755)
+
         result = subprocess.run(
             ["sh", str(INSTALL_SCRIPT)],
             cwd=self.root,
             capture_output=True,
             text=True,
             check=False,
+            env={
+                **os.environ,
+                "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+                "CURL_CALL_LOG": str(call_log),
+            },
         )
         self.assertEqual(result.returncode, 1)
         self.assertIn("--version", result.stderr)
-        self.assertNotIn("http", result.stderr)
+        self.assertFalse(call_log.exists(), "curl must not be invoked before the version check")
 
 
 if __name__ == "__main__":
