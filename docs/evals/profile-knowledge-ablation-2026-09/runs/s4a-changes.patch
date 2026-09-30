@@ -1,0 +1,317 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..de2ef93
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,12 @@
++# RUNLOG
++
++- `read AGENTS.md` — 按任务规则先读取仓库工程 Profile。
++- `cat README.md go.mod && ls -la poller`（在上级目录执行，失败：No such file）— 误在 bash 默认目录执行，随后改为显式 cd。
++- `cat README.md go.mod && ls -la poller && ... >> RUNLOG.md`（失败）— 同上，仍因目录不对失败。
++- `pwd; ls` — 确认 bash 工具默认工作目录不是任务目录。
++- `cd /tmp/trellium-0026-replay/s4a && pwd && ls -la && cat go.mod && ls -R poller` — 确认 module 根与包范围。
++- `cd /tmp/trellium-0026-replay/s4a && cat README.md && cat poller/poller.go poller/poller_test.go` — 阅读被测代码与既有测试。
++2026-09-30T13:05:16 | 创建 RUNLOG.md；go version && go env GOMOD GOWORK GOFLAGS — 确认工具链与 module 根
++2026-09-30T13:05:43 | gofmt -l poller/ && go vet ./... && go build ./... && go test ./... — 格式/静态检查/构建/测试
++2026-09-30T13:05:49 | go test -race -count=3 ./... — 并发变更按 profile 跑 race detector 并重复执行
++2026-09-30T13:05:59 | go test -v ./poller/ && git status --porcelain — 查看各用例结果与工作区改动（不执行 add/commit）
+diff --git a/poller/poller.go b/poller/poller.go
+index 43389c9..ab365f4 100644
+--- a/poller/poller.go
++++ b/poller/poller.go
+@@ -1,26 +1,103 @@
+ // Package poller runs a periodic background poll.
+ package poller
+ 
+-import "time"
++import (
++	"context"
++	"errors"
++	"fmt"
++	"log/slog"
++	"sync"
++	"time"
++)
++
++// ErrAlreadyStarted is reported by Start when the poller is already running.
++var ErrAlreadyStarted = errors.New("poller: already started")
+ 
+ // Poller calls fn on a fixed interval.
++//
++// The owner that calls Start owns the background goroutine and must call
++// Stop to release it; Stop returning nil guarantees the goroutine has exited.
+ type Poller struct {
+ 	interval time.Duration
+ 	fn       func() error
+-	ticker   *time.Ticker
++	onError  func(error)
++
++	mu       sync.Mutex
++	running  bool
++	done     chan struct{}
++	stopOnce func()
++}
++
++// New creates a Poller that calls fn every interval and reports every error
++// fn returns to onError, so failures are never dropped. A nil onError means
++// errors are logged with the default slog logger.
++func New(interval time.Duration, fn func() error, onError func(error)) *Poller {
++	if onError == nil {
++		onError = func(err error) {
++			slog.Error("poller: poll failed", "error", err)
++		}
++	}
++	return &Poller{interval: interval, fn: fn, onError: onError}
+ }
+ 
+-// New creates a Poller.
+-func New(interval time.Duration, fn func() error) *Poller {
+-	return &Poller{interval: interval, fn: fn}
++// Start begins polling in the background. It reports ErrAlreadyStarted when
++// the poller is already running, and can be called again after Stop.
++func (p *Poller) Start() error {
++	p.mu.Lock()
++	defer p.mu.Unlock()
++	if p.running {
++		return ErrAlreadyStarted
++	}
++	stop := make(chan struct{})
++	done := make(chan struct{})
++	p.running = true
++	p.done = done
++	p.stopOnce = sync.OnceFunc(func() { close(stop) })
++	go p.run(stop, done)
++	return nil
++}
++
++// Stop stops polling and waits for the polling goroutine to exit, so a nil
++// return means fn will not be called again. It is a no-op on a poller that is
++// not running. If the goroutine has not exited when ctx is done, Stop returns
++// ctx's error wrapped and a later Stop can wait again.
++func (p *Poller) Stop(ctx context.Context) error {
++	p.mu.Lock()
++	if !p.running {
++		p.mu.Unlock()
++		return nil
++	}
++	stopOnce, done := p.stopOnce, p.done
++	p.mu.Unlock()
++
++	stopOnce()
++	select {
++	case <-done:
++		p.mu.Lock()
++		// Only the Stop that belongs to this run may clear the state, in
++		// case another goroutine restarted the poller meanwhile.
++		if p.done == done {
++			p.running = false
++		}
++		p.mu.Unlock()
++		return nil
++	case <-ctx.Done():
++		return fmt.Errorf("stop poller: %w", ctx.Err())
++	}
+ }
+ 
+-// Start begins polling in the background.
+-func (p *Poller) Start() {
+-	p.ticker = time.NewTicker(p.interval)
+-	go func() {
+-		for range p.ticker.C {
+-			_ = p.fn()
++func (p *Poller) run(stop <-chan struct{}, done chan<- struct{}) {
++	ticker := time.NewTicker(p.interval)
++	defer close(done)
++	defer ticker.Stop()
++	for {
++		select {
++		case <-stop:
++			return
++		case <-ticker.C:
++			if err := p.fn(); err != nil {
++				p.onError(err)
++			}
+ 		}
+-	}()
++	}
+ }
+diff --git a/poller/poller_test.go b/poller/poller_test.go
+index c0dbb43..a986a6e 100644
+--- a/poller/poller_test.go
++++ b/poller/poller_test.go
+@@ -1,19 +1,167 @@
+ package poller
+ 
+ import (
++	"context"
++	"errors"
++	"runtime"
++	"sync/atomic"
+ 	"testing"
+ 	"time"
+ )
+ 
++var errPoll = errors.New("poll failed")
++
++// waitFor polls cond until it holds or the deadline passes.
++func waitFor(t *testing.T, cond func() bool, msg string) {
++	t.Helper()
++	deadline := time.Now().Add(2 * time.Second)
++	for time.Now().Before(deadline) {
++		if cond() {
++			return
++		}
++		time.Sleep(time.Millisecond)
++	}
++	t.Fatal(msg)
++}
++
++// stopPoller stops p with a deadline, failing the test on error.
++func stopPoller(t *testing.T, p *Poller) {
++	t.Helper()
++	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
++	defer cancel()
++	if err := p.Stop(ctx); err != nil {
++		t.Errorf("Stop: %v", err)
++	}
++}
++
+ func TestPollerRuns(t *testing.T) {
+-	polls := 0
+-	p := New(10*time.Millisecond, func() error {
+-		polls++
++	var polls atomic.Int64
++	p := New(5*time.Millisecond, func() error {
++		polls.Add(1)
++		return nil
++	}, func(error) {})
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	t.Cleanup(func() { stopPoller(t, p) })
++	waitFor(t, func() bool { return polls.Load() > 0 }, "poller never ran")
++}
++
++func TestPollerStopEndsPollingAndGoroutine(t *testing.T) {
++	goroutines := runtime.NumGoroutine()
++	var polls atomic.Int64
++	p := New(time.Millisecond, func() error {
++		polls.Add(1)
++		return nil
++	}, func(error) {})
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	waitFor(t, func() bool { return polls.Load() > 0 }, "poller never ran")
++
++	stopPoller(t, p)
++
++	select {
++	case <-p.done:
++	default:
++		t.Fatal("polling goroutine still running after Stop")
++	}
++	if err := p.Stop(context.Background()); err != nil {
++		t.Fatalf("second Stop: %v", err)
++	}
++
++	stopped := polls.Load()
++	time.Sleep(20 * time.Millisecond)
++	if got := polls.Load(); got != stopped {
++		t.Fatalf("poller kept polling after Stop: %d -> %d", stopped, got)
++	}
++	waitFor(t, func() bool { return runtime.NumGoroutine() <= goroutines },
++		"polling goroutine leaked after Stop")
++}
++
++func TestPollerRestartAfterStop(t *testing.T) {
++	var polls atomic.Int64
++	p := New(time.Millisecond, func() error {
++		polls.Add(1)
+ 		return nil
++	}, func(error) {})
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	stopPoller(t, p)
++
++	if err := p.Start(); err != nil {
++		t.Fatalf("restart Start: %v", err)
++	}
++	t.Cleanup(func() { stopPoller(t, p) })
++	waitFor(t, func() bool { return polls.Load() > 0 }, "restarted poller never ran")
++}
++
++func TestPollerStartTwice(t *testing.T) {
++	p := New(time.Hour, func() error { return nil }, func(error) {})
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	t.Cleanup(func() { stopPoller(t, p) })
++	if err := p.Start(); !errors.Is(err, ErrAlreadyStarted) {
++		t.Fatalf("second Start = %v, want ErrAlreadyStarted", err)
++	}
++}
++
++func TestPollerReportsErrors(t *testing.T) {
++	reported := make(chan error, 1)
++	p := New(time.Millisecond, func() error { return errPoll }, func(err error) {
++		select {
++		case reported <- err:
++		default:
++		}
+ 	})
+-	p.Start()
+-	time.Sleep(35 * time.Millisecond)
+-	if polls == 0 {
+-		t.Fatal("poller never ran")
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	t.Cleanup(func() { stopPoller(t, p) })
++
++	select {
++	case err := <-reported:
++		if !errors.Is(err, errPoll) {
++			t.Fatalf("reported error = %v, want %v", err, errPoll)
++		}
++	case <-time.After(2 * time.Second):
++		t.Fatal("poll error was dropped")
++	}
++}
++
++func TestPollerStopTimesOutWhilePollBlocks(t *testing.T) {
++	entered := make(chan struct{}, 1)
++	release := make(chan struct{})
++	p := New(time.Millisecond, func() error {
++		select {
++		case entered <- struct{}{}:
++		default:
++		}
++		<-release
++		return nil
++	}, func(error) {})
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	select {
++	case <-entered:
++	case <-time.After(2 * time.Second):
++		t.Fatal("poll never started")
++	}
++
++	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
++	defer cancel()
++	if err := p.Stop(ctx); !errors.Is(err, context.DeadlineExceeded) {
++		t.Fatalf("Stop with blocked poll = %v, want context deadline error", err)
++	}
++
++	close(release)
++	stopPoller(t, p)
++	select {
++	case <-p.done:
++	default:
++		t.Fatal("polling goroutine still running after Stop")
+ 	}
+ }

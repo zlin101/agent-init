@@ -7,6 +7,10 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
+## Unreleased — profile knowledge ablation (Round 2)
+
+- Changed: Go/Python canonical profiles and English templates ablated of teaching payload (command tutorials, directory skeletons, code examples, basic-syntax facts); decision constraints, risk constraints, toolchain/stack preferences, local-contract-first and no-config fallbacks are preserved. File paths, roots, CLI, stamp schema, routing, Comment ownership, upgrade/proposal/storage semantics unchanged; customization protection unchanged (existing local profile edits still take the upgrade proposal path).
+
 ## 2026.09.10 — private storage mode
 
 - Added: policy schema v2 `storage_mode`（`tracked | local | private`；默认 local）与 legacy v1 `task_storage` normalization；既有 v1 policy 不自动改写。

@@ -1,0 +1,2 @@
+ok  	example.com/worker/poller	(cached)
+VERIFY PASS

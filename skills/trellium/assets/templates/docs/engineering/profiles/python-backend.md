@@ -8,11 +8,11 @@ Use this profile for Python backends, APIs, agents, and data services. It provid
 
 The Python floor comes from `pyproject.toml`. Prefer the repository's existing tooling; the default stack is uv, FastAPI when HTTP is needed, Pydantic v2, pydantic-settings, pytest/pytest-asyncio, httpx ASGITransport, Black, isort, and flake8. Do not add runtime frameworks before they are needed.
 
-Read AGENTS, README, CI, Makefile/Taskfile, and `pyproject.toml`; inspect `uv sync`, the Python version/interpreter, application entrypoint, and established test/lint commands. Project configuration, lockfile, and CI are the real contract. Report documentation drift before proceeding.
+Read AGENTS, README, CI, Makefile/Taskfile, and `pyproject.toml`; inspect the interpreter, application entrypoint, and established quality gates (facts come from `pyproject.toml` and CI). Project configuration, lockfile, and CI are the real contract. Report documentation drift before proceeding.
 
 ## Packages and dependencies
 
-Manage project dependencies through uv, committing `pyproject.toml` and `uv.lock`. Use `uv add`, `uv add --dev`, `uv sync`, `uv run`, and `uv lock`; do not hand-edit the lockfile or silently switch to pip/Poetry. After add/upgrade/removal, sync and review the lock diff.
+Manage project dependencies through uv, committing `pyproject.toml` and `uv.lock`; do not hand-edit the lockfile or silently switch to pip/Poetry. After add/upgrade/removal, sync and review the lock diff.
 
 Create only needed modules. Keep application/lifecycle assembly at the entrypoint; routes handle registration, validation, service calls, and responses; services own business orchestration and transaction boundaries; repositories own persistence; clients/adapters own external systems; core owns configuration/logging/infrastructure; schemas own boundary models. Routes do not contain complex business logic or directly access databases/external systems. Inject dependencies; do not use mutable global singletons.
 
@@ -42,4 +42,4 @@ Raise specific domain/business exceptions for expected failures. At system bound
 
 Use Black, isort, and flake8 through the project's configured commands; honor existing pre-commit hooks and exclusions for generated/migration/virtual-environment files. Put tests under `tests/` as `test_<module>.py`, share setup through fixtures, and mock/fake databases, queues, LLMs, internet services, and developer infrastructure. Test HTTP APIs through httpx ASGITransport without real listeners. Cover async cancellation, timeouts, cleanup, error mapping, and resource release. Coverage targets belong to the project, not this profile.
 
-Run repository-defined gates first. Otherwise run `uv run black .`, `uv run isort .`, `uv run flake8 .`, and `uv run pytest` (plus the configured coverage command). Review `uv.lock` for dependency changes and synchronize API/config/model/deployment documentation and Vault decisions when those contracts change.
+Run repository-defined gates first; otherwise use the project's configured formatter, linter, and test/coverage commands. Review `uv.lock` for dependency changes and synchronize API/config/model/deployment documentation and Vault decisions when those contracts change.

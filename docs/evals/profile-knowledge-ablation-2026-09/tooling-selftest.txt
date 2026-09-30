@@ -1,0 +1,34 @@
+=== TASK-0026 evidence tooling self-test (2026-09-30T06:09:13Z) ===
+
+$ sh build-replay.sh /tmp/trellium-0026-selftest s1 s3
+built: /tmp/trellium-0026-selftest (base a01950a1afab092ae4296b29a00c1b9da74fd7ab)
+s1a	go	f9f4ec110d6cae03d68aaac26333fe7871d89edc
+s1b	go	8b8d844297af2d639eb9bd7d3c82e6b939d2afeb
+s3a	go	277639ea9e525d8465993472d2896c459cce1ff4
+s3b	go	5c09299de04a4ae5cc5ea540df08f9b15712fc09
+before	go	f44b73315a3c36195a03c567b90e2331c93c206f4c3696593681da5c745b57c5
+after	go	284539dfa1373ee77894df30e849f33735242f04398faf44cbfe26624bd4dc93
+before	python	b814bba1c6db61798f73cd37bc7b3583fc7cc2df39c4adac63f2f54f329d8f00
+after	python	d92c2105eb7f3e79e73e049afdb9bf28c4c645cae3f2b417d5753b96b6490b94
+exit=0
+
+$ sh build-replay.sh /tmp/trellium-0026-selftest s1 s3   # second run, same target: must refuse
+build-replay: refusing existing target: /tmp/trellium-0026-selftest
+build-replay: this script only creates new directories; it never overwrites or deletes
+exit=2
+
+$ CAPTURE_RUNS=/tmp/trellium-0026-selftest-runs sh capture.sh /tmp/trellium-0026-selftest   # s3 fixture is red by design (unfixed bug)
+s1a: 0 lines of change
+s1a: VERIFY PASS
+s1b: 0 lines of change
+s1b: VERIFY PASS
+s3a: 0 lines of change
+s3a: VERIFY FAIL
+s3b: 0 lines of change
+s3b: VERIFY FAIL
+capture: 2 workspace(s) failed verification
+exit=1
+
+$ sed 's/tab-separators-with-spaces/' map.tsv; capture must reject the parse
+capture: bad key in map.tsv: 's1a  go  f9f4ec110d6cae03d68aaac26333fe7871d89edc'
+exit=2

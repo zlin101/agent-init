@@ -27,12 +27,7 @@
 
 ## 进入项目时先确认
 
-修改前先读取项目的 `AGENTS.md`、README、CI、Makefile 或 Taskfile，再确认 Go 工作区和工具链：
-
-```bash
-go version
-go env GOMOD GOWORK GOFLAGS
-```
+修改前先读取项目的 `AGENTS.md`、README、CI、Makefile 或 Taskfile，再确认 Go 工作区和工具链（module 根、workspace、构建契约；事实来源为仓库 `go.mod`、`go.work`、CI 配置与当前工具链的实际查询，如 `go env GOMOD GOWORK`）。
 
 执行原则：
 
@@ -45,16 +40,6 @@ go env GOMOD GOWORK GOFLAGS
 ## 模块和依赖管理
 
 使用 Go Modules，并将 `go.mod` 纳入版本控制。依赖解析生成 `go.sum` 时也应提交；没有外部依赖的 module 可以不存在 `go.sum`。
-
-常用命令：
-
-```bash
-go mod init <module-path>
-go get <module-path>@<version>
-go mod tidy
-go mod download
-go list -m all
-```
 
 约束：
 
@@ -69,30 +54,7 @@ go list -m all
 
 ## 推荐结构
 
-```text
-go.mod
-cmd/
-  <service>/
-    main.go
-internal/
-  config/
-  domain/
-  service/
-  repository/
-  transport/
-    http/
-  client/
-```
-
-按需增加：
-
-```text
-api/          # OpenAPI、protobuf 等接口定义
-migrations/   # 数据库迁移
-testdata/     # 测试夹具
-```
-
-只创建当前任务真正需要的目录。小型服务可以从少量 package 开始，不要预先搭建空的分层骨架。
+遵循仓库既有结构；新结构按需创建，不预先搭建空的分层骨架（`cmd/`、`internal/`、`api/`、`migrations/`、`testdata/` 等只在任务需要时建立）。
 
 目录和 package 边界：
 
@@ -104,13 +66,7 @@ testdata/     # 测试夹具
 
 ## 分层和依赖方向
 
-以下是逻辑职责和依赖方向，不要求每一层都对应一个 package：
-
-```text
-Transport -> Application / Use Case -> Domain Logic
-Adapter   -> Application-owned Interface
-Adapter   -> External System
-```
+以下是逻辑职责和依赖方向，不要求每一层都对应一个 package。依赖方向：Transport（HTTP handler）→ Application / Use Case → Domain Logic；Adapter 实现 Application 拥有的最小接口并对接外部系统。
 
 约束：
 
@@ -172,8 +128,7 @@ Adapter   -> External System
 
 ## 测试
 
-- 测试文件与被测代码放在同一目录，命名为 `*_test.go`。
-- 默认使用标准库 `testing`，适合多输入组合时使用表驱动测试和 `t.Run`。
+- 使用标准库 `testing` 组织测试，多输入组合优先表驱动；项目已有测试框架则沿用。
 - 需要验证内部实现时使用同 package 测试；需要验证公开契约时使用 `_test` 外部 package。不要机械统一。
 - 使用 `t.Helper()` 标记测试辅助函数，使用 `t.Cleanup()` 管理资源。
 - 可以安全并行且无共享状态的测试才调用 `t.Parallel()`。
@@ -182,17 +137,7 @@ Adapter   -> External System
 - 涉及并发、锁、channel 或共享缓存的变更必须覆盖取消、超时、关闭和错误路径，并在支持时运行 race detector。
 - fuzz test 适合解析器、编解码器和输入边界，但不能替代确定性的单元测试。
 
-常用命令：
-
-```bash
-gofmt -w path/to/changed_file.go
-go test ./...
-go test -race ./...
-go vet ./...
-go build ./...
-```
-
-这些命令默认从受影响 module 的根目录执行。多 module 或 `go.work` 项目应使用仓库已有验证入口，或逐个验证受影响 module；不要假设从仓库根目录运行一次 `go test ./...` 就覆盖所有 module。
+测试、构建与格式化验证默认从受影响 module 的根目录执行。多 module 或 `go.work` 项目应使用仓库已有验证入口，或逐个验证受影响 module；不要假设从仓库根目录运行一次 `go test ./...` 就覆盖所有 module。
 
 按变更范围追加检查：
 

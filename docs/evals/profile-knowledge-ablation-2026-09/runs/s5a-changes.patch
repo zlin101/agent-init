@@ -1,0 +1,186 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..1935ee2
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,13 @@
++# RUNLOG
++
++- `ls -la /tmp/trellium-0026-replay-r2/s5a` — 列出工作目录内容，确认仓库结构与既有文件。
++- `cd /tmp/trellium-0026-replay-r2/s5a && find . -path ./.venv -prune -o -path ./.git -prune -o -path ./.ruff_cache -prune -o -type f -print | sort && cat README.md pyproject.toml .gitignore` — 盘点仓库文件并读取 README/pyproject/.gitignore，确认构建与测试契约。
++- `ls /tmp/trellium-0026-replay-r2/s5a/.venv/lib/python*/site-packages | head -50; /tmp/trellium-0026-replay-r2/s5a/.venv/bin/python --version` — 确认虚拟环境已安装依赖与 Python 版本，避免不必要的依赖安装。
++- `.venv/bin/python -m pytest -q` — 在工作目录运行仓库基线测试，确认改动前测试通过（避免使用会写全局缓存的 uv run，遵守规则1）。
++- `.venv/bin/python -m pytest -q` — 运行仓库测试，验证新增 /books 端点、分页校验与 Pydantic 响应模型。
++- `.venv/bin/python -c 'from app.main import app; ...'` — 检查 OpenAPI 规格，确认 /books 响应与查询参数由 Pydantic 模型生成文档。
++- `.venv/bin/python -m pytest -q` — docstring 排版微调后重跑仓库测试，确认最终状态全部通过。
++- `awk 'length>120' app/main.py app/schemas.py tests/test_books.py` — 按 Profile 的 120 字符行宽上限检查新增/修改文件（项目未配置 black/isort/flake8，属仓库契约外）。
++- `git status --porcelain; git diff --cached --name-only` — 只读检查工作区与暂存区，确认改动文件清单且没有执行任何 git add/commit（规则3）。
++- `command -v black; command -v isort; command -v flake8; command -v ruff; command -v uv` — 检查 Profile 指定的格式化/lint 工具是否可用（结果：仅 uv，项目契约未配置这些工具，故不安装新依赖）。
++- `git diff --stat` — 只读查看改动统计，汇总变更摘要；未执行 add/commit（规则3）。
+diff --git a/app/main.py b/app/main.py
+index c7835c1..4fb1f9c 100644
+--- a/app/main.py
++++ b/app/main.py
+@@ -1,10 +1,21 @@
+ # pyright: reportMissingImports=false
+ """Catalog API application."""
+ 
+-from fastapi import FastAPI
++from fastapi import FastAPI, Query
++
++from app.schemas import Book, PaginatedResponse
+ 
+ app = FastAPI(title="catalog-api")
+ 
++# In-memory catalog standing in for a future repository layer. It is a
++# module-level constant rather than request state, so every request observes
++# the same data; keep it ordered by id because the API promises that order.
++BOOKS: tuple[Book, ...] = (
++    Book(id=1, title="A Wizard of Earthsea", author="Ursula Le Guin"),
++    Book(id=2, title="Kindred", author="Octavia Butler"),
++    Book(id=3, title="The Left Hand of Darkness", author="Ursula Le Guin"),
++)
++
+ 
+ @app.get("/authors")
+ def list_authors():
+@@ -13,3 +24,30 @@ def list_authors():
+         {"id": 1, "name": "Ursula Le Guin"},
+         {"id": 2, "name": "Octavia Butler"},
+     ]
++
++
++@app.get("/books", response_model=PaginatedResponse[Book])
++def list_books(
++    page: int = Query(default=1, ge=1, description="1-based page number; defaults to 1."),
++    page_size: int = Query(
++        default=20,
++        ge=1,
++        le=100,
++        description="Items per page; defaults to 20, maximum 100.",
++    ),
++) -> PaginatedResponse[Book]:
++    """Return one page of the book catalog, ordered by book id.
++
++    Pagination is 1-based. `page < 1` or `page_size` outside 1..100 are
++    rejected with HTTP 422 by request validation before this handler runs. A
++    `page` past the end of the catalog returns an empty `items` list while
++    `total` still reports the full catalog size.
++    """
++    total = len(BOOKS)
++    start = (page - 1) * page_size
++    return PaginatedResponse[Book](
++        items=list(BOOKS[start : start + page_size]),
++        total=total,
++        page=page,
++        page_size=page_size,
++    )
+diff --git a/app/schemas.py b/app/schemas.py
+new file mode 100644
+index 0000000..549647f
+--- /dev/null
++++ b/app/schemas.py
+@@ -0,0 +1,30 @@
++# pyright: reportMissingImports=false
++"""Pydantic models for the catalog API's public responses."""
++
++from typing import Generic, TypeVar
++
++from pydantic import BaseModel, Field
++
++T = TypeVar("T")
++
++
++class Book(BaseModel):
++    """A single book entry as exposed by the catalog API."""
++
++    id: int = Field(..., description="Stable book identifier", examples=[1])
++    title: str = Field(..., description="Book title", examples=["The Left Hand of Darkness"])
++    author: str = Field(..., description="Primary author name", examples=["Ursula Le Guin"])
++
++
++class PaginatedResponse(BaseModel, Generic[T]):
++    """Envelope returned by paginated list endpoints.
++
++    `page` and `page_size` echo the effective request parameters and
++    `total` reports the item count across all pages, so callers can page
++    through results without tracking server-side state.
++    """
++
++    items: list[T] = Field(..., description="Items belonging to the requested page")
++    total: int = Field(..., description="Total number of items across all pages")
++    page: int = Field(..., description="Effective 1-based page number")
++    page_size: int = Field(..., description="Effective number of items per page")
+diff --git a/tests/test_books.py b/tests/test_books.py
+new file mode 100644
+index 0000000..1f14532
+--- /dev/null
++++ b/tests/test_books.py
+@@ -0,0 +1,67 @@
++# pyright: reportMissingImports=false
++"""Tests for the GET /books endpoint."""
++
++import asyncio
++
++import httpx
++
++from app.main import app
++
++
++def fetch(path: str, params: dict[str, int] | None = None) -> httpx.Response:
++    """Send a GET request through the ASGI app in-process, without a real socket."""
++
++    async def run() -> httpx.Response:
++        transport = httpx.ASGITransport(app=app)
++        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
++            return await client.get(path, params=params)
++
++    return asyncio.run(run())
++
++
++def test_list_books_default_pagination() -> None:
++    """Defaults are page=1 and page_size=20, and the body matches the Pydantic envelope."""
++    resp = fetch("/books")
++    assert resp.status_code == 200
++
++    body = resp.json()
++    assert set(body) == {"items", "total", "page", "page_size"}
++    assert body["page"] == 1
++    assert body["page_size"] == 20
++    assert 1 <= len(body["items"]) <= body["page_size"]
++    assert body["total"] >= len(body["items"])
++    assert set(body["items"][0]) == {"id", "title", "author"}
++
++
++def test_list_books_pages_slice_the_same_ordering() -> None:
++    """Page N contains exactly the Nth window of the id-ordered catalog."""
++    everything = fetch("/books", {"page_size": 100}).json()
++    all_ids = [book["id"] for book in everything["items"]]
++
++    second_page = fetch("/books", {"page": 2, "page_size": 2}).json()
++    assert [book["id"] for book in second_page["items"]] == all_ids[2:4]
++    assert second_page["page"] == 2
++    assert second_page["page_size"] == 2
++    assert second_page["total"] == everything["total"]
++
++
++def test_list_books_page_past_end_is_empty() -> None:
++    """An out-of-range page is not an error: items are empty but total stays accurate."""
++    resp = fetch("/books", {"page": 99, "page_size": 5})
++    assert resp.status_code == 200
++
++    body = resp.json()
++    assert body["items"] == []
++    assert body["page"] == 99
++    assert body["total"] >= 1
++
++
++def test_list_books_enforces_page_size_upper_limit() -> None:
++    """page_size=100 is allowed; anything above the documented cap is rejected."""
++    assert fetch("/books", {"page_size": 100}).status_code == 200
++    assert fetch("/books", {"page_size": 101}).status_code == 422
++
++
++def test_list_books_rejects_page_below_one() -> None:
++    """Pages are 1-based, so page=0 fails validation instead of silently shifting results."""
++    assert fetch("/books", {"page": 0}).status_code == 422

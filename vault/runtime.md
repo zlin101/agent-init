@@ -2,16 +2,19 @@
 
 ## Current Phase
 
-Post-2026.09.9 convergence CLOSED: Phases 0-6 executed — Phase 6 bumped VERSION to 2026.09.10, dated the six migration sections, ran the full suite + clean-clone check E2E green, pushed develop and the lightweight tag `2026.09.10` (no GitHub Release per D-0013). TASK-0019/0024/0025 accepted.
+Post-2026.09.9 convergence CLOSED and `2026.09.10` published tag-only; Profile knowledge ablation is owner-accepted after Codex independent APPROVE. Local commit is authorized for TASK-0026 only; parallel TASK-0027 and discussion files remain separate, with no push or release authorized.
 
 ## Focus
 
-- TASK-0019
+- TASK-0026
 
 Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or active-task inventory; `trellium status` reads TASK state directly from task files.
 
 ## Current Progress
 
+- 2026-09-30: TASK-0026 round-1 review = REQUEST_CHANGES (1 P1: first-five “replays” were keyword counts, gate wrongly passed; 3 P2: zh Go lost `Application/Use Case → Domain`, help-docs misused as environment fact source, records drifted) — rework landed; fixed-input fixture replay (5 scenes × before/after, `docs/evals/profile-knowledge-ablation-2026-09/`) executed; evidence retained in TASK and eval fixtures.
+- 2026-09-30: TASK-0026 round-2 review = REQUEST_CHANGES (2 P1: build replay had unguarded `rm -rf`, capture parse/exit could not signal failure; 2 P2: floating-HEAD baseline, s5 fixture lacked the Comment Policy file) — rework landed: create-only build + strict parse/failure-propagating capture with self-test (`tooling-selftest.txt`), pinned `BASE_SHA` + profile hashes (`profiles.sha256`), targeted s5 rerun with byte-identical Policy on both sides; all four findings independently closed.
+- 2026-09-30: Profile knowledge ablation independently verified (213/213 full, 62/62 focused, s5 6/6 and 9/9); owner accepted TASK-0026 and authorized its scoped local commit. Engineering preferences, routing and machine state remain unchanged; finite single-pair A/B limitations remain documented.
 - Convergence Phases 0-5 implemented (`4ddbfe6`/`172fa19`/`5061cd6`/`c5fa637`/`6b6747a`/`1380d6f`/`995e7a0`/`c9939b1`); Phase 6 executed (`051fad6` release-prep, `8765012` acceptances): full suite + clean-clone check 0/0, network installer E2E on tag `2026.09.10`, TASK-0019 deferred item closed and flipped accepted.
 - `2026.09.9` and `2026.09.10` are published as tag-only releases (D-0013); the lightweight tag `2026.09.10` was pushed at `051fad6`.
 - Owner-local files were removed in Phase 0; `check` is 0/0.
@@ -57,4 +60,4 @@ git diff --check
 
 ## Next Steps
 
-- Convergence plan closed: Phase 6 executed (final verification + VERSION/MIGRATIONS + tag `2026.09.10`); TASK-0019 finally accepted after its deferred item completed. No open PI work.
+- No remaining TASK-0026 implementation; leave parallel TASK-0027 and discussions separate. Further implementation, push and release require separate owner direction.

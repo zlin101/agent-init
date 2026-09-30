@@ -1,0 +1,25 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..4708467
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,8 @@
++# RUNLOG
++$ find moda modb -type f; cat moda/go.mod modb/go.mod — 列出两个 module 的文件与 go.mod 以确认 workspace 结构
++$ go env GOMOD GOWORK; go list ./... — 确认 workspace/模块事实与 package 范围（Profile 要求先确认构建契约）
++$ (in moda) go test ./...; (in modb) go test ./... — 定位失败测试，按 module 根运行（Profile: 验证从受影响 module 根执行）
++$ (edit modb/discount/discount.go) Discount 返回值由 total - percent/100 改为 total * (100 - percent) / 100 — 修复整数除法导致折扣几乎不生效的缺陷
++$ (in modb) gofmt -l .; go vet ./...; go test ./...; go test -race ./... — 验证修复后的格式、静态检查与测试（含 race）
++$ (in moda) gofmt -l .; go vet ./...; go test ./... — 回归验证未改动的 moda module，确认 workspace 整体通过
++$ cat modb/discount/discount.go; cat RUNLOG.md — 确认最终代码与运行记录
+diff --git a/modb/discount/discount.go b/modb/discount/discount.go
+index 8e7c8b8..530af2b 100644
+--- a/modb/discount/discount.go
++++ b/modb/discount/discount.go
+@@ -6,5 +6,5 @@ func Discount(total, percent int) int {
+ 	if percent > 100 {
+ 		percent = 100
+ 	}
+-	return total - percent/100
++	return total * (100 - percent) / 100
+ }

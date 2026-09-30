@@ -1,0 +1,182 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..6782ee3
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,10 @@
++# RUNLOG
++
++- `uv sync` — 按 README/Profile 约定用 uv 安装项目依赖，建立可运行环境。
++- `uv run pytest` — 运行仓库既有测试，确认改动前基线通过。
++- `uv run pytest` — 运行全部仓库测试，验证新增 /books 端点与既有测试。
++- `uv run python -c 'import black, isort, flake8'` — 检查格式化/lint 工具是否已在虚拟环境可用。
++- `uv run --with black --with isort --with flake8 black/isort/flake8 检查` — 按 Profile 完成标准验证格式化与 lint（工具临时注入，不改项目依赖）。
++- `uv run --with black --with isort --with flake8 ...质量检查` — 复跑格式化/lint，确认 E203 修复后全部通过。
++- `uv run pytest` — 最终验证：全部测试在修改后通过。
++- `git status --short` — 仅查看工作区最终状态，确认变更文件清单（不做 add/commit）。
+diff --git a/app/main.py b/app/main.py
+index c7835c1..cc6c5b7 100644
+--- a/app/main.py
++++ b/app/main.py
+@@ -1,10 +1,21 @@
+ # pyright: reportMissingImports=false
+ """Catalog API application."""
+ 
+-from fastapi import FastAPI
++from fastapi import FastAPI, Query
++
++from app.schemas import Book, Page
+ 
+ app = FastAPI(title="catalog-api")
+ 
++# In-memory catalog backing the read-only list endpoints (no database yet).
++BOOKS: list[Book] = [
++    Book(id=1, title="The Left Hand of Darkness", author="Ursula Le Guin"),
++    Book(id=2, title="Kindred", author="Octavia Butler"),
++    Book(id=3, title="Parable of the Sower", author="Octavia Butler"),
++    Book(id=4, title="A Wizard of Earthsea", author="Ursula Le Guin"),
++    Book(id=5, title="The Dispossessed", author="Ursula Le Guin"),
++]
++
+ 
+ @app.get("/authors")
+ def list_authors():
+@@ -13,3 +24,29 @@ def list_authors():
+         {"id": 1, "name": "Ursula Le Guin"},
+         {"id": 2, "name": "Octavia Butler"},
+     ]
++
++
++@app.get("/books", response_model=Page[Book])
++def list_books(
++    page: int = Query(1, ge=1, description="1-based page number to return.", examples=[1]),
++    page_size: int = Query(
++        20,
++        ge=1,
++        le=100,
++        description="Number of books per page; capped at 100.",
++        examples=[20],
++    ),
++) -> Page[Book]:
++    """Return a paginated page of books.
++
++    ``page`` defaults to 1 and ``page_size`` defaults to 20 (max 100);
++    out-of-range values are rejected by query validation before this
++    handler runs.
++    """
++    # Slice the in-memory catalog: offset-based pagination over the fixed list.
++    total = len(BOOKS)
++    start = (page - 1) * page_size
++    end = start + page_size
++    items = BOOKS[start:end]
++    pages = (total + page_size - 1) // page_size if total else 0
++    return Page(items=items, page=page, page_size=page_size, total=total, pages=pages)
+diff --git a/app/schemas.py b/app/schemas.py
+new file mode 100644
+index 0000000..4ea0ee2
+--- /dev/null
++++ b/app/schemas.py
+@@ -0,0 +1,35 @@
++# pyright: reportMissingImports=false
++"""Pydantic response models shared by the catalog API.
++
++Pagination envelopes live here so every paginated endpoint returns the
++same public structure instead of redefining its own.
++"""
++
++from typing import Generic, TypeVar
++
++from pydantic import BaseModel, Field
++
++# Element type of a page: each endpoint specializes Page with its own item model.
++T = TypeVar("T")
++
++
++class Book(BaseModel):
++    """A single book in the catalog."""
++
++    id: int = Field(..., description="Unique book identifier.", examples=[1])
++    title: str = Field(..., description="Book title.", examples=["The Left Hand of Darkness"])
++    author: str = Field(..., description="Book author.", examples=["Ursula Le Guin"])
++
++
++class Page(BaseModel, Generic[T]):
++    """Paginated response envelope shared by list endpoints.
++
++    ``page`` and ``page_size`` echo the effective pagination request so
++    clients can render paging controls without guessing.
++    """
++
++    items: list[T] = Field(..., description="Records on the current page.")
++    page: int = Field(..., description="1-based index of the current page.", examples=[1])
++    page_size: int = Field(..., description="Maximum number of records per page.", examples=[20])
++    total: int = Field(..., description="Total number of records across all pages.", examples=[5])
++    pages: int = Field(..., description="Total number of pages given page_size.", examples=[1])
+diff --git a/tests/test_books.py b/tests/test_books.py
+new file mode 100644
+index 0000000..c53b818
+--- /dev/null
++++ b/tests/test_books.py
+@@ -0,0 +1,62 @@
++# pyright: reportMissingImports=false
++"""Tests for the GET /books endpoint."""
++
++import asyncio
++
++import httpx
++
++from app.main import app
++
++
++def _get(url: str, params: dict | None = None) -> httpx.Response:
++    """Issue a GET request against the ASGI app without binding a port."""
++
++    async def run():
++        transport = httpx.ASGITransport(app=app)
++        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
++            return await client.get(url, params=params)
++
++    return asyncio.run(run())
++
++
++def test_list_books_defaults():
++    resp = _get("/books")
++    assert resp.status_code == 200
++    body = resp.json()
++    # Defaults: page=1, page_size=20; the whole catalog fits on one page.
++    assert body["page"] == 1
++    assert body["page_size"] == 20
++    assert body["total"] == 5
++    assert body["pages"] == 1
++    assert len(body["items"]) == 5
++    assert body["items"][0] == {"id": 1, "title": "The Left Hand of Darkness", "author": "Ursula Le Guin"}
++
++
++def test_list_books_pagination_slice():
++    resp = _get("/books", params={"page": 2, "page_size": 2})
++    assert resp.status_code == 200
++    body = resp.json()
++    assert body["page"] == 2
++    assert body["page_size"] == 2
++    assert body["total"] == 5
++    assert body["pages"] == 3
++    assert [b["id"] for b in body["items"]] == [3, 4]
++
++
++def test_list_books_beyond_last_page_is_empty():
++    resp = _get("/books", params={"page": 99, "page_size": 20})
++    assert resp.status_code == 200
++    body = resp.json()
++    assert body["items"] == []
++    assert body["total"] == 5
++
++
++def test_list_books_page_size_capped_at_100():
++    assert _get("/books", params={"page_size": 100}).status_code == 200
++    resp = _get("/books", params={"page_size": 101})
++    assert resp.status_code == 422
++
++
++def test_list_books_page_must_be_positive():
++    resp = _get("/books", params={"page": 0})
++    assert resp.status_code == 422

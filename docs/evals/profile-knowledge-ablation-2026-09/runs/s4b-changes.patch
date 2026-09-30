@@ -1,0 +1,287 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..2ac75ea
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,7 @@
++go version && go env GOMOD GOWORK — 确认工具链版本与 module/workspace 根，作为命令运行目录依据 (exit 0)
++go list ./... — 从 module 根确认实际 package 范围（单 module、无 go.work） (exit 0)
++gofmt -l . — 检查修改过的 Go 文件格式（Profile 完成标准） (exit 0)
++go vet ./... — 静态检查受影响 package (exit 0)
++go test ./... — 运行受影响 package 的单元测试（含关闭行为测试） (exit 0)
++go test -race ./... — 并发变更按 Profile 要求运行 race detector (exit 0)
++go build ./... — 确认受影响 package 编译通过 (exit 0)
+diff --git a/poller/poller.go b/poller/poller.go
+index 43389c9..2c4af0e 100644
+--- a/poller/poller.go
++++ b/poller/poller.go
+@@ -1,26 +1,94 @@
+ // Package poller runs a periodic background poll.
+ package poller
+ 
+-import "time"
++import (
++	"errors"
++	"fmt"
++	"log/slog"
++	"sync"
++	"time"
++)
+ 
+-// Poller calls fn on a fixed interval.
++// Poller calls fn on a fixed interval. It is meant to be owned by a server
++// lifecycle: Start launches one background goroutine and Stop terminates it,
++// waiting for a poll already in flight so the goroutine does not outlive the
++// server.
+ type Poller struct {
+ 	interval time.Duration
+ 	fn       func() error
+-	ticker   *time.Ticker
++	onError  func(error)
++
++	mu     sync.Mutex
++	stopCh chan struct{} // closed to request shutdown; nil while not running
++	doneCh chan struct{} // closed when the polling goroutine has exited
+ }
+ 
+-// New creates a Poller.
+-func New(interval time.Duration, fn func() error) *Poller {
+-	return &Poller{interval: interval, fn: fn}
++// New creates a Poller that runs fn on every tick. Each non-nil error from fn
++// is reported once to onError; when onError is nil the error is logged with
++// slog, so poll errors are never dropped silently.
++func New(interval time.Duration, fn func() error, onError func(error)) *Poller {
++	return &Poller{interval: interval, fn: fn, onError: onError}
+ }
+ 
+-// Start begins polling in the background.
+-func (p *Poller) Start() {
+-	p.ticker = time.NewTicker(p.interval)
++// Start launches the polling goroutine. It returns an error if the poller is
++// already running or its interval or fn is unusable, instead of panicking.
++// Start may be called again after Stop.
++func (p *Poller) Start() error {
++	if p.interval <= 0 {
++		return fmt.Errorf("poller: interval must be positive, got %s", p.interval)
++	}
++	if p.fn == nil {
++		return errors.New("poller: nil poll function")
++	}
++
++	p.mu.Lock()
++	defer p.mu.Unlock()
++	if p.stopCh != nil {
++		return errors.New("poller: already started")
++	}
++
++	stopCh := make(chan struct{})
++	doneCh := make(chan struct{})
++	p.stopCh, p.doneCh = stopCh, doneCh
++
++	ticker := time.NewTicker(p.interval)
+ 	go func() {
+-		for range p.ticker.C {
+-			_ = p.fn()
++		defer close(doneCh)
++		defer ticker.Stop()
++		for {
++			select {
++			case <-stopCh:
++				return
++			case <-ticker.C:
++				if err := p.fn(); err != nil {
++					p.report(fmt.Errorf("poll: %w", err))
++				}
++			}
+ 		}
+ 	}()
++	return nil
++}
++
++// Stop requests shutdown and blocks until the polling goroutine has exited,
++// including any poll already in flight. It is a no-op while the poller is not
++// running, so the server can defer it unconditionally.
++func (p *Poller) Stop() {
++	p.mu.Lock()
++	defer p.mu.Unlock()
++	if p.stopCh == nil {
++		return
++	}
++	close(p.stopCh)
++	<-p.doneCh
++	p.stopCh, p.doneCh = nil, nil
++}
++
++// report delivers a poll error to the handler given to New, falling back to
++// the standard logger when no handler was provided.
++func (p *Poller) report(err error) {
++	if p.onError != nil {
++		p.onError(err)
++		return
++	}
++	slog.Error("poller: poll failed", "error", err)
+ }
+diff --git a/poller/poller_test.go b/poller/poller_test.go
+index c0dbb43..292787d 100644
+--- a/poller/poller_test.go
++++ b/poller/poller_test.go
+@@ -1,19 +1,152 @@
+ package poller
+ 
+ import (
++	"errors"
++	"sync/atomic"
+ 	"testing"
+ 	"time"
+ )
+ 
+ func TestPollerRuns(t *testing.T) {
+-	polls := 0
++	var polls atomic.Int64
+ 	p := New(10*time.Millisecond, func() error {
+-		polls++
++		polls.Add(1)
+ 		return nil
+-	})
+-	p.Start()
+-	time.Sleep(35 * time.Millisecond)
+-	if polls == 0 {
+-		t.Fatal("poller never ran")
++	}, nil)
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	t.Cleanup(p.Stop)
++
++	waitFor(t, "first poll", func() bool { return polls.Load() > 0 })
++}
++
++// TestPollerStop covers the server-shutdown path: after Stop returns the
++// polling goroutine is gone, no further polls happen, a second Start is
++// refused while running, and Stop is safe to repeat.
++func TestPollerStop(t *testing.T) {
++	var polls atomic.Int64
++	p := New(5*time.Millisecond, func() error {
++		polls.Add(1)
++		return nil
++	}, nil)
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	if err := p.Start(); err == nil {
++		t.Fatal("second Start succeeded, want error")
++	}
++
++	waitFor(t, "first poll", func() bool { return polls.Load() > 0 })
++
++	p.Stop()
++	frozen := polls.Load()
++
++	// Ten intervals with no poller running must not advance the counter.
++	time.Sleep(50 * time.Millisecond)
++	if got := polls.Load(); got != frozen {
++		t.Fatalf("polls advanced after Stop: %d -> %d", frozen, got)
++	}
++
++	p.Stop() // idempotent
++	if got := polls.Load(); got != frozen {
++		t.Fatalf("polls advanced after second Stop: %d -> %d", frozen, got)
++	}
++}
++
++// TestPollerStopWaitsForInFlightPoll verifies Stop does not return while fn
++// is still running, so the server never leaks the polling goroutine.
++func TestPollerStopWaitsForInFlightPoll(t *testing.T) {
++	entered := make(chan struct{}, 1)
++	release := make(chan struct{})
++	p := New(time.Millisecond, func() error {
++		select {
++		case entered <- struct{}{}:
++		default:
++		}
++		<-release
++		return nil
++	}, nil)
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	select {
++	case <-entered:
++	case <-time.After(time.Second):
++		t.Fatal("poll never started")
++	}
++
++	stopped := make(chan struct{})
++	go func() {
++		p.Stop()
++		close(stopped)
++	}()
++
++	select {
++	case <-stopped:
++		t.Fatal("Stop returned while a poll was still running")
++	case <-time.After(20 * time.Millisecond):
++	}
++
++	close(release)
++	select {
++	case <-stopped:
++	case <-time.After(time.Second):
++		t.Fatal("Stop did not return after the in-flight poll finished")
++	}
++}
++
++// TestPollerReportsPollError verifies fn errors reach the error handler
++// instead of being discarded, keeping the error chain intact.
++func TestPollerReportsPollError(t *testing.T) {
++	sentinel := errors.New("boom")
++	errCh := make(chan error, 1)
++	p := New(5*time.Millisecond, func() error { return sentinel },
++		func(err error) {
++			select {
++			case errCh <- err:
++			default:
++			}
++		})
++	if err := p.Start(); err != nil {
++		t.Fatalf("Start: %v", err)
++	}
++	t.Cleanup(p.Stop)
++
++	select {
++	case err := <-errCh:
++		if !errors.Is(err, sentinel) {
++			t.Fatalf("error = %v, want it to wrap %v", err, sentinel)
++		}
++	case <-time.After(time.Second):
++		t.Fatal("poll error was never reported")
++	}
++}
++
++func TestPollerStartRejectsInvalidConfig(t *testing.T) {
++	cases := []struct {
++		name string
++		p    *Poller
++	}{
++		{"non-positive interval", New(0, func() error { return nil }, nil)},
++		{"nil poll function", New(time.Millisecond, nil, nil)},
++	}
++	for _, tc := range cases {
++		t.Run(tc.name, func(t *testing.T) {
++			if err := tc.p.Start(); err == nil {
++				t.Fatal("Start succeeded, want error")
++			}
++		})
++	}
++}
++
++func waitFor(t *testing.T, what string, cond func() bool) {
++	t.Helper()
++	deadline := time.Now().Add(2 * time.Second)
++	for !cond() {
++		if time.Now().After(deadline) {
++			t.Fatalf("timed out waiting for %s", what)
++		}
++		time.Sleep(time.Millisecond)
+ 	}
+ }

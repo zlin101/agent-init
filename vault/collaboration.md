@@ -32,7 +32,7 @@
 
 ## Review And Verification Preferences
 
-- 替换为稳定审查和验证偏好。
+- 行为类验收 gate 必须持有契约要求的证据形态（如固定输入的 fixture 回放：可复核输出而非关键词计数）；缺证据时 gate 保持 pending/partial/in_progress，不得自行标 passed 或把必需证据降为可选；对照结论写在任务文件内，原始证据按惯例落盘 `docs/evals/<topic>/`。
 
 ## Observed Patterns
 

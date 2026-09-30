@@ -1,0 +1,32 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..ec1fc89
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,15 @@
++- `find /tmp/trellium-0026-replay/s3a -path '*/.git' -prune -o -type f -print | sort` — 列出仓库文件以了解结构
++- `cd modb && go test ./...` — 在受影响 module 根运行测试，定位失败（exit=1）
++- `cd moda && go test ./...` — 确认另一 module 基线是否通过（exit=0）
++- `gofmt -l moda modb` — 检查修改后 Go 文件格式（Profile 完成标准）
++- `cd modb && go test ./...` — 验证 discount 修复后受影响 package 测试通过（exit=0）
++- `cd modb && go vet ./...` — 对受影响 module 做静态检查（exit=0）
++- `cd moda && go vet ./...` — 对另一 module 做静态检查（exit=0）
++- `cd modb && go test -cover ./...` — 查看修复后测试覆盖率以说明受影响范围（exit=0）
++- `cd modb && go build ./...` — 验证受影响 module 可构建（exit=0）
++- `cd moda && go build ./...` — 验证另一 module 可构建（exit=0）
++- `cd modb && go list ./...` — 确认受影响 module 的实际 package 范围
++- `go version && go env GOMOD GOWORK GOFLAGS` — 按 Profile 确认工具链与 workspace 上下文
++- `cd <root> && go test ./...` — 确认 workspace 根目录无法直接跑测试，故按 module 逐个验证（exit=1）
++- `cd moda && go test ./... && cd modb && go test ./...` — 最终双 module 回归验证（exit=0）
++- `git status --porcelain` — 只读确认工作区最终状态（不执行 add/commit）
+diff --git a/modb/discount/discount.go b/modb/discount/discount.go
+index 8e7c8b8..44e5b46 100644
+--- a/modb/discount/discount.go
++++ b/modb/discount/discount.go
+@@ -6,5 +6,5 @@ func Discount(total, percent int) int {
+ 	if percent > 100 {
+ 		percent = 100
+ 	}
+-	return total - percent/100
++	return total - total*percent/100
+ }

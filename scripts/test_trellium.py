@@ -3086,6 +3086,69 @@ class TemplatePackagingTest(TargetTestCase):
                         "comments, or TODO/FIXME items, read the profile", paragraph
                     )
 
+    def test_profiles_keep_decision_constraints_after_knowledge_ablation(self) -> None:
+        """TASK-0026: freeze what the knowledge ablation must NOT lose —
+        local-contract priority, stack/no-config fallbacks, workspace
+        run-directory scope, risk constraints, and Comment Policy
+        ownership — plus the absence of the ablated teaching payload."""
+        repo = Path(__file__).resolve().parents[1]
+        kept = {
+            "init/protocol/profiles/go-backend.md": (
+                "既有项目优先沿用",
+                "受影响 module 的根目录",
+                "不要假设从仓库根目录运行一次",
+                "%w",
+                "errors.Is",
+                "go.work",
+                "Comment Policy",
+                "标准库",
+                "Application / Use Case → Domain Logic",
+            ),
+            "init/protocol/profiles/python-backend.md": (
+                "既有项目优先沿用",
+                "不使用 `pip`",
+                "不写入仓库",
+                "env_prefix",
+                "Comment Policy",
+                "pyproject.toml",
+                "async with",
+            ),
+            "skills/trellium/assets/templates/docs/engineering/profiles/go-backend.md": (
+                "established alternatives",
+                "each affected module",
+                "errors.Is",
+                "channels they do not own",
+                "Comment Policy",
+                "transport to application/use-case to domain",
+            ),
+            "skills/trellium/assets/templates/docs/engineering/profiles/python-backend.md": (
+                "uv",
+                "pyproject.toml",
+                "secrets systems",
+                "Comment Policy",
+                "lifecycle hooks",
+            ),
+        }
+        for name, markers in kept.items():
+            text = (repo / name).read_text(encoding="utf-8")
+            for marker in markers:
+                with self.subTest(file=name, marker=marker):
+                    self.assertIn(marker, text)
+
+        gone = {
+            "init/protocol/profiles/go-backend.md": ("go mod init <module-path>", "gofmt -w path"),
+            "init/protocol/profiles/python-backend.md": (
+                "PaginatedResponse",
+                "class Settings(BaseSettings)",
+                "uv run black .",
+            ),
+        }
+        for name, markers in gone.items():
+            text = (repo / name).read_text(encoding="utf-8")
+            for marker in markers:
+                with self.subTest(file=name, removed=marker):
+                    self.assertNotIn(marker, text)
+
     def test_control_packages_carry_no_discoverable_skill_template(self) -> None:
         repo = Path(__file__).resolve().parents[1]
         for package in ("trellium", "trellium-zh"):

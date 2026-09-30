@@ -13,7 +13,7 @@ Use this profile for Go backends, APIs, services, CLIs, agents, and data service
 
 ## Entering a project
 
-Read AGENTS, README, CI, Makefile/Taskfile, then inspect `go version` and `go env GOMOD GOWORK GOFLAGS`. Determine whether the repository is one module, multiple modules, or a workspace before choosing a command directory. Treat `go.mod`, `go.work`, CI, build tags, target GOOS/GOARCH, CGO settings, generators, and private-module configuration as the real build contract. Run `go list ./...` only from a confirmed module context.
+Read AGENTS, README, CI, Makefile/Taskfile, then inspect the toolchain and module/workspace state. Determine whether the repository is one module, multiple modules, or a workspace before choosing a command directory. Treat `go.mod`, `go.work`, CI, build tags, target GOOS/GOARCH, CGO settings, generators, and private-module configuration as the real build contract. Run `go list ./...` only from a confirmed module context.
 
 ## Modules, workspaces, and dependencies
 
@@ -61,6 +61,6 @@ Configure suitable header/read/write/idle/request timeouts, designing streaming 
 
 ## Tests and verification
 
-Place `*_test.go` beside code. Use standard `testing`, table tests, `t.Run`, `t.Helper`, and `t.Cleanup`; parallelize only independent tests. Choose same-package tests for internals and external-package tests for public contracts. Use `httptest` and local fakes/stubs/servers; unit tests never call real internet, LLM, or developer infrastructure. Fuzz parsers/codecs/input boundaries, but retain deterministic tests.
+Use standard `testing`, table-driven where the project has no framework; parallelize only independent tests. Choose same-package tests for internals and external-package tests for public contracts. Use `httptest` and local fakes/stubs/servers; unit tests never call real internet, LLM, or developer infrastructure. Fuzz parsers/codecs/input boundaries, but retain deterministic tests.
 
-Run repository-defined verification first. Otherwise, from each affected module, use `gofmt`, `go test ./...`, `go test -race ./...` when relevant, `go vet ./...`, and `go build ./...`. Do not assume one root command covers every module. Run `go mod tidy` for dependencies, existing `govulncheck` when configured, target builds for platform/tags/CGO changes, pinned generation commands for generated code, and compatibility/docs/examples checks for public packages. Review every `go.mod`, `go.sum`, `go.work`, and `go.work.sum` change.
+Run repository-defined verification first. Otherwise format, test (with race where relevant), vet, and build from each affected module. Do not assume one root command covers every module. Run `go mod tidy` for dependencies, existing `govulncheck` when configured, target builds for platform/tags/CGO changes, pinned generation commands for generated code, and compatibility/docs/examples checks for public packages. Review every `go.mod`, `go.sum`, `go.work`, and `go.work.sum` change.

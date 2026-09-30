@@ -1,0 +1,66 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..dd758d8
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,10 @@
++# RUNLOG
++
++- `find . -path ./.git -prune -o -type f -print | sort` — 盘点仓库文件，确认单 module 结构与既有入口。
++- `go env GOMOD GOWORK && go list ./...` — 确认单 module 根与实际 package 范围（无 go.work）。
++- `printf -- "- ..." >> RUNLOG.md && cat RUNLOG.md` — 记录命令日志并回读确认。
++- `make verify` — 运行仓库验证入口（gofmt 检查、go vet、go test ./...）。
++- `go build -o .server-check ./cmd/server && (./.server-check &) && curl -s -i http://127.0.0.1:8080/healthz` — 端到端启动服务验证 /healthz 返回 200 与 JSON，随后清理临时二进制。
++- `ss -ltnp ... :8080; curl -s http://127.0.0.1:8080/version` — 排查 8080 端口被占用的原因，确认刚才 curl 命中的进程身份。
++- `go test -run "TestHealthz|TestVersion" -v ./internal/httpapi` — 单独复跑新旧端点测试，明确确认 /healthz 行为。
++- `git status --short && make verify` — 终态复查工作区改动并复跑仓库验证入口。
+diff --git a/internal/httpapi/router.go b/internal/httpapi/router.go
+index 11c5101..9d44143 100644
+--- a/internal/httpapi/router.go
++++ b/internal/httpapi/router.go
+@@ -24,9 +24,14 @@ func writeError(w http.ResponseWriter, status int, message string) {
+ func NewRouter() *http.ServeMux {
+ 	mux := http.NewServeMux()
+ 	mux.HandleFunc("GET /version", handleVersion)
++	mux.HandleFunc("GET /healthz", handleHealthz)
+ 	return mux
+ }
+ 
++func handleHealthz(w http.ResponseWriter, r *http.Request) {
++	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
++}
++
+ func handleVersion(w http.ResponseWriter, r *http.Request) {
+ 	writeJSON(w, http.StatusOK, map[string]string{"version": "0.3.1"})
+ }
+diff --git a/internal/httpapi/router_test.go b/internal/httpapi/router_test.go
+index e73fe59..bd8e24a 100644
+--- a/internal/httpapi/router_test.go
++++ b/internal/httpapi/router_test.go
+@@ -1,6 +1,7 @@
+ package httpapi
+ 
+ import (
++	"encoding/json"
+ 	"net/http"
+ 	"net/http/httptest"
+ 	"testing"
+@@ -13,3 +14,18 @@ func TestVersion(t *testing.T) {
+ 		t.Fatalf("status = %d, want 200", rec.Code)
+ 	}
+ }
++
++func TestHealthz(t *testing.T) {
++	rec := httptest.NewRecorder()
++	NewRouter().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
++	if rec.Code != http.StatusOK {
++		t.Fatalf("status = %d, want 200", rec.Code)
++	}
++	var body map[string]string
++	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
++		t.Fatalf("decode body: %v", err)
++	}
++	if body["status"] != "ok" {
++		t.Fatalf("status field = %q, want ok", body["status"])
++	}
++}

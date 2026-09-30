@@ -28,13 +28,7 @@
 
 ## 进入项目时先确认
 
-修改前先读取项目的 `AGENTS.md`、README、CI、Makefile 或 Taskfile 和 `pyproject.toml`，再确认运行环境：
-
-```bash
-uv sync
-uv run python --version
-uv run python -c "import sys; print(sys.executable)"
-```
+修改前先读取项目的 `AGENTS.md`、README、CI、Makefile 或 Taskfile 和 `pyproject.toml`，再确认运行环境（解释器、入口、质量入口；事实来源为仓库 `pyproject.toml`、`uv.lock`、CI 配置与当前解释器、入口的实际查询）。
 
 执行原则：
 
@@ -49,16 +43,6 @@ uv run python -c "import sys; print(sys.executable)"
 
 **所有包管理操作通过 `uv`，不使用 `pip` 或 `poetry` 作为项目依赖管理方式。**
 
-允许命令：
-
-```bash
-uv add <package>          # 添加运行时依赖
-uv add --dev <package>    # 添加开发依赖
-uv sync                   # 同步并安装所有依赖
-uv run <command>          # 在项目环境中运行命令
-uv lock                   # 更新 uv.lock
-```
-
 约束：
 
 - 生成代码引入新依赖时，明确告知执行 `uv add`；不在代码注释或文档中写 `pip install`。
@@ -68,34 +52,11 @@ uv lock                   # 更新 uv.lock
 
 ## 推荐结构
 
-```text
-app/
-  main.py            # 应用入口与生命周期管理
-  api/               # 路由层（仅路由注册、参数校验、调用 Service、返回响应）
-  core/              # 配置、日志、依赖注入等基础设施
-  schemas/           # Pydantic 数据模型
-  services/          # 业务逻辑层
-  repositories/      # 数据访问层
-  clients/           # 外部系统适配层
-  utils/
-tests/
-  conftest.py
-  test_*.py
-```
-
-只创建当前任务真正需要的目录。小型服务可以从少量模块开始，不要预先搭建空的分层骨架。
+遵循仓库既有结构；新结构按需创建，不预先搭建空的分层骨架（`app/`、`tests/` 等只在任务需要时建立）。
 
 ## 分层和依赖方向
 
-推荐依赖方向：
-
-```text
-API Layer（路由）
-  -> Service Layer（业务编排）
-    -> Domain / Schema Layer（数据模型）
-      -> Repository / Client Layer（数据与外部系统）
-        -> External Systems
-```
+推荐依赖方向：API 路由 → Service 业务编排 → Schema/领域层 → Repository/Client 数据与外部系统 → 外部系统。
 
 约束：
 
@@ -119,55 +80,20 @@ RESTful URL：
 统一响应格式：
 
 - 响应体用 Pydantic 模型定义，让框架自动生成准确的接口文档。
-- 公共结构集中定义，例如分页响应和错误响应：
-
-```python
-from typing import Generic, TypeVar
-from pydantic import BaseModel
-
-T = TypeVar("T")
-
-class PaginatedResponse(BaseModel, Generic[T]):
-    items: list[T]
-    total: int
-    page: int
-    page_size: int
-
-class ErrorResponse(BaseModel):
-    detail: str
-    code: str | None = None
-```
+- 公共结构（分页、错误响应等）集中在模型中定义，避免各接口各自造结构。
 
 Pydantic v2 模型：
 
 - 使用 `Field()` 定义字段；公开 API 的字段必须加 `description`，需要时提供 `examples`。
 - 使用 `model_config` 配置模型，不使用 v1 风格的内嵌 `Config` 类。
 
-```python
-from pydantic import BaseModel, Field
-
-class ResourceCreated(BaseModel):
-    id: str = Field(..., description="资源唯一标识", examples=["res-001"])
-    status: str = Field(default="unknown", description="资源当前状态")
-```
-
 ## 配置管理
 
 配置必须集中管理，使用 `pydantic-settings` 从环境变量读取并提供合理默认值。
 
 - 端口、URL、路径、模型名称、功能开关、超时时间等通过 `Settings` 读取，不硬编码。
-- 使用 `env_prefix` 划分配置命名空间，前缀按项目命名（示例用通用前缀）。
+- 使用 `env_prefix` 划分配置命名空间，前缀按项目命名。
 - 敏感信息（API Key、Token、密码、连接串）通过环境变量或密钥管理系统注入，不写入仓库；这与通用配置约束一致。
-
-```python
-from pydantic_settings import BaseSettings
-
-class Settings(BaseSettings):
-    app_name: str = "service"
-    log_level: str = "INFO"
-
-    model_config = {"env_prefix": "APP_"}
-```
 
 ## Python 风格
 
@@ -200,15 +126,6 @@ class Settings(BaseSettings):
 - Black 格式化，isort 整理 import（`profile=black`，`line_length=120`）。
 - flake8 检查：`max-line-length=120`、`max-complexity=10`，排除生成代码、迁移和虚拟环境目录。
 - 项目已配置 `pre-commit` 时沿用其钩子（如 isort、flake8、大文件与私钥检测）；没有时不强制引入。
-- 具体工具版本下限由项目 `pyproject.toml` 决定，本 profile 不锁定版本。
-
-常用命令：
-
-```bash
-uv run black .
-uv run isort .
-uv run flake8 .
-```
 
 ## 测试
 
@@ -216,14 +133,7 @@ uv run flake8 .
 - 共享 setup 放入 `conftest.py`，用 fixture 管理公共依赖。
 - 外部依赖（数据库、消息系统、LLM API、网络服务）必须 mock 或 fake，单元测试可独立、确定、可重复运行。
 - HTTP 接口测试使用 httpx + ASGITransport，不真实监听端口。
-- 核心逻辑设定覆盖率目标（如 >80%），具体门槛由项目决定。
-
-常用命令：
-
-```bash
-uv run pytest
-uv run pytest --cov=app
-```
+- 核心逻辑设定覆盖率目标（如 >80%），具体门槛由项目决定；测试与覆盖率入口优先使用 `pyproject.toml`/Makefile 中已配置的命令。
 
 ## 完成标准
 

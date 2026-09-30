@@ -1,0 +1,226 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..c7ea3ce
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,19 @@
++- `ls -la /tmp/trellium-0026-replay-r2/s5b` — 查看工作目录初始结构
++- `read AGENTS.md` — 读取本仓库工程 Profile
++- `ls -R app tests docs && cat pyproject.toml README.md .gitignore` — 确认项目结构与构建契约
++- `git status --porcelain && git log --oneline -5 && uv --version && .venv/bin/python --version` — 确认工作区基线、版本控制状态与解释器/uv 版本
++- `read app/main.py tests/test_authors.py docs/engineering/code-comments.md` — 读取现有实现、测试模式与 Comment Policy
++- `uv run pytest -q` — 运行仓库测试确认基线通过
++- `write app/schemas.py` — 新增 Book 与通用分页 Page 响应模型
++- `write app/main.py` — 新增 GET /books 路由与静态目录数据
++- `write tests/test_books.py` — 为分页行为补充测试
++- `uv run pytest -q` — 运行仓库测试验证新增端点
++- `uv run pytest -q` — 运行仓库测试（实现后）
++- `uvx black/isort/flake8 app tests` — 按 Profile 完成标准检查格式与 lint（flake8 报 E203，已改写切片表达式）
++- `edit app/main.py` — 用 offset/end 两个变量切片，消除 Black 与 flake8 E203 的冲突
++- `uvx black --check -l 120 && uvx isort --check-only && uvx flake8` — 复跑格式与 lint 检查
++- `uv run pytest -q` — 修复后运行仓库全部测试
++- `uv run python -c "...openapi..."` — 确认 Book/Page 模型进入 OpenAPI 文档
++- `rm -rf .uvtmp` — 清理为运行 lint 工具临时创建的 uv 缓存目录
++- `git status --porcelain` — 确认无 staged 变更、工作区为最终状态
++- `git diff app/main.py` — 复核对既有文件的最终改动
+diff --git a/app/main.py b/app/main.py
+index c7835c1..97454e3 100644
+--- a/app/main.py
++++ b/app/main.py
+@@ -1,10 +1,27 @@
+ # pyright: reportMissingImports=false
+ """Catalog API application."""
+ 
+-from fastapi import FastAPI
++from fastapi import FastAPI, Query
++
++from app.schemas import Book, Page
+ 
+ app = FastAPI(title="catalog-api")
+ 
++# GET /books reads from this fixed in-memory catalog: the repository has no
++# persistence layer yet, so the data sits beside the route like /authors does.
++BOOKS: tuple[Book, ...] = (
++    Book(id=1, title="A Wizard of Earthsea", author="Ursula Le Guin"),
++    Book(id=2, title="The Left Hand of Darkness", author="Ursula Le Guin"),
++    Book(id=3, title="Kindred", author="Octavia Butler"),
++    Book(id=4, title="Parable of the Sower", author="Octavia Butler"),
++    Book(id=5, title="Dune", author="Frank Herbert"),
++    Book(id=6, title="Neuromancer", author="William Gibson"),
++    Book(id=7, title="Snow Crash", author="Neal Stephenson"),
++    Book(id=8, title="The Dispossessed", author="Ursula Le Guin"),
++    Book(id=9, title="Wild Seed", author="Octavia Butler"),
++    Book(id=10, title="Hyperion", author="Dan Simmons"),
++)
++
+ 
+ @app.get("/authors")
+ def list_authors():
+@@ -13,3 +30,32 @@ def list_authors():
+         {"id": 1, "name": "Ursula Le Guin"},
+         {"id": 2, "name": "Octavia Butler"},
+     ]
++
++
++@app.get("/books", response_model=Page[Book])
++def list_books(
++    page: int = Query(default=1, ge=1, description="1-based page number; must be at least 1."),
++    page_size: int = Query(
++        default=20,
++        ge=1,
++        le=100,
++        description="Entries per page, 1-100. Larger values are rejected with HTTP 422.",
++    ),
++) -> Page[Book]:
++    """Return one page of the book catalog ordered by book id.
++
++    ``page`` counts from 1 and ``page_size`` defaults to 20 with a hard limit of
++    100: out-of-range parameter values fail validation with HTTP 422 instead of
++    being clamped. A page past the end of the catalog yields an empty ``items``
++    list while ``total`` still reports the full catalog size.
++    """
++    # Catalog is static and ordered by id, so slicing is enough to pick the page;
++    # an offset past the end simply yields an empty slice.
++    offset = (page - 1) * page_size
++    end = offset + page_size
++    return Page[Book](
++        items=list(BOOKS[offset:end]),
++        total=len(BOOKS),
++        page=page,
++        page_size=page_size,
++    )
+diff --git a/app/schemas.py b/app/schemas.py
+new file mode 100644
+index 0000000..41d29bb
+--- /dev/null
++++ b/app/schemas.py
+@@ -0,0 +1,38 @@
++# pyright: reportMissingImports=false
++"""Pydantic response models shared by the catalog API."""
++
++from typing import Generic, TypeVar
++
++from pydantic import BaseModel, Field
++
++# Element type of a page: FastAPI renders Page[Book] as a concrete schema in the
++# generated OpenAPI document, so callers see the real item shape instead of a
++# generic placeholder.
++ItemT = TypeVar("ItemT")
++
++
++class Book(BaseModel):
++    """A single catalog entry as returned by the books endpoints."""
++
++    id: int = Field(description="Stable identifier of the book.", examples=[1])
++    title: str = Field(description="Book title.", examples=["A Wizard of Earthsea"])
++    author: str = Field(description="Display name of the author.", examples=["Ursula Le Guin"])
++
++
++class Page(BaseModel, Generic[ItemT]):
++    """Paginated collection envelope shared by list endpoints.
++
++    Every paginated endpoint returns this shape so callers can read ``total``
++    and ``page`` uniformly instead of parsing per-endpoint structures.
++    """
++
++    items: list[ItemT] = Field(description="Entries belonging to the requested page.")
++    total: int = Field(
++        description="Number of entries across all pages, independent of the requested page.",
++        examples=[42],
++    )
++    page: int = Field(description="1-based number of the page being returned.", examples=[1])
++    page_size: int = Field(
++        description="Requested number of entries per page; capped at 100.",
++        examples=[20],
++    )
+diff --git a/tests/test_books.py b/tests/test_books.py
+new file mode 100644
+index 0000000..ac6165e
+--- /dev/null
++++ b/tests/test_books.py
+@@ -0,0 +1,85 @@
++# pyright: reportMissingImports=false
++"""Tests for the paginated GET /books endpoint."""
++
++import asyncio
++
++import httpx
++
++from app.main import app
++from app.schemas import Book, Page
++
++
++def _get(path: str, params: dict[str, object] | None = None) -> httpx.Response:
++    async def run() -> httpx.Response:
++        transport = httpx.ASGITransport(app=app)
++        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
++            return await client.get(path, params=params)
++
++    return asyncio.run(run())
++
++
++def test_list_books_defaults_to_first_page_of_twenty():
++    resp = _get("/books")
++    assert resp.status_code == 200
++
++    # The payload must be exactly the Pydantic Page[Book] contract, not an
++    # accidental dict shape from the route.
++    page = Page[Book].model_validate(resp.json())
++    assert page.page == 1
++    assert page.page_size == 20
++    assert page.total == 10
++    assert len(page.items) == 10
++    assert page.items[0] == Book(id=1, title="A Wizard of Earthsea", author="Ursula Le Guin")
++
++
++def test_list_books_returns_requested_slice():
++    resp = _get("/books", {"page": 2, "page_size": 4})
++    assert resp.status_code == 200
++
++    body = resp.json()
++    assert body["page"] == 2
++    assert body["page_size"] == 4
++    assert body["total"] == 10
++    assert [item["id"] for item in body["items"]] == [5, 6, 7, 8]
++
++
++def test_list_books_last_page_can_be_partial():
++    resp = _get("/books", {"page": 3, "page_size": 4})
++    assert resp.status_code == 200
++
++    body = resp.json()
++    assert [item["id"] for item in body["items"]] == [9, 10]
++    assert body["total"] == 10
++
++
++def test_list_books_page_past_end_is_empty_but_keeps_total():
++    resp = _get("/books", {"page": 99, "page_size": 5})
++    assert resp.status_code == 200
++
++    body = resp.json()
++    assert body["items"] == []
++    assert body["total"] == 10
++    assert body["page"] == 99
++
++
++def test_list_books_accepts_page_size_up_to_limit():
++    resp = _get("/books", {"page_size": 100})
++    assert resp.status_code == 200
++    assert resp.json()["page_size"] == 100
++
++
++def test_list_books_rejects_page_size_above_limit():
++    resp = _get("/books", {"page_size": 101})
++    assert resp.status_code == 422
++
++
++def test_list_books_rejects_non_positive_page():
++    assert _get("/books", {"page": 0}).status_code == 422
++    assert _get("/books", {"page_size": 0}).status_code == 422
++
++
++def test_books_response_models_are_published_in_openapi():
++    schemas = app.openapi()["components"]["schemas"]
++    assert "Book" in schemas
++    # The generic envelope materialises as a concrete schema such as Page_Book.
++    assert any(name.startswith("Page") for name in schemas)

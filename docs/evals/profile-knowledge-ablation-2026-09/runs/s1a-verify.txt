@@ -1,0 +1,6 @@
+go vet ./...
+go test ./...
+?   	example.com/shopapi/cmd/server	[no test files]
+?   	example.com/shopapi/internal/apierr	[no test files]
+ok  	example.com/shopapi/internal/httpapi	(cached)
+VERIFY PASS
