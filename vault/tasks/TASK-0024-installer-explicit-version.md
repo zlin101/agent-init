@@ -25,10 +25,11 @@
 ### In Scope
 
 - `scripts/install.sh`：无 `--version` 的网络安装在任何联网前失败并输出明确用法；删除 `resolve_latest_version`；header/usage 更新。
-- `scripts/test_install_sh.py`：无版本网络安装 fail-closed 红测。
+- `scripts/test_install_sh.py`：无版本网络安装 fail-closed 红测（假 `curl` 注入）。
 - 中英文 README 安装段：显式版本示例、移除 latest-fallback 语义。
+- 双语 Skill `--fetch` 范围限定与 canonical memory 收口（review-driven）：双语 SKILL.md、`vault/decisions.md`、`vault/decisions/D-0013-tag-only-releases.md`、`vault/runtime.md` 簿记。
 - README.en H1 漂移修正（runtime projection / Active Tasks / `TASK_RUNTIME_*` 描述）与双语 README `--fetch` 范围限定（adopt/diff/upgrade）。
-- 窄回归测试：README 契约（无 H1 漂移措辞、`--fetch` 范围正确）。
+- 窄回归测试：README 契约（无 H1 漂移措辞、`--fetch` 范围正确）与双语 Skill 命令 smoke（profile argv 透传冻结）。
 
 ### Out of Scope
 
@@ -56,8 +57,9 @@
 
 Allowed:
 
-- 修改 `scripts/install.sh`、`scripts/test_install_sh.py` 与双语 README 安装段/`--fetch` 范围描述。
-- 运行 installer 测试与只读检查。
+- 修改 `scripts/install.sh`、`scripts/test_install_sh.py`、`scripts/test_trellium.py` 契约测试与双语 README 安装段/`--fetch` 范围描述。
+- 修改双语 SKILL.md 的 `--fetch` 范围描述与 canonical memory 簿记（`vault/decisions.md`、`vault/decisions/D-0013-tag-only-releases.md` 注记、`vault/runtime.md` Constraints/Known Risks/Next Steps）。
+- 运行 installer 测试、契约测试与只读检查。
 
 Requires Approval:
 
@@ -71,13 +73,14 @@ Forbidden:
 
 ## Acceptance Criteria
 
-- [ ] 无 `--version` 的网络安装在任何联网动作前 fail-closed：exit 1、stderr 含 `--version` 指引；假 `curl` 注入证明零 curl 调用。
-- [ ] `resolve_latest_version` 及一切 latest-release 解析代码移除；header/usage 不再声称默认解析。
-- [ ] `--source` 安装不需要版本且行为不变（既有测试保持绿）。
-- [ ] 双语 README 安装段显式版本；无“默认/回退解析 latest”语义。
-- [ ] README.en 的 runtime projection / Active Tasks / `TASK_RUNTIME_*` 漂移描述清除，H1 现实描述（status 直读 TASK 状态块）在位。
-- [ ] `--fetch` 范围在双语 README 与 70 号模块均为 adopt/diff/upgrade，与 argparse 一致。
-- [ ] 全量测试、check 0/0、`git diff --check` 通过。
+- [x] 无 `--version` 的网络安装在任何联网动作前 fail-closed：exit 1、stderr 含 `--version` 指引；假 `curl` 注入证明零 curl 调用。
+- [x] `resolve_latest_version` 及一切 latest-release 解析代码移除；header/usage 不再声称默认解析。
+- [x] `--source` 安装不需要版本且行为不变（既有测试保持绿）。
+- [x] 双语 README 安装段显式版本；无“默认/回退解析 latest”语义。
+- [x] README.en 的 runtime projection / Active Tasks / `TASK_RUNTIME_*` 漂移描述清除，H1 现实描述（status 直读 TASK 状态块）在位。
+- [x] `--fetch` 范围在双语 README、双语 SKILL.md 与 70 号模块均为 adopt/diff/upgrade，与 argparse 一致（round 1 P1-1 扩展）。
+- [x] canonical memory 与 TASK-0024 后现实一致：D-0013 Impact、decisions 索引行、runtime Constraints/Known Risks/Next Steps（round 1 P1-2）。
+- [x] 全量测试、check 0/0、`git diff --check` 通过。
 
 ## Verification
 
@@ -93,7 +96,7 @@ git diff --check
 Completed:
 
 - `install.sh`：移除 `resolve_latest_version`；无 `--version` 的网络安装在任何联网前 fail-closed（exit 1 + 显式指引）；header/usage 更新；`--source` 不需要版本。
-- 红测先行：`test_network_install_without_version_fails_closed`（断言 exit 1、stderr 含 `--version`、不含任何 URL——证明零联网）。
+- 红测先行：`test_network_install_without_version_fails_closed`（PATH 注入记录调用的假 `curl`，断言调用日志不存在——真证明零联网；exit 1、stderr 含 `--version` 指引）。
 - 双语 README 安装段：en 一行安装补 `--version 2026.09.9`、示例与三件事描述改为显式版本两步；zh fallback 句改为移除说明。
 - README.en H1 漂移修正：runtime projection / Active Tasks / `TASK_RUNTIME_*` 描述重写为 H1 现实（runtime.md 仅 project-global + Focus；status 直读 TASK 状态块；fresh clone 缺失 = storage contract）；unresolved 示例改用现行 finding codes；policy bullet 补 private。
 - `--fetch` 范围限定：README.en/README.md/70 号模块改为 adopt/diff/upgrade（与 argparse 父级一致）。
@@ -151,7 +154,7 @@ Next action:
 
 ## Handoff Requirement
 
-PI 中断时记录当前 milestone、installer 契约状态与任何残留发现；禁止把部分安装契约描述为完成。仅真实中断且存在非可推导 transient delta 时写 handoff。
+仅真实中断且存在非可推导 transient delta 时写三小节 handoff；否则不创建。milestone、installer 契约状态与残留 finding 均可从 TASK、Git 与测试恢复，不得进入 handoff；禁止把部分安装契约描述为完成。
 
 ## Memory Updates
 
