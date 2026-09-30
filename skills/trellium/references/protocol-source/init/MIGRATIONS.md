@@ -7,6 +7,12 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
+## Unreleased — hot-path routing ablation (Round 3)
+
+- Changed: entry-reading contract single-sourced in `30-agent-entry.md`; `10-vault.md` no longer restates the default-read flow (points at 30; storage/information duties kept); `80-execution-patterns.md`, `40-skills.md`, the `agent-task` Skill (repo copy + bilingual templates) and bilingual `protocol-model` references now delegate context reading to the project `AGENTS.md` entry instead of prescribing their own pre-read group.
+- Removed: the standalone `## 默认读取` / `## Default Reading` section from `vault/index.md` and both index templates, plus update-rule bullets duplicated from AGENTS/governance. Kept verbatim: `trellium-policy` block, task/authority cheat sheet, file-responsibility and detail-routing catalog, policy-related update rules (local/private storage contract, budget single-source).
+- Unchanged: `AGENTS.md`/bilingual templates and `agent_entry_section()` read sets (the S2 Level A index-skip candidate was killed by kill-gate evidence; no light-read behavior change for existing projects), markers, three-way profile routing, customization/proposal protection, upgrade and data semantics; runtime/project/data remain script-read-only data surfaces. The local `vault/runtime.md` present-tense trim is a manual Agent data move with cold provenance recorded in TASK-0028; no runtime template changed.
+
 ## Unreleased — profile knowledge ablation (Round 2)
 
 - Changed: Go/Python canonical profiles and English templates ablated of teaching payload (command tutorials, directory skeletons, code examples, basic-syntax facts); decision constraints, risk constraints, toolchain/stack preferences, local-contract-first and no-config fallbacks are preserved. File paths, roots, CLI, stamp schema, routing, Comment ownership, upgrade/proposal/storage semantics unchanged; customization protection unchanged (existing local profile edits still take the upgrade proposal path).

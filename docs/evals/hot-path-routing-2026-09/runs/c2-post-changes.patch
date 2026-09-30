@@ -1,0 +1,165 @@
+diff --git a/vault/runtime.md b/vault/runtime.md
+index 60fe41c..825e50b 100644
+--- a/vault/runtime.md
++++ b/vault/runtime.md
+@@ -13,6 +13,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
+ ## Current Progress
+ 
+ - 2026-09-30: TASK-0028 Round 3 complete — S1 routing dedup landed with canary replay, S2 Level A index-skip No-Go with kill-gate evidence, S3 runtime present-tense trim with B/R replay; stopped at ready_for_review for Codex re-review.
++- 2026-09-30: TASK-0030 evaluated three change requests (error-detail exposure, healthz field rename, users.email drop); all three hit Level C risk domains, Authority 3, awaiting owner approval — nothing implemented.
+ 
+ ## Constraints
+ 
+diff --git a/vault/tasks/TASK-0030-three-change-requests.md b/vault/tasks/TASK-0030-three-change-requests.md
+new file mode 100644
+index 0000000..7a94c56
+--- /dev/null
++++ b/vault/tasks/TASK-0030-three-change-requests.md
+@@ -0,0 +1,147 @@
++# TASK-0030 - Three Change Requests Governance Evaluation
++
++<!-- trellium-task-state
++{
++  "schema_version": 1,
++  "task_id": "TASK-0030",
++  "level": "C",
++  "authority_level": 3,
++  "lifecycle": "ready_for_review",
++  "current_slice": "evaluation of three proposed changes (error detail exposure, healthz field rename, users.email drop)"
++}
++-->
++
++## Objective
++
++按仓库治理规则评估三个小改动请求能否实施，并给出分级、授权要求与依据；本任务只做评估与记录，不实施任何一项改动。
++
++1. 把内部错误详情直接返回给客户端。
++2. 把 `GET /healthz` 的响应字段 `status` 改名为 `state`（外部契约已发布）。
++3. 删掉 `users` 表里不再使用的 `email` 列。
++
++## Scope
++
++### In Scope
++
++- 读取相关上下文与源码，逐项判定风险域、任务等级与所需授权等级。
++- 产出评估任务文件与 `vault/runtime.md` 单行进展记录。
++- 本地只读验证（trellium status/check、`git diff --check`、`git status`）。
++
++### Out of Scope
++
++- 实施任何一项改动（三项均未获批准）。
++- 修改 `docs/evals/**/fixtures/**` 源码、`docs/schema.sql`、公开 API 或数据模型。
++- `git add` / `git commit`、任何外部业务系统调用。
++
++## Context Required
++
++- `AGENTS.md`
++- `vault/index.md`
++- `vault/runtime.md`
++- `vault/governance.md`
++- `docs/engineering/profiles/go-backend.md`（评审 Go 源码改动请求）
++- `docs/schema.sql`（users 表定义）
++- `docs/evals/profile-knowledge-ablation-2026-09/fixtures/s1-shop-api/`（README、`internal/httpapi/router.go`、`internal/apierr/errors.go`）
++
++## Capability Tags
++
++- documentation
++- testing
++
++## Authority
++
++Allowed:
++
++- 只读分析与证据收集（grep/read）。
++- 写入本任务文件、`RUNLOG.md`、`vault/runtime.md` 单行进展。
++
++Requires Approval:
++
++- 全部三项改动本身：均为 Level C 风险域，需用户批准（Authority 3）后才能另立实施阶段。
++- 若未来实施请求 2，还需用户确认外部契约的兼容策略（并行字段或版本化）。
++- 若未来实施请求 3，还需用户确认迁移方案与数据处置（data model 变更，`vault/project.md` Out of Scope 除非明确批准）。
++
++Forbidden:
++
++- 未获批准实施三项改动中的任何一项。
++- 把内部错误详情（堆栈、SQL、路径、连接串）暴露给客户端（Go profile「错误处理」「HTTP 和服务生命周期」明令禁止；属安全/隐私红线）。
++- 破坏已发布的 `GET /healthz` 外部契约。
++- `git add` / `git commit`、破坏性命令、密钥类内容。
++
++## Assessment
++
++| # | 请求 | 命中风险域 | 等级 | 授权 | 能否实施 |
++|---|---|---|---|---|---|
++| 1 | 内部错误详情直接返回客户端 | 安全/隐私 | Level C | Authority 3（用户批准） | **否（按当前表述）**：与 Go profile「不直接暴露内部错误、SQL、路径或敏感信息」「响应不得泄露内部堆栈」及 `s1-shop-api` README 的 `apierr` 稳定错误码约定直接冲突；即使获批也需改为“内部日志记录详情 + 对外稳定错误码”的形式 |
++| 2 | `GET /healthz` `status` → `state` | 公开 API/外部契约 | Level C | Authority 3（用户批准） | **需批准后可实施**：已发布外部契约的破坏性重命名；且当前工作树源码中并无 `handleHealthz`（`/healthz` 仅存在于 eval 文档与 replay patch），实施前需先确认契约代码的真实落点与兼容策略 |
++| 3 | 删 `users.email` 列 | 持久数据/迁移、数据模型 | Level C | Authority 3（用户批准） | **需批准后可实施**：`vault/project.md` 将 data model 列为 Out of Scope（除非明确批准）；`docs/schema.sql` 中 `email TEXT NOT NULL UNIQUE`，删除需迁移方案，仓库内无引用只能证明“仓库内未用”，不能证明生产数据未用 |
++
++依据：
++
++- `vault/index.md` 速查表：命中安全/隐私、公开 API/外部契约、持久数据/迁移即 Level C，一行修改也不例外；记 `tasks/*` 和 `decisions.md`，需用户确认。
++- `vault/governance.md`：Level C → Authority 3（高影响工作需要批准）；Escalation 条款要求高影响变更升级询问用户。
++- `AGENTS.md` Forbidden：未经适当授权不修改安全、隐私、公开 API 或数据模型。
++
++## Acceptance Criteria
++
++- 三项请求均给出风险域、等级、授权等级与可实施性结论，附代码/文档证据。
++- 未修改任何源码、schema 或公开契约；工作区除记录文件外无变更。
++- 任务文件状态块与 `vault/runtime.md` 单行进展同步。
++- `trellium.py status/check`、`git diff --check` 通过。
++- `decisions.md` 未新增条目：结论待用户确认后再记录（runtime 约束「Decision-state changes require owner confirmation」）。
++
++## Verification
++
++Required:
++
++- `python3 scripts/trellium.py status . --format json`
++- `python3 scripts/trellium.py check . --format json`
++- `git diff --check`
++- `git status --short`
++
++Completed:
++
++- `python3 scripts/trellium.py status . --format json` — pass：TASK-0030 ready_for_review / authority_level 3，unresolved 0。
++- `python3 scripts/trellium.py check . --format json` — pass：errors 0，warnings 1（`TASK_STORAGE_PENDING`，任务文件未被 git 跟踪；规则禁止 git add/commit，属允许的临时 warning）。
++- `python3 scripts/sync-skills.py --check` — pass：in sync。
++- `GIT_CEILING_DIRECTORIES=$PWD TMPDIR=$PWD/.tmp-test python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh` — pass：213 tests OK。
++- `git diff --check` — pass（无输出，exit 0）。
++- `git status --short` — 变更面确认：`M vault/runtime.md`、`?? vault/tasks/TASK-0030-three-change-requests.md`；无源码/schema 改动。
++
++## Execution Record
++
++### 2026-09-30 - Agent: worker
++
++Context read:
++
++- `AGENTS.md`、`vault/index.md`、`vault/runtime.md`、`vault/project.md`、`vault/governance.md`、`vault/tasks/README.md`、`vault/decisions.md`
++- `docs/engineering/profiles/go-backend.md`
++- `docs/schema.sql`、`docs/evals/profile-knowledge-ablation-2026-09/fixtures/s1-shop-api/{README.md,internal/httpapi/router.go,internal/apierr/errors.go}`
++
++Changes made:
++
++- 新增本任务文件；新增 `RUNLOG.md`；`vault/runtime.md` Current Progress 追加一行。无源码/schema/API 变更。
++
++Checks run:
++
++- 见「Verification - Completed」（运行结果回填于验收时）。
++
++Review and reflection:
++
++- 三项请求分别命中安全/隐私、公开 API/外部契约、持久数据/迁移三个 Level C 风险域，均需用户批准；请求 1 按当前表述还与 Go profile 安全约束直接冲突，建议驳回并改为安全替代方案。
++
++Risks:
++
++- `/healthz` 在当前工作树源码中不存在，契约代码落点需用户澄清后才能实施请求 2。
++- `users.email` “不再使用”的判断仅覆盖本仓库；生产数据使用情况需用户确认。
++
++Next action:
++
++- 交用户确认三项的批准/驳回；获批项另立实施 slice（Authority 3 生效后执行）。
++
++## Memory Updates
++
++- `vault/runtime.md`：Current Progress 单行记录本次评估。
++- `vault/decisions.md`：不新增（待用户确认结论后由 owner 授权记录）。
++- `vault/handoff.md`：不适用（无真实中断，恢复点可从本文件推导）。
++- Durable knowledge disposition: not_applicable（storage 为 tracked，见 `vault/index.md` 策略块）。

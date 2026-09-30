@@ -1,0 +1,45 @@
+diff --git a/README.md b/README.md
+index 9e17180..189a2e5 100644
+--- a/README.md
++++ b/README.md
+@@ -401,3 +401,40 @@ scripts/
+ ```
+ 
+ 除非明确需要更新当前沙盒状态，否则不要把 `vault/`、`app/`、`tests/` 或目标项目生成的 `skills/agent-task/` 等产物作为协议源提交。根目录 `skills/trellium*` 是分发包，可以随协议变化同步提交。
++
++## 故障排查
++
++### 运行 `check` 报任务状态块校验失败
++
++这通常是任务文件的状态块被手工编辑破坏，或 TASK 编号重复。运行
++`python3 scripts/trellium.py check . --format json` 查看具体条目，再按提示修复
++对应 `vault/tasks/*.md`；状态块格式以 `vault/tasks/README.md` 中的模板为准。
++
++### `install.sh` 提示缺少 `--version`
++
++这是预期行为：不带 `--version` 的网络安装会 fail closed（TASK-0024），在任何
++网络访问前直接退出。重新运行并显式指定版本，例如：
++
++```bash
++curl -fsSL https://raw.githubusercontent.com/zlin101/trellium/develop/scripts/install.sh \
++  | sh -s -- --version 2026.09.9
++```
++
++### `check` 出现行宽或预算 warning
++
++本项目要求 Markdown 源行不超过 100 列（见 `vault/index.md` 的项目定制约束）；
++超长行手工折行即可。预算超出同样只呈现为仓库健康 warning，不阻塞任务验收。
++
++### Agent 进入项目后没有读取 vault 上下文
++
++确认入口文件 `AGENTS.md` 存在且未被 `.gitignore` 忽略，并确认 `vault/index.md`
++在默认读取路径上；修改入口后需重启或切换会话让新 Agent 生效。
++
++### `uv run pytest` 失败
++
++先按 uv 官方方式安装 uv，再在仓库根目录运行 `uv run pytest`。这只用于验证
++初始化流程，不代表 Trellium 绑定 Python；不依赖 Python 时可改用：
++
++```bash
++python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh
++```

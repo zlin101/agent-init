@@ -1,0 +1,45 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..f6e7935
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,39 @@
++- `cd /tmp/trellium-0028-s3/r-post && ls -la && cat RUNLOG.md` — 查看工作区结构与 RUNLOG 是否存在。
++- `printf ... >> RUNLOG.md && cat RUNLOG.md` — 初始化并回填 RUNLOG 首行。
++- `ls vault vault/tasks` — 列出 vault 目录与任务文件清单。
++- `ls vault/tasks | tail -8 && ls vault/details vault/decisions` — 查看任务尾部、details 与 decisions 清单。
++- `grep -rn "2026.09.10" --include="*.md" .` — 全库检索 2026.09.10 的引用位置。
++- `grep -rln "release-prep\|2026.09.10" vault docs scripts .github` — 定位含发布关键词的文件。
++- `git log --oneline -30 && git tag -l` — 只读查看提交历史与标签，定位 2026.09.10 相关证据。
++- `git show 2026.09.10 --stat --no-patch && git log --oneline 2026.09.9..2026.09.10` — 查看标签指向提交与该发布区间的提交。
++- `git cat-file -t 2026.09.10 && git for-each-ref refs/tags/2026.09.10 ...` — 确认标签类型（轻量标签）及其指向提交。
++- `git show 051fad6 --stat && find . -name "VERSION*"` — 查看 release-prep 提交内容与 VERSION 文件位置。
++- `cat init/VERSION && ls vault/tasks | wc -l && ls vault/tasks | grep -E "002[789]"` — 确认版本号与 TASK-0027/28/29 文件是否存在。
++- `ls vault/tasks` — 全量列出任务文件。
++- `git status --porcelain && git show 20c8353 --stat && cat .gitignore` — 检查工作区状态、fixture overlay 内容与忽略规则。
++- `git show 20c8353 -- vault/runtime.md vault/index.md` — 查看 fixture overlay 对 runtime/index 的改动，确认哪些历史证据被移除。
++- `grep -rln "TASK-0028\|TASK-0027\|TASK-0029" vault docs scripts; grep -rln "convergence" vault` — 追踪 TASK-0027/28/29 与收敛计划的引用。
++- `wc -l vault/governance.md vault/decisions.md vault/handoff.md vault/tasks/TASK-0026-*.md` — 评估待读文件规模。
++- `cat vault/governance.md` — 按入口规则读取任务分级、授权与验收门规则。
++- `cat vault/decisions.md && cat vault/decisions/D-0013-tag-only-releases.md` — 读取长期决策索引与 tag-only 发布决策。
++- `grep -rn "Phase 6\|release-prep\|收敛计划" vault` — 追踪收敛计划与 release-prep 的任务级证据。
++- `git log --oneline --all -- vault/tasks/TASK-0028* ...` — 查证 TASK-0027/28/29 任务文件是否曾存在。
++- `grep -rn "2026.09.9...record 2026" ...; git show a984b26 --stat` — 对照 2026.09.9 的发布记录方式以定位 09.10 证据形态。
++- `git show 8765012 --stat; git show 635c76a --stat` — 查看发布后验收与收敛关闭提交。
++- `git show 051fad6 -- init/VERSION init/MIGRATIONS.md` — 查看 release-prep 提交的版本号与迁移章节日期化差异。
++- `cat vault/handoff.md; sed -n "1,80p" vault/tasks/TASK-0026-*.md` — 确认 handoff 为空模板（无中断）并读取 TASK-0026 状态块/授权。
++- [read] AGENTS.md — 按任务规则读取入口契约。
++- [read] vault/index.md — 必读：任务等级与授权速查表。
++- [read] vault/runtime.md — 必读：当前状态与 Next Steps。
++- [read] vault/project.md — 首次进入项目必读。
++- `python3 scripts/trellium.py status . --format json` — 只读验证当前任务状态（exit 0，Focus TASK-0028 navigation unresolved）。
++- `python3 scripts/trellium.py check . --format json` — 只读仓库健康检查（errors 0 / warnings 0，exit 0）。
++- `grep -n "09.10\|release" vault/details/shadow-run-2026-09.md; cat .git/packed-refs` — 查找发布台账记录与本地 refs（tag 2026.09.10 = 051fad6，origin/develop = 77ee022）。
++- `python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh` — 运行 required checks 测试套件（213 tests OK）。
++- `python3 scripts/sync-skills.py --check; git diff --check; git status --porcelain; git diff --cached --stat` — 跑剩余 required checks 并确认工作区无暂存改动（全部 exit 0）。
++- `grep -n "2026-09-30" shadow-run; grep -rn "E2E..." TASK-0019/0024` — 检索发布 E2E 与当日台账证据（无匹配）。
++- `git show 8765012; git show 635c76a` — 读取发布后验收提交与收敛关闭提交的完整差异。
++- `grep -o "2026.09.10..." answer.md; grep -c "" RUNLOG.md` — 确认 eval 文件中的 09.10 提及与 RUNLOG 行数。
++- `grep -n "2026.09.10" docs/evals/.../answer.md scripts/install.sh` — 核对 eval 与安装脚本中的 09.10 提及（install.sh 示例版本号）。
++- `grep -n "2026.09.10" answer.md/install.sh` — （上一条的合并记录）核对示例版本号出处。
++- `grep -rn "S3/M4\|Round 4\|Round 3" vault; sed -n "1,20p" vault/parked.md; grep -l TASK-0028` — 定位下一步唯一出处（runtime Next Steps）并确认 parked 为空、TASK-0028 无任务文件。

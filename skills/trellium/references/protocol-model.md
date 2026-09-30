@@ -54,7 +54,7 @@ Compaction runs five phases: measure → classify → restructure → verify →
 
 Decision indexing: decisions.md becomes a pure index and bodies move to `vault/decisions/D-xxxx-slug.md`. Index principle: growth goes to directories, reading goes through indexes.
 
-Leveled reading: by default read `index.md` (with the cheat sheet) and `runtime.md`; read full `governance.md` for Level B/C work, unclear classification, or governance-rule changes.
+The entry-reading contract lives in `30-agent-entry.md` and is implemented by the project entry file (default set and conditional triggers); this reference does not restate the flow.
 
 ## State And Policy Blocks
 

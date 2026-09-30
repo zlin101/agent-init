@@ -1,0 +1,69 @@
+diff --git a/README.md b/README.md
+index 3206116..9e17180 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-# Trelium
++# Trellium
+ 
+ [English](README.en.md) | 简体中文
+ 
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..522fa32
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,36 @@
++2026-09-30 15:36:58 CMD: ls -la /tmp/trellium-0028-fx2/a1-post — REASON: 探索工作目录结构
++2026-09-30 15:37:12 CMD: find docs scripts internal .github skills init -type f — REASON: 定位源码、profile 与验证入口文件
++2026-09-30 15:37:20 CMD: find README.md / router.go — REASON: 定位任务指定的两个目标文件
++2026-09-30 15:37:23 CMD: wc -l README.md internal/httpapi/*.go; ls internal/httpapi — REASON: 了解目标文件规模与同目录文件
++2026-09-30 15:37:35 CMD: grep -nEi <常见拼写错误模式> README.md — REASON: 在 README.md 中定位任务要求修复的拼写错误
++2026-09-30 15:38:17 CMD: grep -rn Trelium — REASON: 确认 README.md H1 拼写错误 Trelium 的分布范围
++2026-09-30 15:38:48 CMD: find internal .github scripts; grep -rn verison/versionHandler; ls — REASON: 查找版本字符串引用、CI 与验证入口
++2026-09-30 15:40:04 CMD: grep README in test_trellium.py; grep 验证入口 — REASON: 找 README 相关测试断言与仓库验证入口定义
++2026-09-30 15:40:04 CMD: git status/log; head README.en.md; cat skill-sync.yml — REASON: 确认基线工作区、对照英文 README 标题、查看 CI 验证入口
++2026-09-30 15:41:32 CMD: ls -a; find go.mod/pyproject/Makefile; command -v go uv python3 — REASON: 确认仓库验证入口载体与可用工具链
++2026-09-30 15:43:06 CMD: git show b007df7 --stat + 两个目标文件 diff — REASON: 确认 fixture overlay 是否植入了这两处拼写错误
++2026-09-30 15:43:09 CMD: git log -- internal/httpapi/router.go — REASON: 确认 router.go 拼写错误来源与历史
++2026-09-30 15:43:22 CMD: git status/ls-files/check-ignore + cat .gitignore — REASON: 确认 router.go 与 RUNLOG.md 的 Git 跟踪状态
++2026-09-30 15:45:23 TOOL: read AGENTS.md — REASON: 任务入口规则要求首读
++2026-09-30 15:45:23 TOOL: read vault/index.md — REASON: 必读，取任务等级与授权速查表
++2026-09-30 15:45:23 TOOL: read vault/runtime.md — REASON: 必读，取 Required Checks 验证入口与当前状态
++2026-09-30 15:45:23 TOOL: read vault/project.md — REASON: 首次进入项目必读
++2026-09-30 15:45:23 TOOL: read vault/governance.md — REASON: 任务分级判定模糊，按规则读取治理规则
++2026-09-30 15:45:23 TOOL: read docs/engineering/profiles/go-backend.md — REASON: 修改 Go 源码，按规则读取匹配 profile
++2026-09-30 15:45:23 TOOL: read README.md — REASON: 任务目标文件，定位拼写错误
++2026-09-30 15:45:23 TOOL: read internal/httpapi/router.go — REASON: 任务目标文件，定位版本字符串拼写错误
++2026-09-30 15:45:23 TOOL: read scripts/test_trellium.py(2900-2960) — REASON: 检查 ReadmeContractTest 是否约束 README 改动
++2026-09-30 15:45:42 EDIT: README.md 首行 '# Trelium' -> '# Trellium' — REASON: 修复任务指定的 README 拼写错误（overlay 植入）
++2026-09-30 15:45:42 EDIT: internal/httpapi/router.go 'verison ' -> 'version ' — REASON: 修复版本字符串返回处的拼写错误
++2026-09-30 15:45:42 CMD: git diff -- README.md internal/httpapi/router.go — REASON: 复核两处最小编辑的实际 diff
++2026-09-30 15:45:49 CMD: cat internal/httpapi/router.go; head -1 README.md — REASON: 确认两处拼写修复已落地（router.go 未被 Git 跟踪，git diff 不显示）
++2026-09-30 15:46:04 CMD: python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh — REASON: 运行 vault/runtime.md Required Checks 中的单测套件（验证入口）
++2026-09-30 15:46:06 CMD: python3 scripts/sync-skills.py --check — REASON: Required Checks 之一，验证协议源与 Skill 快照无漂移
++2026-09-30 15:46:10 CMD: python3 scripts/trellium.py status . --format json — REASON: Required Checks 之一，只读状态摘要
++2026-09-30 15:46:20 CMD: python3 scripts/trellium.py status . --format json > /tmp_status_out.json — REASON: 尝试重定向输出到根路径，Permission denied(exit 1)，未产生任何写入；改为管道输出
++2026-09-30 15:46:20 CMD: python3 scripts/trellium.py status . --format json | tail — REASON: Required Checks 之一，只读状态摘要（输出走管道不落盘）
++2026-09-30 15:46:22 CMD: python3 scripts/trellium.py check . --format json — REASON: Required Checks 之一，自托管 vault 只读校验
++2026-09-30 15:46:37 CMD: git diff --check — REASON: Required Checks 之一，检查 diff 空白错误
++2026-09-30 15:47:04 CMD: gofmt -l -e internal/httpapi/router.go — REASON: go-backend profile 要求对修改过的 Go 文件运行 gofmt，并验证语法
++2026-09-30 15:47:21 CMD: git diff --cached/--stat + git status --ignored + grep Trelium/verison — REASON: 验收取证：无暂存文件、变更范围与拼写错误零残留
++2026-09-30 15:47:54 CMD: wc -l RUNLOG.md; cat RUNLOG.md — REASON: 复核 RUNLOG 完整性（每命令一行）
+diff --git a/internal/httpapi/router.go b/internal/httpapi/router.go
+new file mode 100644
+index 0000000..91024fe
+--- /dev/null
++++ b/internal/httpapi/router.go
+@@ -0,0 +1,11 @@
++package httpapi
++
++import "net/http"
++
++// versionHandler returns the build version string for the /version route.
++func versionHandler(version string) http.HandlerFunc {
++	return func(w http.ResponseWriter, r *http.Request) {
++		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
++		_, _ = w.Write([]byte("version " + version))
++	}
++}

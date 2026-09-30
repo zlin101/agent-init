@@ -2902,6 +2902,170 @@ class LocalTemplateSemanticsTest(TargetTestCase):
         self.assertNotIn("并在 `vault/runtime.md` 记录必要状态", text)
         self.assertIn("仅当 project-global runtime 发生变化时更新 `vault/runtime.md`", text)
 
+    def test_index_files_have_no_standalone_default_reading_flow(self) -> None:
+        expectations = {
+            "vault/index.md": "## 默认读取",
+            "skills/trellium-zh/assets/templates/vault/index.md": "## 默认读取",
+            "skills/trellium/assets/templates/vault/index.md": "## Default Reading",
+        }
+        for relative, heading in expectations.items():
+            text = self.read(relative)
+            self.assertNotIn(
+                heading, text, f"{relative} still owns a standalone default-reading flow"
+            )
+
+    def test_index_files_keep_policy_cheat_sheet_and_catalog(self) -> None:
+        expectations = {
+            "vault/index.md": (
+                "trellium-policy",
+                '"task_storage": "tracked"',
+                "任务与授权速查表",
+                "## 文件职责",
+                "## 细节路由",
+                "parked.md",
+            ),
+            "skills/trellium-zh/assets/templates/vault/index.md": (
+                "trellium-policy",
+                '"storage_mode": "tracked"',
+                "任务与授权速查表",
+                "## 文件职责",
+                "## 细节路由",
+                "parked.md",
+            ),
+            "skills/trellium/assets/templates/vault/index.md": (
+                "trellium-policy",
+                '"storage_mode": "tracked"',
+                "Task And Authority Cheat Sheet",
+                "## File Responsibilities",
+                "## Detail Routing",
+                "parked.md",
+            ),
+        }
+        for relative, markers in expectations.items():
+            text = self.read(relative)
+            for marker in markers:
+                self.assertIn(marker, text, f"{relative} lost {marker!r}")
+        # The tracked-policy original text stays byte-stable in this repo.
+        repo_index = self.read("vault/index.md")
+        self.assertIn('<!-- trellium-policy\n{\n  "schema_version": 1,\n  "task_storage": "tracked"\n}\n-->', repo_index)
+
+    def test_read_sources_delegate_entry_reading_to_agents(self) -> None:
+        delegations = {
+            "skills/agent-task/SKILL.md": (
+                "按 `AGENTS.md` 的入口规则",
+                "读取 `AGENTS.md`、`vault/index.md`（含速查表）和 `vault/runtime.md`",
+            ),
+            "skills/trellium-zh/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template": (
+                "按 `AGENTS.md` 的入口规则",
+                "读取 `AGENTS.md`、`vault/index.md`（含速查表）和 `vault/runtime.md`",
+            ),
+            "skills/trellium/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template": (
+                "Follow the `AGENTS.md` entry contract",
+                "Read `AGENTS.md`, `vault/index.md` (with the cheat sheet), and `vault/runtime.md`",
+            ),
+        }
+        for relative, (required, forbidden) in delegations.items():
+            text = self.read(relative)
+            self.assertIn(required, text, f"{relative} must delegate reading to the entry file")
+            self.assertNotIn(forbidden, text, f"{relative} still forces a pre-read group")
+        patterns = self.read("init/protocol/80-execution-patterns.md")
+        self.assertIn("按项目 Agent 入口文件", patterns)
+        self.assertNotIn("执行前优先读取", patterns)
+        skills40 = self.read("init/protocol/40-skills.md")
+        self.assertIn("按项目入口（`AGENTS.md`）", skills40)
+        for relative in (
+            "skills/trellium-zh/references/protocol-model.md",
+            "skills/trellium/references/protocol-model.md",
+        ):
+            text = self.read(relative)
+            self.assertIn("30-agent-entry", text, f"{relative} must point at the entry contract")
+            for fragment in ("默认读 `index.md`", "by default read `index.md`"):
+                self.assertNotIn(fragment, text, f"{relative} still restates the read flow")
+
+    def test_agent_entry_protocol_owns_full_read_contract(self) -> None:
+        entry = self.read("init/protocol/30-agent-entry.md")
+        for marker in (
+            "vault/index.md",
+            "vault/runtime.md",
+            "vault/governance.md",
+            "vault/project.md",
+            "vault/handoff.md",
+            "vault/parked.md",
+            "vault/tasks/<task-id>.md",
+        ):
+            self.assertIn(marker, entry, f"30-agent-entry lost contract item {marker!r}")
+        agents_expectations = {
+            "AGENTS.md": ("Level B 或 Level C", "governance.md"),
+            "skills/trellium-zh/assets/templates/AGENTS.md": ("Level B 或 Level C", "governance.md"),
+            "skills/trellium/assets/templates/AGENTS.md": ("Level B", "governance.md"),
+        }
+        for relative, markers in agents_expectations.items():
+            text = self.read(relative)
+            for marker in markers:
+                self.assertIn(marker, text, f"{relative} lost governance trigger {marker!r}")
+        vault10 = self.read("init/protocol/10-vault.md")
+        self.assertNotIn("## 默认读取路径", vault10)
+        self.assertIn("30-agent-entry", vault10, "10 must point at the entry-reading owner")
+        self.assertIn("trellium-task-state", vault10)
+        self.assertIn("storage_mode", vault10)
+
+    def test_agents_template_and_append_share_read_markers(self) -> None:
+        section = agent_init.agent_entry_section()
+        template = self.read("skills/trellium/assets/templates/AGENTS.md")
+        markers = (
+            "vault/index.md",
+            "vault/runtime.md",
+            "vault/governance.md",
+            "vault/project.md",
+            "vault/handoff.md",
+            "vault/tasks/",
+            "docs/engineering/profiles/",
+            "code-comments.md",
+        )
+        for marker in markers:
+            self.assertIn(marker, template, f"AGENTS template lost {marker!r}")
+            self.assertIn(marker, section, f"agent_entry_section lost {marker!r}")
+
+    def test_repo_runtime_has_no_task_or_commit_projection(self) -> None:
+        text = self.read("vault/runtime.md")
+        self.assertNotIn("## Active Tasks", text)
+        # A lifecycle projection is a STATUS ENTRY (id + separator + lifecycle
+        # word, possibly backticked), not navigation prose that merely mentions
+        # a gate mid-sentence. No budget/line-count assertion here: budgets are
+        # health warnings (H3), never acceptance gates.
+        lifecycle = r"(?:accepted|ready_for_review|active|blocked|draft|superseded)"
+        status_patterns = (
+            re.compile(r"^\s*[-|]\s*TASK-\d+\s*[:：|—-]\s*`?" + lifecycle + r"\b", re.M),
+            re.compile(r"^\s*[-|]\s*TASK-\d+\s+`?" + lifecycle + r"`?(?:\s|$)", re.M),
+        )
+
+        def is_projection(candidate: str) -> bool:
+            return any(p.search(candidate) for p in status_patterns)
+
+        self.assertFalse(
+            is_projection(text), "runtime must not carry a TASK lifecycle projection"
+        )
+        # Negative examples: these MUST be caught, including the backticked
+        # form that a global backtick-strip used to let through.
+        for sample in (
+            "- TASK-0019: accepted",
+            " - TASK-0019: `accepted`",
+            "- TASK-0019：`ready_for_review`",
+            "| TASK-0020 | active |",
+            "- TASK-0017 accepted",
+        ):
+            self.assertTrue(is_projection(sample), f"projection pattern must catch {sample!r}")
+        # Navigation prose must stay allowed.
+        self.assertFalse(
+            is_projection(
+                "- TASK-0028 Round 3 implementation is complete at `ready_for_review`; awaiting review."
+            )
+        )
+        # No hand-copied commit lists: three or more backticked short hashes on
+        # one line (red against the pre-S3 convergence line; green after the
+        # present-tense trim moved them to cold Git evidence).
+        self.assertIsNone(re.search(r"(`[0-9a-f]{7}`[^.\n]*){3,}", text))
+
 
 class ReadmeContractTest(unittest.TestCase):
     """TASK-0024: README contract regressions - H1-era runtime projection

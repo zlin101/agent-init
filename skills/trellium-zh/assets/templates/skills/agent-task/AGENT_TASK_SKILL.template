@@ -7,7 +7,7 @@ description: 用于执行需要上下文读取、限定范围修改、验证、�
 
 ## Steps
 
-1. 读取 `AGENTS.md`、`vault/index.md`（含速查表）和 `vault/runtime.md`；Level B/C、判定模糊或涉及治理规则时读取 `vault/governance.md`。
+1. 按 `AGENTS.md` 的入口规则读取必要上下文并判断任务等级和授权等级。
 2. 按 `vault/index.md` 读取任务特定上下文。
 3. 用三步判断分级：命中 Level C 风险域？→ 是即 C。否则，中断恢复或协作成本明显较高？→ 是即 B。否则 → A。规模（文件数、diff、验收项数）只提示判断，不单独决定等级；细则见 `vault/governance.md`。
 4. 判断授权等级和是否需要用户确认。

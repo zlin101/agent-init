@@ -1,0 +1,164 @@
+diff --git a/Makefile b/Makefile
+new file mode 100644
+index 0000000..43215ab
+--- /dev/null
++++ b/Makefile
+@@ -0,0 +1,12 @@
++.PHONY: verify fmt-check vet test
++
++verify: fmt-check vet test
++
++fmt-check:
++	@sh scripts/check-fmt.sh
++
++vet:
++	go vet ./...
++
++test:
++	go test ./...
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..c18ad55
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,17 @@
++- `ls vault/ && wc -l vault/*.md` — 查看 vault 目录结构与文件大小以决定读取顺序
++- `find . -path ./.git -prune -o -type f -print | head -100` — 概览仓库文件布局
++- `cat RUNLOG.md` — 确认 RUNLOG 追加成功
++- `ls vault/tasks vault/decisions && cat Makefile && cat go.mod` — 读取任务/决策文件清单与构建验证契约
++- `go version && cat scripts/check-fmt.sh && grep -n "version|health|路由|endpoint" README.md` — 确认 Go 工具链、gofmt 检查契约与 README 是否记录端点
++- `git status --porcelain=v1 && git diff --cached --name-only` — 记录改动前基线并确认无 staged 文件
++- `git status --porcelain=v1; git diff --cached --name-only` — 记录改动前基线：工作区干净、无 staged 文件
++- `cat .gitignore && grep -rn "health" --include=*.go . && ls vault/tasks/ | tail -5` — 确认 ignore/track 边界、Go 源码中无既有 health 路由、任务编号序列
++- `date && git ls-files | head -30` — 获取当前日期并确认哪些文件被 Git 跟踪
++- `git ls-files | head -30` — 确认 Git 跟踪文件范围（源码目录是否被 ignore）
++- `git ls-files | grep -E "^(cmd|internal|go.mod|Makefile)"; git check-ignore -v cmd/server/main.go internal/httpapi/router.go go.mod Makefile RUNLOG.md` — 确认 Go 源码与 RUNLOG 的 Git ignore/track 边界
++- `ls vault/tasks/ && grep -n "api\|version\|endpoint" README.md | head -20` — 确认任务编号占用情况与 README 是否记录 API 端点
++- `ls vault/details/ && read README.md` — 读取 README 仓库约定与 details 目录清单
++- `edit internal/httpapi/router.go, internal/httpapi/router_test.go` — 实现 GET /api/health 路由与聚焦测试（工具编辑，非 shell 命令，按行记录）
++- `make verify` — 按 README/Makefile 仓库约定运行 gofmt 检查、go vet 与 go test 全量验证
++- `go test -v ./internal/httpapi/` — 展开聚焦测试证据（TestVersion/TestHealth 逐项结果）
++- `git status --porcelain=v1; git diff --cached --name-only; git diff --stat` — 收尾核对：变更清单、无 staged 文件
+diff --git a/cmd/server/main.go b/cmd/server/main.go
+new file mode 100644
+index 0000000..dbaa0f4
+--- /dev/null
++++ b/cmd/server/main.go
+@@ -0,0 +1,16 @@
++// Package main runs the API server.
++package main
++
++import (
++	"log"
++	"net/http"
++
++	"example.com/shopapi/internal/httpapi"
++)
++
++func main() {
++	addr := ":8080"
++	if err := http.ListenAndServe(addr, httpapi.NewRouter()); err != nil {
++		log.Fatal(err)
++	}
++}
+diff --git a/go.mod b/go.mod
+new file mode 100644
+index 0000000..ccab994
+--- /dev/null
++++ b/go.mod
+@@ -0,0 +1,3 @@
++module example.com/shopapi
++
++go 1.22
+diff --git a/internal/apierr/errors.go b/internal/apierr/errors.go
+new file mode 100644
+index 0000000..0ab4a1a
+--- /dev/null
++++ b/internal/apierr/errors.go
+@@ -0,0 +1,13 @@
++// Package apierr defines the wire error type shared by all handlers.
++package apierr
++
++// Error is the repository's wire error.
++type Error struct {
++	Code    int    `json:"code"`
++	Message string `json:"message"`
++}
++
++// New builds an Error.
++func New(code int, message string) *Error {
++	return &Error{Code: code, Message: message}
++}
+diff --git a/internal/httpapi/router.go b/internal/httpapi/router.go
+new file mode 100644
+index 0000000..070e2a9
+--- /dev/null
++++ b/internal/httpapi/router.go
+@@ -0,0 +1,38 @@
++// Package httpapi wires HTTP handlers for the service.
++package httpapi
++
++import (
++	"encoding/json"
++	"net/http"
++
++	"example.com/shopapi/internal/apierr"
++)
++
++// writeJSON is the single response writer for handlers.
++func writeJSON(w http.ResponseWriter, status int, v any) {
++	w.Header().Set("Content-Type", "application/json; charset=utf-8")
++	w.WriteHeader(status)
++	_ = json.NewEncoder(w).Encode(v)
++}
++
++// writeError is the single error writer for handlers.
++func writeError(w http.ResponseWriter, status int, message string) {
++	writeJSON(w, status, apierr.New(status, message))
++}
++
++// NewRouter builds the mux.
++func NewRouter() *http.ServeMux {
++	mux := http.NewServeMux()
++	mux.HandleFunc("GET /version", handleVersion)
++	mux.HandleFunc("GET /api/health", handleHealth)
++	return mux
++}
++
++func handleVersion(w http.ResponseWriter, r *http.Request) {
++	writeJSON(w, http.StatusOK, map[string]string{"version": "0.3.1"})
++}
++
++// handleHealth reports service liveness; the /api prefix follows the project routing constraint.
++func handleHealth(w http.ResponseWriter, r *http.Request) {
++	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
++}
+diff --git a/internal/httpapi/router_test.go b/internal/httpapi/router_test.go
+new file mode 100644
+index 0000000..b566f90
+--- /dev/null
++++ b/internal/httpapi/router_test.go
+@@ -0,0 +1,23 @@
++package httpapi
++
++import (
++	"net/http"
++	"net/http/httptest"
++	"testing"
++)
++
++func TestVersion(t *testing.T) {
++	rec := httptest.NewRecorder()
++	NewRouter().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/version", nil))
++	if rec.Code != http.StatusOK {
++		t.Fatalf("status = %d, want 200", rec.Code)
++	}
++}
++
++func TestHealth(t *testing.T) {
++	rec := httptest.NewRecorder()
++	NewRouter().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/health", nil))
++	if rec.Code != http.StatusOK {
++		t.Fatalf("status = %d, want 200", rec.Code)
++	}
++}

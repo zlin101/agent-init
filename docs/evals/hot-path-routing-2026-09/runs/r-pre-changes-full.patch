@@ -1,0 +1,36 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..08306a8
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,30 @@
++# RUNLOG
++
++- `ls -la /tmp/trellium-0028-s3/r-pre` — 按 AGENTS.md 入口规则开始前先确认工作目录内容与结构。
++- `read vault/index.md` — AGENTS.md 要求的必读入口，获取任务分级与授权速查表。
++- `read vault/runtime.md` — AGENTS.md 必读入口第 2 项，获取当前状态、检查与 Next Steps。
++- `read vault/project.md` — AGENTS.md 规定首次进入项目必读。
++- `ls vault vault/tasks docs` — 定位任务文件与文档目录，找 2026.09.10 证据位置。
++- `ls -la vault/tasks | tail -20` — 确认活跃任务文件清单（发现 TASK-0027/0028 缺失）。
++- `grep -rn "2026.09.10" (ripgrep, repo 内)` — 定位 2026.09.10 发布的引用与证据位置。
++- `find . -name TASK-002* ; git status --porcelain ; git log --oneline -15 ; git tag -l` — 核对活跃任务文件、工作区状态与发布 tag 证据。
++- `cat .gitignore ; git show --no-patch --format=fuller 2026.09.10 ; git rev-parse 2026.09.10^{commit} 051fad6` — 确认 RUNLOG 被忽略、tag 指向的提交与作者时间。
++- `git show --stat 6e7f208 ; grep D-0013 vault/decisions.md ; grep -rn convergence vault/` — 查看 fixture overlay 内容与 D-0013、收敛计划证据。
++- `git show 6e7f208 -- vault/runtime.md vault/index.md ; git log --all -- vault/tasks/TASK-0027* TASK-0028*` — 还原 fixture overlay 改动并确认 TASK-0027/0028 文件在历史中不存在。
++- `git cat-file -t 2026.09.10 ; git show --stat 051fad6 ; git log 2026.09.9..2026.09.10 ; cat init/VERSION ; git log -- init/VERSION` — 取得 tag 类型、release-prep 提交内容与版本号变更链。
++- `read init/MIGRATIONS.md (前 60 行)` — 核对 2026.09.10 版本的迁移条目来源。
++- `grep -rn "051fad6|8765012|Phase 6" vault/` — 找 Phase 6 发布执行的账本证据。
++- `read vault/decisions/D-0013-tag-only-releases.md` — 取得 tag-only 发布这一发布方式的决策依据。
++- `read vault/handoff.md` — 确认是否存在真实中断的 transient delta（结果：干净边界，无条目）。
++- `ls docs/evals docs/superpowers docs/engineering` — 定位计划与评估证据目录。
++- `ls -R docs/superpowers ; git log -- docs/superpowers` — 查找收敛计划原始文档（结果：无收敛计划文件，plans 只到 2026-09-28）。
++- `grep -rn "release-prep|发布|tag 已推送|E2E" vault/` — 汇总发布授权与 Phase 6 执行证据。
++- `grep README version refs ; git show --stat a984b26` — 对照历史 2026.09.9 发布记录方式，确认 09.10 的记录位置。
++- `read vault/governance.md` — 判定分级时按速查表要求核对等级/授权规则（问题涉及发布授权与治理规则）。
++- `python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh` — 运行 required checks 的全量测试（结果 213 OK）。
++- `python3 scripts/sync-skills.py --check ; trellium status/check ; git diff --check ; git status --porcelain -uall` — 运行 required checks（结果：sync in sync、status exit 0 focus TASK-0028 unresolved、check 0/0、diff-check 干净、工作区无 tracked 改动）。
++- `git show --stat 8765012 635c76a ; grep E2E vault/tasks/TASK-0019` — 取得发布后验收与收敛关闭提交的文件级证据（TASK-0019 内无 E2E 字样）。
++- `read AGENTS.md`（补记，最早执行）— 入口规则要求先读，确定必读清单与 Forbidden。
++- `grep -rn "TASK-0028|TASK-0027" (repo 内)` — 核对 Next Steps 指向的 TASK-0028 文件是否真实存在。
++- `grep -rn "E2E" vault/` — 核对「network installer E2E on tag 2026.09.10」的证据落点（仅 runtime.md 一处）。
++- `read RUNLOG.md`（补记，收尾核对）— 复核命令日志完整性。

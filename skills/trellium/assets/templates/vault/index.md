@@ -37,34 +37,6 @@ substitute hidden defaults.
 - Authority: 0 read-only / 1 local edit / 2 scoped change / 3 approval required / 4 forbidden.
 - Unclear classification or governance-rule work: read full `governance.md`.
 
-## Default Reading
-
-For non-trivial work, read:
-
-1. `AGENTS.md`
-2. `vault/index.md` (with the cheat sheet)
-3. `vault/runtime.md`
-
-For Level B or Level C work, unclear classification, or governance-rule changes, also read:
-
-- `vault/governance.md`
-
-First project entry:
-
-- `vault/project.md`
-
-Genuinely interrupted work (skip for a derivable clean boundary):
-
-- `vault/handoff.md`
-
-Tracked or governed work:
-
-- active file under `vault/tasks/`
-
-When the user mentions a parked, shelved, or suspended item:
-
-- `vault/parked.md`
-
 ## File Responsibilities
 
 - `index.md` (this file): routing + the `trellium-policy` project policy block; no runtime state.
@@ -90,10 +62,6 @@ When the user mentions a parked, shelved, or suspended item:
 ## Update Rules
 
 - Hot-file update discipline: keep section order fixed, one item per line; replace the single matching line on a status or progress change instead of rewriting whole sections.
-- Update `runtime.md` after non-trivial work only when project-global runtime changes; Focus is navigation only.
-- Update `tasks/*` for Level B or Level C work: the `trellium-task-state` block is the only lifecycle, authority, slice, and gate owner.
-- Update `decisions.md` for durable decisions.
-- Update `handoff.md` only when a real interruption leaves a non-derivable transient delta.
 - Record parked items in `parked.md` when the user suspends them; promote back to a task file when mentioned again.
 - Move long details out of `runtime.md`.
 - For local tasks (`storage_mode=local`), absence from a fresh clone follows the storage contract; `runtime.md` is not a recovery copy (see governance.md).

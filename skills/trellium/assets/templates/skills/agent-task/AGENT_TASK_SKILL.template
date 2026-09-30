@@ -7,7 +7,7 @@ description: Use when doing non-trivial project work that requires context readi
 
 ## Steps
 
-1. Read `AGENTS.md`, `vault/index.md` (with the cheat sheet), and `vault/runtime.md`; read `vault/governance.md` in full for Level B/C work, unclear classification, or governance-rule changes.
+1. Follow the `AGENTS.md` entry contract to read the context you need and to classify the task and authority level.
 2. Follow `vault/index.md` to read task-specific context.
 3. Classify with the three-step judgment: does the work hit a Level C risk domain? If yes → C. Otherwise, is interruption-recovery or coordination cost clearly high? If yes → B. Otherwise → A. Scale (file count, diff, acceptance-item count) only prompts judgment and never decides the level alone; details in `vault/governance.md`.
 4. Determine authority level and whether user confirmation is required.

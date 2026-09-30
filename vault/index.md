@@ -20,34 +20,6 @@
 - 授权等级：0 只读 / 1 局部修改 / 2 限定范围 / 3 需确认 / 4 禁止。
 - 判定模糊或涉及治理规则本身：读完整 `governance.md`。
 
-## 默认读取
-
-非琐碎任务读取：
-
-1. `AGENTS.md`
-2. `vault/index.md`（含速查表）
-3. `vault/runtime.md`
-
-任务为 Level B 或 Level C、判定模糊或涉及治理规则时，追加读取：
-
-- `vault/governance.md`
-
-第一次进入项目：
-
-- `vault/project.md`
-
-中断或恢复任务（仅真实中断；可推导的干净边界不读）：
-
-- `vault/handoff.md`
-
-追踪或治理任务：
-
-- `vault/tasks/` 下的活跃任务文件
-
-用户提到挂起、搁置或暂停的事项：
-
-- `vault/parked.md`
-
 ## 文件职责
 
 - `index.md`（本文件）：路由 + `trellium-policy` 项目策略块；不保存运行态。
@@ -73,10 +45,6 @@
 ## 更新规则
 
 - 热文件更新纪律：固定段落顺序，每条内容占一行；状态或进展变化用单行替换，不重写整段。
-- 非琐碎任务后只在 project-global runtime 发生变化时更新 `runtime.md`；Focus 只有导航语义。
-- Level B 或 Level C 更新 `tasks/*`：`trellium-task-state` 状态块是 lifecycle、Authority、slice 与 Gate 的唯一 owner。
-- 长期决策更新 `decisions.md`。
-- 仅在真实中断且存在非可推导 transient delta 时更新 `handoff.md`。
 - 用户挂起任务时在 `parked.md` 记条目；重新提起时升回任务文件或 `runtime.md`。
 - 将长细节移出 `runtime.md`。
 - local 任务（`task_storage=local`）在 fresh clone 中缺失符合 storage contract；`runtime.md` 不承担恢复副本职责（见 governance.md）。

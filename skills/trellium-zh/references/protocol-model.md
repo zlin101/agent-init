@@ -54,7 +54,7 @@ vault/
 
 决策索引化：decisions.md 变纯索引，正文入 `vault/decisions/D-xxxx-slug.md`。索引原则：增长进目录，读取走索引。
 
-读路径分级：默认读 `index.md`（含速查表）+ `runtime.md`；Level B/C、判定模糊或涉及治理规则时读完整 `governance.md`。
+读取契约由 `30-agent-entry.md` 定义、项目入口文件实现（默认集合与全部条件触发见该文件）；本参考不重复读取流程。
 
 ## 状态块与策略块
 

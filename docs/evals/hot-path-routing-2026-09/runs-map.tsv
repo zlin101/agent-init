@@ -1,0 +1,16 @@
+key	fixture_dir	session_jsonl
+a1-pre	/tmp/trellium-0028-fx2/a1-pre	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/406642b6-6115-440f-b889-739fab1c72c3/run-0/session.jsonl
+a1-post	/tmp/trellium-0028-fx2/a1-post	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/d1d20bbb-eb5d-4371-ac28-7bb4a0cc7ec9/run-0/session.jsonl
+b-pre	/tmp/trellium-0028-fx2/b-pre	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/da34ac65-0b26-42f8-9205-309a0585d7c0/run-0/session.jsonl
+b-post	/tmp/trellium-0028-fx2/b-post	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/946b4a7b-2ae0-428b-b79c-c2763632fb92/run-0/session.jsonl
+c-pre	/tmp/trellium-0028-fx2/c-pre	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/2398b5fa-e105-44c1-9f97-4497ef5974ea/run-0/session.jsonl
+c-post	/tmp/trellium-0028-fx2/c-post	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/daad61ac-28e1-460d-8e00-69e02d2e3c92/run-0/session.jsonl
+u-ctrl	/tmp/trellium-0028-u/u-ctrl	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/85ae4ac3-fb7a-43bb-9887-8f0a1eca8e8c/run-0/session.jsonl
+u-cand	/tmp/trellium-0028-u/u-cand	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/fd61f7ea-5e2b-4420-bc71-afe1848acc87/run-0/session.jsonl
+u2-ctrl	/tmp/trellium-0028-u2b/u2-ctrl	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/2300d390-3cbc-4f59-9b16-a6b1d265a6b0/run-0/session.jsonl
+u2-cand	/tmp/trellium-0028-u2b/u2-cand	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/fb73e01c-aecc-40e8-b40a-88e8f0175de9/run-0/session.jsonl
+b3-post	/tmp/trellium-0028-s3/b3-post	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/40429c63-6f37-496c-8070-62631146ef34/run-0/session.jsonl
+r-pre	/tmp/trellium-0028-s3/r-pre	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/0ed945fe-54ff-456f-a5c1-7bb3ca3fb8f0/run-0/session.jsonl
+r-post	/tmp/trellium-0028-s3/r-post	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/92f463e0-2e32-4c05-a503-80aaa5a37965/run-0/session.jsonl
+c2-pre	/tmp/trellium-0028-fxc/c-pre	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/ff75dbd1-6f1c-4fc0-8f73-c8a64ea08071/run-0/session.jsonl
+c2-post	/tmp/trellium-0028-fxc/c-post	/home/liam/.pi/agent/sessions/--home-liam-git-trellium--/2026-09-30T04-29-07-153Z_01a0f092-cad0-7742-aec9-c58ee08bda38/ffd69050-56fe-4198-bdbb-7423eec020dd/run-0/session.jsonl

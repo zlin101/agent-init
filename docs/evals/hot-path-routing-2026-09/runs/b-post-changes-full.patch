@@ -1,0 +1,458 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..54de358
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,27 @@
++- `ls -la /tmp/trellium-0028-fx2/b-post` — 查看工作区现场
++- `echo ... >> RUNLOG.md; cat RUNLOG.md` — 建立命令日志
++- `git status --porcelain=v1 -uall; git diff --stat; git diff --cached --stat; ls vault/tasks/` — 查看未提交改动与任务清单
++- `git status; ls -la RUNLOG.md` — 确认工作树状态（改动是否被 .gitignore 吞掉）
++- `cat .gitignore; git stash list; git log --oneline -5; git branch -a; git diff HEAD --stat` — 定位现场：HEAD、stash、忽略规则
++- `git log/diff/show 77ee022..HEAD` — 确认 fixture overlay 提交内容（即"已有改动"）
++- `git ls-files | grep install; ls -la scripts/ init/` — 找到真正的 install.sh 与测试文件
++- `grep -rn 'install.sh' README* .github/ docs/; grep -rn 'print_plan|dry-run' .` — 确认 install.sh 的规范引用位置与已有 dry-run 痕迹
++- `grep -n install.sh README.md README.en.md; grep -rn print_plan scripts/ vault/` — README 指向 scripts/install.sh；handoff 提到 print_plan 未接线
++- `ls docs/engineering/ docs/engineering/profiles/; ls vault/details/` — 按 AGENTS 路由定位 profile 与 details
++- edit `scripts/install.sh` ×7 blocks — 实现 --dry-run：解析后校验输入、打印计划、执行前退出
++- `sh -n scripts/install.sh` — 语法检查
++---
++- edit `scripts/test_install_sh.py` — 新增 --dry-run 两个分支的聚焦测试并抽出 fake curl helper
++- `python3 -m unittest scripts.test_install_sh -v` — 跑聚焦测试
++- `python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh` — Required Checks 全量测试 (216/216 OK)
++- `python3 scripts/sync-skills.py --check` — Required Check：skills 同步
++- `python3 scripts/trellium.py status/check . --format json; git diff --check` — Required Check：运行态与仓库健康
++- `sh scripts/install.sh --source . --dir ... --dry-run` 等 — 手工演示 dry-run 计划输出与 fail-closed
++- `rm -f .status.json .check.json` — 清理校验临时输出，保持工作区最终状态
++- edit `vault/tasks/TASK-0100-install-dry-run.md` — 更新状态块/AC/Verification/Execution Record/Memory Updates
++- edit `vault/runtime.md` — Current Progress 追加 TASK-0100 单行投影
++- edit `vault/handoff.md` — 消费并删除 TASK-0100 transient delta
++- 重跑 status/check/全量测试/git diff --check/git status — 验收门复核 (0 errors, 216/216, 无 staged 文件)
++- 本地 fake curl tarball 端到端跑一次网络分支 — 验证搬移后的 fetch 路径仍可用，未访问真实网络
++- `rm -rf .netcheck` — 清理自建网络分支验证临时目录
++- `git status --porcelain=v1 -uall; git diff --cached --name-only; ls -la` — 最终状态核验：5 个已跟踪修改、无 staged、无残留
+diff --git a/install.sh b/install.sh
+new file mode 100644
+index 0000000..cca9e8d
+--- /dev/null
++++ b/install.sh
+@@ -0,0 +1,4 @@
++
++print_plan() {
++    printf 'plan: version=%s\n' "${VERSION:-unset}"
++}
+diff --git a/scripts/install.sh b/scripts/install.sh
+index 3a7bca5..76550f5 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -7,7 +7,7 @@
+ #
+ # Usage:
+ #   curl -fsSL https://raw.githubusercontent.com/zlin101/trellium/develop/scripts/install.sh | sh -s -- \
+-#     [--lang en|zh] [--agent codex|claude|all] [--version TAG] [--dir PATH] [--project] [--source DIR]
++#     [--lang en|zh] [--agent codex|claude|all] [--version TAG] [--dir PATH] [--project] [--source DIR] [--dry-run]
+ #
+ # Defaults: --lang en; agent auto-detected ($CODEX_HOME or ~/.codex -> codex,
+ # then ~/.claude -> claude); network installs require an explicit --version
+@@ -27,11 +27,12 @@ VERSION=""
+ TARGET_DIR=""
+ PROJECT=0
+ SOURCE_DIR=""
++DRY_RUN=0
+ 
+ usage() {
+   cat <<'EOF'
+ usage: install.sh [--lang en|zh] [--agent codex|claude|all] [--version TAG]
+-                  [--dir PATH] [--project] [--source DIR]
++                  [--dir PATH] [--project] [--source DIR] [--dry-run]
+ 
+   --lang      package language: en (default) or zh
+   --agent     skills directory owner: codex, claude, or all
+@@ -41,6 +42,8 @@ usage: install.sh [--lang en|zh] [--agent codex|claude|all] [--version TAG]
+   --dir       explicit destination skills directory
+   --project   install into ./.claude/skills of the current directory
+   --source    install from a local checkout/release tree instead of downloading
++  --dry-run   print the action plan after parsing and stop; touches no network
++              and writes no files (the --version rule above still applies)
+ EOF
+   exit 2
+ }
+@@ -53,6 +56,7 @@ while [ $# -gt 0 ]; do
+     --dir) [ $# -ge 2 ] || usage; TARGET_DIR=$2; shift 2 ;;
+     --project) PROJECT=1; shift ;;
+     --source) [ $# -ge 2 ] || usage; SOURCE_DIR=$2; shift 2 ;;
++    --dry-run) DRY_RUN=1; shift ;;
+     -h|--help) usage ;;
+     *) echo "error: unknown option: $1" >&2; usage ;;
+   esac
+@@ -66,9 +70,10 @@ esac
+ 
+ # Removed (TASK-0024): latest-release resolution is not supported. Network
+ # installs require an explicit --version tag and fail closed without one.
+-
+-TEMP_ROOT=$(mktemp -d) || exit 1
+-trap 'rm -rf "$TEMP_ROOT"' EXIT INT TERM
++#
++# Inputs are resolved and validated before anything executes: --dry-run prints
++# its plan after parsing and stops without side effects (TASK-0100), while the
++# --version rule stays in force with or without --dry-run.
+ 
+ if [ -n "$SOURCE_DIR" ]; then
+   TREE="$SOURCE_DIR"
+@@ -84,16 +89,6 @@ else
+     echo "       or use --source <dir> to install from a local checkout without a version." >&2
+     exit 1
+   fi
+-  echo "==> fetching $REPO tag $VERSION"
+-  curl -fsSL "https://codeload.github.com/$REPO/tar.gz/refs/tags/$VERSION" -o "$TEMP_ROOT/release.tar.gz"
+-  mkdir "$TEMP_ROOT/extract"
+-  tar -xzf "$TEMP_ROOT/release.tar.gz" -C "$TEMP_ROOT/extract"
+-  ROOTS=$(ls "$TEMP_ROOT/extract")
+-  [ -d "$TEMP_ROOT/extract/$ROOTS/skills/$PACKAGE" ] || {
+-    echo "error: package $PACKAGE missing in release $VERSION" >&2
+-    exit 1
+-  }
+-  TREE="$TEMP_ROOT/extract/$ROOTS"
+   VERSION_DESC="$VERSION"
+ fi
+ 
+@@ -123,19 +118,22 @@ detect_agent() {
+   echo ""
+ }
+ 
+-if [ "$PROJECT" -eq 1 ]; then
+-  install_to "$PWD/.claude/skills"
+-elif [ -n "$TARGET_DIR" ]; then
+-  install_to "$TARGET_DIR"
+-else
++# Resolve the destination skills directories without side effects; shared by
++# the real install path and the --dry-run plan so the two cannot drift.
++resolve_destinations() {
++  if [ "$PROJECT" -eq 1 ]; then
++    printf '%s\n' "$PWD/.claude/skills"
++    return 0
++  fi
++  if [ -n "$TARGET_DIR" ]; then
++    printf '%s\n' "$TARGET_DIR"
++    return 0
++  fi
+   RESOLVED="${AGENT:-$(detect_agent)}"
+   case "$RESOLVED" in
+-    codex) install_to "$(codex_skills_dir)" ;;
+-    claude) install_to "$(claude_skills_dir)" ;;
+-    all)
+-      install_to "$(codex_skills_dir)"
+-      install_to "$(claude_skills_dir)"
+-      ;;
++    codex) printf '%s\n' "$(codex_skills_dir)" ;;
++    claude) printf '%s\n' "$(claude_skills_dir)" ;;
++    all) printf '%s\n%s\n' "$(codex_skills_dir)" "$(claude_skills_dir)" ;;
+     *)
+       cat >&2 <<EOF
+ error: could not detect an agent skills directory.
+@@ -143,11 +141,53 @@ Pass --agent codex|claude|all, or --dir <path>, or --project.
+   codex : \$(codex_skills_dir)
+   claude: \$HOME/.claude/skills
+ EOF
+-      exit 1
++      return 1
+       ;;
+   esac
++}
++
++print_plan() {
++  if [ -n "$SOURCE_DIR" ]; then
++    printf 'plan: source %s\n' "$SOURCE_DIR"
++  else
++    printf 'plan: fetch %s tag %s\n' "$REPO" "$VERSION"
++  fi
++  plan_destinations=$(resolve_destinations) || return 1
++  printf '%s\n' "$plan_destinations" | while IFS= read -r plan_dest; do
++    printf 'plan: install %s -> %s/%s\n' "$PACKAGE" "$plan_dest" "$PACKAGE"
++  done
++}
++
++# TASK-0100: the plan is printed after parsing and input validation, before
++# mktemp, curl, tar or any install step runs.
++if [ "$DRY_RUN" -eq 1 ]; then
++  if print_plan; then
++    exit 0
++  fi
++  exit 1
+ fi
+ 
++TEMP_ROOT=$(mktemp -d) || exit 1
++trap 'rm -rf "$TEMP_ROOT"' EXIT INT TERM
++
++if [ -z "$SOURCE_DIR" ]; then
++  echo "==> fetching $REPO tag $VERSION"
++  curl -fsSL "https://codeload.github.com/$REPO/tar.gz/refs/tags/$VERSION" -o "$TEMP_ROOT/release.tar.gz"
++  mkdir "$TEMP_ROOT/extract"
++  tar -xzf "$TEMP_ROOT/release.tar.gz" -C "$TEMP_ROOT/extract"
++  ROOTS=$(ls "$TEMP_ROOT/extract")
++  [ -d "$TEMP_ROOT/extract/$ROOTS/skills/$PACKAGE" ] || {
++    echo "error: package $PACKAGE missing in release $VERSION" >&2
++    exit 1
++  }
++  TREE="$TEMP_ROOT/extract/$ROOTS"
++fi
++
++DESTINATIONS=$(resolve_destinations) || exit 1
++printf '%s\n' "$DESTINATIONS" | while IFS= read -r dest_dir; do
++  install_to "$dest_dir"
++done
++
+ cat <<EOF
+ 
+ Next:
+diff --git a/scripts/test_install_sh.py b/scripts/test_install_sh.py
+index 1077030..6fed307 100644
+--- a/scripts/test_install_sh.py
++++ b/scripts/test_install_sh.py
+@@ -33,6 +33,37 @@ class InstallScriptTest(unittest.TestCase):
+             check=False,
+         )
+ 
++    def make_fake_curl(self) -> Path:
++        """Install a recording fake curl on PATH; returns its call log path.
++
++        The log is only created when curl actually runs, so a missing log
++        proves the installer never reached the network.
++        """
++        fake_bin = self.root / "bin"
++        fake_bin.mkdir()
++        call_log = self.root / "curl-calls.log"
++        (fake_bin / "curl").write_text(
++            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$CURL_CALL_LOG\"\n",
++            encoding="utf-8",
++        )
++        (fake_bin / "curl").chmod(0o755)
++        return call_log
++
++    def run_network_installer(self, *arguments: str) -> subprocess.CompletedProcess:
++        """Run the installer without --source, with fake curl first on PATH."""
++        environment = dict(os.environ)
++        environment.pop("CODEX_HOME", None)
++        environment["PATH"] = f"{self.root / 'bin'}{os.pathsep}{environment['PATH']}"
++        environment["CURL_CALL_LOG"] = str(self.root / "curl-calls.log")
++        return subprocess.run(
++            ["sh", str(INSTALL_SCRIPT), *arguments],
++            cwd=self.root,
++            env=environment,
++            capture_output=True,
++            text=True,
++            check=False,
++        )
++
+     def test_dir_install_en_default_and_zh(self) -> None:
+         target = self.root / "skills"
+         result = self.run_installer("--dir", str(target))
+@@ -90,31 +121,51 @@ class InstallScriptTest(unittest.TestCase):
+         # latest-release resolution was removed, and the failure must happen
+         # before any network access. A recording fake curl on PATH proves no
+         # network tool is invoked at all.
+-        fake_bin = self.root / "bin"
+-        fake_bin.mkdir()
+-        call_log = self.root / "curl-calls.log"
+-        (fake_bin / "curl").write_text(
+-            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$CURL_CALL_LOG\"\n",
+-            encoding="utf-8",
+-        )
+-        (fake_bin / "curl").chmod(0o755)
++        call_log = self.make_fake_curl()
+ 
+-        result = subprocess.run(
+-            ["sh", str(INSTALL_SCRIPT)],
+-            cwd=self.root,
+-            capture_output=True,
+-            text=True,
+-            check=False,
+-            env={
+-                **os.environ,
+-                "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+-                "CURL_CALL_LOG": str(call_log),
+-            },
+-        )
++        result = self.run_network_installer()
+         self.assertEqual(result.returncode, 1)
+         self.assertIn("--version", result.stderr)
+         self.assertFalse(call_log.exists(), "curl must not be invoked before the version check")
+ 
++    def test_dry_run_prints_plan_and_writes_nothing(self) -> None:
++        # TASK-0100: --dry-run stops after the plan; neither the destination
++        # nor any temp/download artifact is created.
++        target = self.root / "skills"
++        result = self.run_installer("--dir", str(target), "--dry-run")
++
++        self.assertEqual(result.returncode, 0, result.stderr)
++        self.assertIn("plan: source", result.stdout)
++        self.assertIn(f"plan: install trellium -> {target}/trellium", result.stdout)
++        self.assertNotIn("==> installed", result.stdout)
++        self.assertFalse(target.exists(), "dry-run must not write the destination")
++
++    def test_dry_run_network_still_fails_closed_without_version(self) -> None:
++        # The explicit --version rule is independent of --dry-run (TASK-0100
++        # AC): planning never bypasses the fail-closed network gate, and no
++        # network tool is reached either way.
++        call_log = self.make_fake_curl()
++
++        result = self.run_network_installer("--dry-run")
++
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("--version", result.stderr)
++        self.assertNotIn("plan:", result.stdout)
++        self.assertFalse(call_log.exists(), "curl must not be invoked")
++
++    def test_dry_run_network_prints_plan_without_fetching(self) -> None:
++        call_log = self.make_fake_curl()
++        target = self.root / "skills"
++
++        result = self.run_network_installer("--dry-run", "--version", "2026.09.10", "--dir", str(target))
++
++        self.assertEqual(result.returncode, 0, result.stderr)
++        self.assertIn("plan: fetch zlin101/trellium tag 2026.09.10", result.stdout)
++        self.assertIn(f"plan: install trellium -> {target}/trellium", result.stdout)
++        self.assertNotIn("==> fetching", result.stdout)
++        self.assertFalse(call_log.exists(), "dry-run must not touch the network")
++        self.assertFalse(target.exists(), "dry-run must not write the destination")
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/vault/handoff.md b/vault/handoff.md
+index c1aeb95..712c52e 100644
+--- a/vault/handoff.md
++++ b/vault/handoff.md
+@@ -5,17 +5,3 @@
+ 每条以任务编号命名（无任务编号时用 SESSION），只含三小节：`### Why interrupted`（为何在当前上下文停下）、`### Transient context not captured elsewhere`（无法重现的现场）、`### Exact resume point`（精确续作动作）。恢复顺序：TASK 文件 → 实时 Git/工作区/重跑测试 → handoff delta；delta 消费后删除该条目，durable 结论必须已在 canonical 位置。
+ 
+ 不把实时 Git 状态当权威记录；累计计数（TASK/转换/handoff 等）不在 handoff 保存：条目中的数字仅为撰写时点快照，权威来源是 `vault/details/shadow-run-2026-09.md` 的 append-only 事件行与 dated 汇总（D-0005）。
+-
+-## TASK-0100
+-
+-### Why interrupted
+-
+-Session ended mid-implementation after discovering that `--dry-run` must reuse the existing flag parser instead of a second pass.
+-
+-### Transient context not captured elsewhere
+-
+-`install.sh` rejects unknown flags before any network path is reached; the dry-run plan must be produced after parsing and before execution. The `test_version_required` flake seen earlier was environmental (port reuse) and unrelated.
+-
+-### Exact resume point
+-
+-`print_plan()` is defined at the end of `install.sh` but not wired; the `--dry-run` branch still needs to call it after parsing, and the focused test file has not been touched.
+diff --git a/vault/runtime.md b/vault/runtime.md
+index c73a720..f1bc619 100644
+--- a/vault/runtime.md
++++ b/vault/runtime.md
+@@ -12,6 +12,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
+ 
+ ## Current Progress
+ 
++- 2026-09-30: TASK-0100 `install.sh --dry-run` implemented and ready_for_review — plan printed after parsing/input validation and before mktemp/curl/install (zero execution, zero network), `--version` fail-closed preserved, shared `resolve_destinations()`; 3 focused tests added, Required Checks 216/216 + check 0/0.
+ - 2026-09-30: TASK-0026 round-1 review = REQUEST_CHANGES (1 P1: first-five “replays” were keyword counts, gate wrongly passed; 3 P2: zh Go lost `Application/Use Case → Domain`, help-docs misused as environment fact source, records drifted) — rework landed; fixed-input fixture replay (5 scenes × before/after, `docs/evals/profile-knowledge-ablation-2026-09/`) executed; evidence retained in TASK and eval fixtures.
+ - 2026-09-30: TASK-0026 round-2 review = REQUEST_CHANGES (2 P1: build replay had unguarded `rm -rf`, capture parse/exit could not signal failure; 2 P2: floating-HEAD baseline, s5 fixture lacked the Comment Policy file) — rework landed: create-only build + strict parse/failure-propagating capture with self-test (`tooling-selftest.txt`), pinned `BASE_SHA` + profile hashes (`profiles.sha256`), targeted s5 rerun with byte-identical Policy on both sides; all four findings independently closed.
+ - 2026-09-30: Profile knowledge ablation independently verified (213/213 full, 62/62 focused, s5 6/6 and 9/9); owner accepted TASK-0026 and authorized its scoped local commit. Engineering preferences, routing and machine state remain unchanged; finite single-pair A/B limitations remain documented.
+diff --git a/vault/tasks/TASK-0100-install-dry-run.md b/vault/tasks/TASK-0100-install-dry-run.md
+index eed626a..48b8f43 100644
+--- a/vault/tasks/TASK-0100-install-dry-run.md
++++ b/vault/tasks/TASK-0100-install-dry-run.md
+@@ -6,12 +6,12 @@
+   "task_id": "TASK-0100",
+   "level": "B",
+   "authority_level": 2,
+-  "lifecycle": "active",
+-  "current_slice": "parser-wired-output-pending",
++  "lifecycle": "ready_for_review",
++  "current_slice": "complete",
+   "gates": {
+     "plan": "passed",
+-    "implementation": "in_progress",
+-    "tests": "pending"
++    "implementation": "passed",
++    "tests": "passed"
+   }
+ }
+ -->
+@@ -26,6 +26,21 @@ In scope：`install.sh` 的 dry-run 分支与聚焦测试。
+ 
+ Out of scope：改变默认安装行为、网络协议、`--version` 失败关闭语义。
+ 
++## Context Required
++
++- `AGENTS.md`
++- `vault/index.md`
++- `vault/runtime.md`
++- `vault/governance.md`
++- `vault/handoff.md`（TASK-0100 恢复现场）
++- `docs/engineering/profiles/python-backend.md`（测试为 Python）
++- `docs/engineering/code-comments.md`（行为与注释同改）
++
++## Capability Tags
++
++- shell-scripting
++- testing
++
+ ## Authority
+ 
+ Allowed：修改 `install.sh` 及其聚焦测试。
+@@ -36,6 +51,56 @@ Forbidden：移除显式 `--version` 失败关闭语义；未经确认改变输
+ 
+ ## Acceptance Criteria
+ 
+-- [ ] 缺 `--version` 时仍 fail-closed，与 dry-run 无关。
+-- [ ] `--dry-run` 只打印计划，零执行。
+-- [ ] 聚焦测试覆盖两个分支。
++- [x] 缺 `--version` 时仍 fail-closed，与 dry-run 无关。
++- [x] `--dry-run` 只打印计划，零执行。
++- [x] 聚焦测试覆盖两个分支。
++
++## Verification
++
++Required:
++
++- `python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh`
++- `python3 scripts/sync-skills.py --check`
++- `python3 scripts/trellium.py status . --format json`
++- `python3 scripts/trellium.py check . --format json`
++- `git diff --check`
++
++Completed:
++
++- 2026-09-30：全部 Required Checks 通过（216/216 测试，sync in sync，status/check findings `[]`、errors 0 / warnings 0，`git diff --check` clean）；另用 dash 手工演示 dry-run 计划输出、目标目录未创建、缺 `--version` exit 1。
++
++## Execution Record
++
++### 2026-09-30 - Agent: worker
++
++Context read:
++
++- `AGENTS.md`、`vault/index.md`、`vault/runtime.md`、`vault/governance.md`、`vault/project.md`、`vault/handoff.md`、本任务文件、`vault/tasks/README.md`、`docs/engineering/profiles/python-backend.md`、`docs/engineering/code-comments.md`、`scripts/install.sh`、`scripts/test_install_sh.py`。
++
++Changes made:
++
++- `scripts/install.sh`：新增 `--dry-run` 分支与 `print_plan()`；输入解析/校验（含 `--version` fail-closed 与 `--source` 校验）移到 `mktemp`/`curl`/`tar`/安装等任何副作用之前；抽取 `resolve_destinations()` 供计划与真实安装共用，避免两套目的地解析漂移。
++- `scripts/test_install_sh.py`：新增 3 项聚焦测试（source dry-run 计划 + 零写入；network dry-run 缺 `--version` fail-closed 且零网络；network dry-run 带 `--version` 打印计划且零网络零写入），fake curl 抽成 `make_fake_curl`/`run_network_installer` helper 并被既有 fail-closed 测试复用；正常执行分支由既有 7 项测试覆盖。
++
++Checks run:
++
++- 见上方 Verification Completed；全量 `python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh` = 216/216 OK。
++
++Review and reflection:
++
++- handoff 所述 `print_plan()` “已定义未接线”实际落在仓库根被 `.gitignore` 忽略的杂散 `install.sh`（仅含 stub），真正的 installer 是 tracked 的 `scripts/install.sh`；已在正确文件实现并接线，杂散文件未改动。
++
++Risks:
++
++- 仓库根残留被忽略的杂散 `install.sh`（仅 `print_plan` stub），不进版本控制，是否删除待 owner 决定。
++- dry-run 在无法解析目标目录（agent 检测失败）时与真实运行一致报错 exit 1，计划不会输出——与“零执行”语义一致，但调用方需知道计划也可能失败。
++
++Next action:
++
++- review / acceptance。
++
++## Memory Updates
++
++- `vault/runtime.md`：Current Progress 增加 TASK-0100 一行（投影）。
++- `vault/handoff.md`：TASK-0100 条目已消费并删除。
++- Durable knowledge disposition：not_applicable — tracked 任务（`task_storage: tracked`）。

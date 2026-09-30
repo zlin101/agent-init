@@ -82,9 +82,9 @@ vault 上下文路由表 + 项目策略载体。
 
 它定义：
 
-- 默认读取路径；
-- 何时读取 project、runtime、governance、decisions、handoff、任务文件或 details；
-- 各类记忆的更新规则；
+- 路由目录与主题到文件的映射（任务与授权速查表、文件职责、细节路由）；
+- 读取契约由 `30-agent-entry.md` 定义、入口文件实现，index 不再自持完整读取流程；
+- 热文件更新纪律与策略相关更新规则；
 - `trellium-policy` 策略块：项目预算与 TASK storage 的唯一配置来源（见"项目策略块"）。
 
 ### project.md
@@ -123,9 +123,7 @@ TASK lifecycle 使用统一枚举（定义见 `20-governance.md`）：`draft | a
 
 ### governance.md
 
-任务授权、追踪、验收、升级和多 Agent 接力规则。
-
-非琐碎任务前必须读取。
+任务授权、追踪、验收、升级和多 Agent 接力规则。何时完整读取由 `30-agent-entry.md` 的入口契约决定（Level B/C、判定模糊或涉及治理规则）。
 
 ### decisions.md
 
@@ -236,45 +234,9 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 
 `python3 trellium.py check <target>` 对以上结构与投影做只读确定性校验。
 
-## 默认读取路径
+## 读取契约
 
-非琐碎任务：
-
-```text
-AGENTS.md
-vault/index.md    # 含任务等级与授权速查表
-vault/runtime.md
-```
-
-满足任一条件时追加读取完整 `vault/governance.md`：
-
-- 任务为 Level B 或 Level C；
-- 任务等级或授权判定模糊；
-- 任务涉及治理规则本身。
-
-第一次进入项目追加读取：
-
-```text
-vault/project.md
-```
-
-接手交接任务追加读取：
-
-```text
-vault/handoff.md
-```
-
-追踪任务或治理任务追加读取：
-
-```text
-vault/tasks/<task-id>.md
-```
-
-用户提到挂起、搁置或暂停的事项时追加读取：
-
-```text
-vault/parked.md
-```
+入口读取契约（默认集合与全部条件触发）由 `30-agent-entry.md` 定义、项目入口文件（`AGENTS.md`）实现；本文件只定义 Vault 的存储与信息职责，不重复读取流程。
 
 ## 更新规则
 

@@ -1,0 +1,43 @@
+=== collect zero-write self-test (2026-09-30T08:46:47Z) ===
+scratch: /tmp/collect-selftest.7kDtZ4
+before: index_sha=3e480a5eca917dead90f605d0377a4122c7efd9b59eac4cf2910b8d182e53315 staged=[staged.txt,]
+
+--- success path: COLLECT_MAP=... python3 collect.py
+t1: 134 tracked / 134 full diff bytes, 0 tool events
+collect: all rows collected
+exit=0
+after success: index_sha=3e480a5eca917dead90f605d0377a4122c7efd9b59eac4cf2910b8d182e53315 staged=[staged.txt,]
+PASS: real index byte-identical after success
+PASS: pre-existing staged state preserved
+PASS: no index.lock leftover
+
+--- failure path: append row with missing session; diff also forced to run on row 1 first
+t2: COLLECT FAIL: session missing: /tmp/collect-selftest.7kDtZ4/missing-session.jsonl
+collect: 1 row(s) failed
+t1: 134 tracked / 134 full diff bytes, 0 tool events
+exit=1
+after failure: index_sha=3e480a5eca917dead90f605d0377a4122c7efd9b59eac4cf2910b8d182e53315 staged=[staged.txt,]
+PASS: real index byte-identical after failure
+PASS: staged state intact after failure
+note: runs2 contents:
+t1-changes-full.patch
+t1-changes.patch
+t1-reads.txt
+
+=== mid-row failure probe (2026-09-30T09:23:17Z) ===
+scratch reused: /tmp/collect-selftest.7kDtZ4
+--- injected failure after both diffs, before publish:
+probe: COLLECT FAIL: probe: injected failure after diffs, before publish
+collect: 1 row(s) failed
+exit=1
+PASS: mid-row failure published nothing (no probe-changes.patch)
+PASS: real index unchanged after injected failure
+PASS: staged state preserved after injected failure
+--- success regression after probe:
+t2: COLLECT FAIL: session missing: /tmp/collect-selftest.7kDtZ4/missing-session.jsonl
+collect: 1 row(s) failed
+t1: 134 tracked / 134 full diff bytes, 0 tool events
+exit=1
+PASS: success path still publishes 3 files
+
+注：上方“成功回归”段复用的 map.tsv 仍含前一段故意保留的失败行 t2（missing session），故该次整体 exit=1；PASS 判据针对的是成功行 t1 完整发布 3 个文件。

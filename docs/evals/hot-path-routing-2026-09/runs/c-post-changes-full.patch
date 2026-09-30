@@ -1,0 +1,15 @@
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..39e01eb
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,9 @@
++find /tmp/trellium-0028-fx2/c-post -type f -not -path "*/.git/*" | head -100 — 列出项目文件以定位任务目标源码
++grep -rn "healthz" ... -l — 定位 healthz 端点所在文件
++grep -rn healthz protocol.md; head docs/schema.sql — 找到 healthz 相关描述与 users 表定义（email 列）
++cat s1-shop-api 源文件 — 检查任务 1/2 目标代码（错误返回、healthz）是否存在
++grep -rn healthz/status 在 go/py 源码 — 确认 healthz 端点与 status 字段的现有位置
++grep healthz in eval patches + grep email 引用文件 — 判断 healthz 是否存在于工作区、email 使用情况
++ls git status/log + 前置条件核查 — 确认工作区状态与三项改动的目标是否存在
++ls vault*/ + grep healthz/schema.sql in vault — 查找 healthz 外部契约与 email 列的治理记录
++git status --porcelain + git diff --stat — 最终确认未实施任何改动，仅 RUNLOG 追加

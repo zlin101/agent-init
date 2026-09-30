@@ -1,0 +1,65 @@
+diff --git a/README.md b/README.md
+index 3206116..9e17180 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-# Trelium
++# Trellium
+ 
+ [English](README.en.md) | 简体中文
+ 
+diff --git a/RUNLOG.md b/RUNLOG.md
+new file mode 100644
+index 0000000..7ffc7c4
+--- /dev/null
++++ b/RUNLOG.md
+@@ -0,0 +1,32 @@
++ls -la /tmp/trellium-0028-fx2/a1-pre — 列出工作目录内容以了解仓库结构
++printf RUNLOG.md 初始化 — 建立命令日志文件（补记此前两条命令）
++mkdir -p . && printf RUNLOG初始化 — 建立RUNLOG.md
++ls -la internal internal/httpapi; ls scripts — 查看Go源文件与验证脚本入口
++read AGENTS.md — 入口规则要求先读
++ls -la(隐含于首次) 
++read vault/index.md vault/runtime.md — AGENTS默认读取
++read vault/project.md vault/governance.md — 首次进入项目+任务分级判定需要
++read internal/httpapi/router.go — 定位版本字符串拼写错误
++grep -rn "verison|verion|vesion" README.md README.en.md internal/ — 定位拼写错误位置
++read README.md — 定位其中的拼写错误
++grep -rn "Trelium" README.md README.en.md init skills docs; head -3 README.en.md — 定位README拼写错误（发现README.md H1为Trelium）
++ls -la; ls .github/workflows; find go.mod/Makefile/pyproject — 查找仓库验证入口与Go构建契约
++sed -n 25,40p docs/evals/.../audit_session.py; sed -n 65,80p finalize_run.py; git status --porcelain — 复核LSP报错文件与工作区状态
++python3 -m py_compile docs/evals/review-pack-2026-09/tools/{audit_session,finalize_run}.py — 复核LSP回落诊断是否为真实语法错误（结果OK，非阻塞，未改动该文件）
++grep -rn "verison|Trelium|versionHandler/httpapi refs; command -v go gofmt uv — 全仓定位两处拼写错误影响面与可用工具链
++sed -n workflow rest; git ls-files; go version — 确认CI验证入口（unittest+trellium check+sync-skills --check）与Go工具链
++编辑 README.md H1 Trelium→Trellium；编辑 internal/httpapi/router.go verison→version（edit工具，非shell命令）
++python3 -m unittest scripts.test_trellium scripts.test_sync_skills scripts.test_install_sh — 运行仓库Required Checks的单元测试（213 tests OK）
++python3 scripts/sync-skills.py --check; gofmt -l internal/httpapi/router.go — 验证Skill快照无漂移且Go文件格式正确（均通过）
++python3 scripts/trellium.py status . --format json — 运行Required Checks状态摘要（findings空，exit 0）
++go vet ./internal/httpapi; go build ./internal/httpapi — 尝试对修改的Go包做静态检查（仓库根无go.mod，模块命令不可用）
++python3 scripts/trellium.py check . --format json — 运行Required Checks自检（errors 0 warnings 0，exit 0）
++GO111MODULE=off go vet router.go — 对修改的Go文件做可用范围内的静态检查（通过）
++git diff --check; git status; git diff; head -1 README.md; grep验证 — 检查空白错误、工作区状态与两处修复（diff --check 通过，仅README.md被改）
++rm -rf docs/evals/review-pack-2026-09/tools/__pycache__ — 清理我此前py_compile产生的缓存目录，恢复工作区
++cat RUNLOG.md — 复核命令日志完整性
++git check-ignore -v internal/httpapi/router.go; sed文件复核 — 确认router.go受.gitignore忽略（故git status只显示README.md），两处修复已落盘
++python3 -m unittest discover -s scripts -p test_*.py — 按CI workflow原样运行测试门（等价于已跑的三模块，213 tests OK）
++sed -n 33p/78p两文件; python3 ast.parse — 复核LSP回落报的两处unterminated string（AST解析通过，确认为回落解析器误报，未改文件）
++rm -rf docs/evals/review-pack-2026-09/tools/__pycache__ — 再次清理测试运行产生的缓存，保持最终工作区干净
++python3 -m unittest discover 后 sed/ast.parse/git status 收尾复核 — 记录最后一条命令并确认最终工作区（M README.md、无暂存、router.go修复在盘）
+diff --git a/internal/httpapi/router.go b/internal/httpapi/router.go
+new file mode 100644
+index 0000000..91024fe
+--- /dev/null
++++ b/internal/httpapi/router.go
+@@ -0,0 +1,11 @@
++package httpapi
++
++import "net/http"
++
++// versionHandler returns the build version string for the /version route.
++func versionHandler(version string) http.HandlerFunc {
++	return func(w http.ResponseWriter, r *http.Request) {
++		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
++		_, _ = w.Write([]byte("version " + version))
++	}
++}
