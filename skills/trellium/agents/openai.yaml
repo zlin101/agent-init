@@ -1,4 +1,4 @@
 interface:
-  display_name: "Agent Native Init"
+  display_name: "Trellium"
   short_description: "Install Agent collaboration governance"
-  default_prompt: "Use $agent-native-init to add Agent-Native collaboration governance to this project."
+  default_prompt: "Use $trellium to add or upgrade Agent collaboration governance in this project."
