@@ -1,0 +1,17 @@
+ENV: Linux-7.0.14-orbstack-00380-ga7e0a2dc9535-aarch64-with-glibc2.36 3.12.3 uid 65534
+GIT: git version 2.39.2
+FS: overlayfs
+......................................
+----------------------------------------------------------------------
+Ran 38 tests in 2.651s
+
+OK
+F29-001: retry success = True ; failed parent fsync retried = True
+F29-002: corrupt HEAD stderr = fatal: Needed a single revision
+F29-002 corrupt-ref: replacement created = False ; identity exists = False
+F29-002 corrupt-HEAD-file: stderr = fatal: not a git repository (or any of the parent directories): .git
+F29-002 corrupt-HEAD-file: replacement created = False ; identity exists = False
+F29-002 unreadable-metadata: lookup error observed = True ; detector = False ; replacement created = True ; differs from committed identity = True ; registered = True ; stamp changed = True
+F29-002 corrupt-HEAD-file: committed identity recoverable after restoring HEAD = True
+DISTRIBUTED E2E: trellium-zh PASS
+DISTRIBUTED E2E: trellium PASS

@@ -215,6 +215,8 @@ Capability Tags 只描述工作需要的能力，不授予权限。
 
 采用 local lifecycle 的任务（`storage_mode=local` 或 `private`）进入 `accepted` 前还必须完成 Durable Knowledge Disposition（定义见 `10-vault.md`）：`pending` 不得进入 `ready_for_review` 或 `accepted`；`none` 需写明理由；`distilled` 只列 canonical 目标文件，不复制正文。契约错误、过期或不安全的任务走 `superseded` 立即废止，不被该 gate 阻塞，未处置事项显式转交。采用 local lifecycle 的任务关闭后，删除 `vault/handoff.md` 中与其相关的 transient delta（消费即删；durable 结论先落入 canonical 文件）。tracked 任务默认 `not_applicable`。
 
+local 任务在 terminal 转换后执行 Historical Retention（流程与 Store 契约见 `10-vault.md`）：TASK 与已开展 ledger review 的相应 ledger 作为一组分别写入本机 Store 并逐份 get 验证，整组成功才算 closure retention 完成；失败保留 source、不回滚 accepted、幂等重试。默认不 cleanup，删除 source 需 owner 明确授权。tracked/private 不触发。
+
 ## 升级规则
 
 出现以下情况时，必须升级任务等级或请求确认：

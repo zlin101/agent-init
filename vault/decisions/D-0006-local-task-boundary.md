@@ -1,6 +1,8 @@
 # D-0006 - Local TASK 私有边界与 clone-safe 投影（2026-09-09）
 
-Status: Active
+Status: Superseded by D-0014
+
+> 2026-09-30 supersession note：local retention 契约由 D-0014 接管；“not tracked ⇒ disposable” 推导被显式废止；本文件的仓库负担目标、蒸馏 gate 与 clone-safe 投影语义已并入现行协议，继续有效。原正文保留如下。
 
 ## Background
 

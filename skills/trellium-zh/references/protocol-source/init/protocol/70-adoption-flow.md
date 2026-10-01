@@ -32,6 +32,7 @@
 - `vault/governance.md`
 - `vault/decisions.md`
 - `vault/handoff.md`
+- `vault/project-id`，仅由 local 接入的 bundled 身份 helper 创建或校验（单行项目身份；升级永不重建或覆盖；tracked/private 不创建）
 - `vault/tasks/README.md`
 - `vault/tasks/.gitkeep`
 - `vault/details/*`，仅在已有项目确实需要时创建
@@ -127,7 +128,7 @@ Agent 执行接入前，应只做只读扫描：
 7. 执行接入前扫描。
 8. 输出接入计划，说明将创建或修改哪些协作层文件。
 9. 合并或创建 Agent 入口文件。
-10. 合并或创建 `vault/`；local 模式由 Agent 生成窄范围 `vault/tasks/.gitignore`，只忽略 `TASK-*.md`、`*-review.md` 与 `archive/`，不修改项目根 `.gitignore`。
+10. 合并或创建 `vault/`；local 模式由 Agent 生成窄范围 `vault/tasks/.gitignore`，只忽略 `TASK-*.md`、`*-review.md` 与 `archive/`，不修改项目根 `.gitignore`。local 模式在 policy 与窄范围 ignore 就位后调用 bundled 身份 helper 完成首次身份绑定：fresh 接入在接入计划中说明身份创建，存量 local 首次启用须取得 owner 确认绑定；helper 将 `vault/project-id` 以 `data` role 登记进版本戳，绑定丢失或登记失败按 helper 报告恢复/重试；随后运行 check，0 error 才算接入完成。tracked/private 不触发身份创建。
 11. 合并或创建 `skills/`。
 12. 在 `vault/project.md` 记录“这是既有项目接入，不是新项目初始化”。
 13. 在 `vault/runtime.md` 记录接入状态、风险和下一步。

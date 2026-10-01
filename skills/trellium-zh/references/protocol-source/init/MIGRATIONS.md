@@ -7,6 +7,13 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
+## Unreleased — local historical evidence store
+
+- Added: bundled identity helper `ensure_project_identity(target, authorize_create=...)`（不注册 CLI）：仅在显式 local policy 下执行；复用并严格校验 `vault/project-id`，已有绑定证据（版本戳 inventory 或 Git HEAD）而文件缺失时要求恢复，仅授权的首次绑定可创建，创建后登记失败保留身份文件、重试复用同一 UUID；以既有 `data` role 登记进版本戳 files inventory（既有 schema，不复制 UUID 值）。该路径加入 stamp 管理集，沿用现有 Git durability 检查保护；重复 adopt/baseline/upgrade 保留登记条目，upgrade 永不提案、创建或改写该文件。
+- Added: 正式历史证据模块 `scripts/history_store.py`（标准库、Python ≥ 3.9、无 CLI）：put/get/list + 最小 `retain_terminal` 适配，原子目录发布、per-artifact flock、SHA-256 不可变版本、fail-closed 完整性读取；经 sync-skills 以 `assets/history_store.py` 分发并纳入 drift 检查；现有安装方式可直接调用，无新增依赖。
+- Changed: review 台账收敛后不再删除——结论归档进 TASK Execution Record，原台账文件保留在原路径作为历史载体；local 任务 terminal 时 TASK 与已开展 review 的台账成组写入本机 Store 并逐份 get 验证，整组成功才算 retention 完成；失败保留 source、不回滚 accepted、幂等重试；默认不 cleanup。canonical 依据见 `10-vault.md`「Historical Evidence 保留（local）」与 `20-governance.md` 验收门。
+- Agent migration: 存量项目不自动回填——local 接入按 policy → 身份 helper → check 顺序接入；既有 terminal local TASK 仅在 owner 授权后回填，不批量删除、不宣称丢失材料可恢复；D-0006 由新 decision 显式 superseded，原 reasoning 保留；本仓 `vault/collaboration.md` 中与「可丢弃」直接冲突的现行表述由 Agent 按 D-0014 更新，历史观察记录不改写。
+
 ## Unreleased — hot-path routing ablation (Round 3)
 
 - Changed: entry-reading contract single-sourced in `30-agent-entry.md`; `10-vault.md` no longer restates the default-read flow (points at 30; storage/information duties kept); `80-execution-patterns.md`, `40-skills.md`, the `agent-task` Skill (repo copy + bilingual templates) and bilingual `protocol-model` references now delegate context reading to the project `AGENTS.md` entry instead of prescribing their own pre-read group.

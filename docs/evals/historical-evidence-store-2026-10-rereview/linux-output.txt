@@ -1,0 +1,13 @@
+ENV: Linux-7.0.14-orbstack-00380-ga7e0a2dc9535-aarch64-with-glibc2.36 3.12.3 uid 65534
+GIT: git version 2.39.2
+FS: overlayfs
+.................................
+----------------------------------------------------------------------
+Ran 33 tests in 2.543s
+
+OK
+F29-001: retry success = True ; failed parent fsync retried = False
+F29-002: corrupt HEAD stderr = fatal: Needed a single revision
+F29-002: replacement created = True ; differs from committed identity = True ; registered = True
+DISTRIBUTED E2E: trellium-zh PASS
+DISTRIBUTED E2E: trellium PASS
