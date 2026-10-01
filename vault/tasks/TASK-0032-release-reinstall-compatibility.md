@@ -6,13 +6,13 @@
   "task_id": "TASK-0032",
   "level": "C",
   "authority_level": 3,
-  "lifecycle": "active",
-  "current_slice": "tag-publication",
+  "lifecycle": "ready_for_review",
+  "current_slice": "owner-acceptance",
   "gates": {
     "release_checks": "passed",
-    "tag_publication": "pending",
-    "reinstallation": "pending",
-    "compatibility": "pending",
+    "tag_publication": "passed",
+    "reinstallation": "passed",
+    "compatibility": "passed",
     "owner_review": "pending"
   }
 }
@@ -49,11 +49,11 @@ Forbidden：覆盖本地定制不留副本、改写 2026.10.0 tag、把旧数据
 
 ## Acceptance Criteria
 
-- [ ] 新 tag 指向包含改名及一致版本号的提交，原 10.0 tag 不变。
-- [ ] 新包来自发布 tag，与对应源文件 byte-identical；UI 调用名正确，嵌套模板不可发现。
-- [ ] 原 09.1 包无定制或已妥善保留，替换后目录正常、备份可回滚。
-- [ ] 用实际安装包验证新三模式、旧项目拒绝/迁移/定制保护、Private forced-add 与 History 找回。
-- [ ] 如实记录环境、原始证据、仓库与分发检查及运行态发现边界。
+- [x] 新 tag 指向包含改名及一致版本号的提交，原 10.0 tag 不变。
+- [x] 新包来自发布 tag，与对应源文件 byte-identical；UI 调用名正确，嵌套模板不可发现。
+- [x] 原 09.1 包无定制或已妥善保留，替换后目录正常、备份可回滚。
+- [x] 用实际安装包验证新三模式、旧项目拒绝/迁移/定制保护、Private forced-add 与 History 找回。
+- [x] 如实记录环境、原始证据、仓库与分发检查及运行态发现边界。
 - [ ] Owner 接受本轮兼容交付。
 
 ## Verification
@@ -67,6 +67,9 @@ Forbidden：覆盖本地定制不留副本、改写 2026.10.0 tag、把旧数据
 - 发现两包 UI metadata 仍显示 Agent Native Init 且 default_prompt 指向已不存在的 agent-native-init 名称；按实际 name 校正，保证重装后的 UI 调用入口兼容。
 
 - [发布前证据](../../docs/evals/skill-reinstall-2026-10/RESULTS.md)：全量 284 tests / 283 PASS / 同一预存 FAIL；版本/UI metadata/sync/diff 检查通过，范围内 release_checks passed 不代表全量绿。发布、下载与真实替换仍分阶段记录。
+- 发布提交 d1b6af3 已与新 tag 2026.10.1 原子推送，远端已独立核对；10.0 未动。实际 Codex 中文包从新 tag 下载，校验39文件后原位替换，旧包在临时目录外置保留，测试后新包 hashes 未变。
+- 实际安装包84项聚焦 +3项 E2E通过；旧09.1真实 fixture、三模式、定制 proposal、Private forced-add、Local/Private History失败重试及删clone找回均覆盖。初始 E2E fixture错误及修正保留在证据中；产品代码未改，真实History与其他项目未操作。下一turn可发现新包，当前turn不冒充运行态发现测试。
+- 收尾 sync/check/status/diff 全 PASS，check 0/0、status unresolved 0；证据与任务记忆单独提交到 develop，不移动发布 tag。只有 Owner acceptance 保持 pending。
 
 ## Memory Updates
 

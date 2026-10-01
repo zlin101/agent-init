@@ -1,0 +1,43 @@
+test_installed_history_local_private_group_retry_clone_loss_recovery (__main__.InstalledE2E) ... test_new_three_modes (__main__.InstalledE2E) ... test_real_091_project_refusal_migration_and_custom_proposal (__main__.InstalledE2E) ... FAIL
+
+======================================================================
+FAIL: test_installed_history_local_private_group_retry_clone_loss_recovery (__main__.InstalledE2E) (mode='local')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/trellium-reinstall-20261001/run_e2e.py", line 146, in test_installed_history_local_private_group_retry_clone_loss_recovery
+    self.assertEqual(self.check_json(clone)['summary'], {'errors': 0, 'warnings': 0})
+AssertionError: {'errors': 1, 'warnings': 0} != {'errors': 0, 'warnings': 0}
+- {'errors': 1, 'warnings': 0}
+?            ^
+
++ {'errors': 0, 'warnings': 0}
+?            ^
+
+
+======================================================================
+FAIL: test_new_three_modes (__main__.InstalledE2E) (mode='local')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/trellium-reinstall-20261001/run_e2e.py", line 63, in test_new_three_modes
+    self.assertEqual(self.check_json(target)['summary'], {'errors': 0, 'warnings': 0})
+AssertionError: {'errors': 1, 'warnings': 0} != {'errors': 0, 'warnings': 0}
+- {'errors': 1, 'warnings': 0}
+?            ^
+
++ {'errors': 0, 'warnings': 0}
+?            ^
+
+
+======================================================================
+FAIL: test_real_091_project_refusal_migration_and_custom_proposal (__main__.InstalledE2E)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/trellium-reinstall-20261001/run_e2e.py", line 110, in test_real_091_project_refusal_migration_and_custom_proposal
+    self.assertEqual(data_before, {key: (target/key).read_bytes() for key in data_before})
+AssertionError: {'vau[6249 chars]s\n\n### Level A: Simple Task\n\n\xe4\xbd\x8e\[22328 chars]2\n'} != {'vau[6249 chars]s\n\n\xe5\x88\xa4\xe5\xae\x9a\xe9\xa1\xba\xe5\[32571 chars]2\n'}
+Diff is 99016 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 3 tests in 3.866s
+
+FAILED (failures=3)

@@ -1,0 +1,97 @@
+Implementation loaded from: ~/.codex/skills/trellium-zh/assets/trellium.py
+test_legacy_adopt_and_upgrade_refuse_before_writes (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_legacy_private_stamp_and_exclude_pass_read_only_check (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_legacy_tracked_stamp_passes_read_only_check (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_migrated_customization_is_preserved_through_upgrade_proposal (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_migrated_private_identity_and_ignore_remain_valid (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_missing_legacy_file_with_binding_does_not_create_replacement (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_partial_or_colliding_migration_refuses_before_writes (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_private_checker_detects_forced_add_of_either_workflow (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_private_preflight_rejects_both_workflow_namespaces (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_unstamped_legacy_baseline_and_adopt_refuse_before_writes (scripts.test_trellium.WorkSkillRenameTest) ... ok
+test_baseline_ignores_identity_then_helper_registers (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_bound_but_missing_identity_requires_recovery (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_corrupt_git_metadata_fails_closed (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_corrupt_head_reference_fails_closed (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_first_binding_creates_identity_and_registers (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_git_query_failure_fails_closed (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_git_unavailable_fails_closed (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_invalid_identity_fails_closed_without_rewriting (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_monorepo_head_binding_survives_worktree_loss (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_monorepo_prefix_failure_fails_closed (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_policy_parsing_matches_checker_strictness (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_registered_identity_joins_git_durability_core (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_registration_failure_keeps_identity_and_retry_reuses_it (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_repeat_adopt_and_upgrade_plan_preserve_registration (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_repository_without_commits_has_no_head_evidence (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_requires_explicit_history_policy (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_reuses_existing_identity_and_registers_observed (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_rev_parse_operational_failure_fails_closed (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_unqueryable_git_metadata_fails_closed (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_upgrade_plan_ignores_unregistered_identity (scripts.test_trellium.ProjectIdentityTest) ... ok
+test_check_and_status_goldens_healthy (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_check_and_status_goldens_single_storage_error (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_p0_local_with_core_hand_ignored_stays_unhealthy (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_policy_v1_rejects_private_task_storage (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_policy_v2_local_mode_drives_local_boundary_semantics (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_policy_v2_malformed_variants_stay_rejected (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_policy_v2_private_mode_is_recognized (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_policy_v2_tracked_mode_drives_tracked_semantics (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_adopt_rerun_fails_when_namespace_becomes_tracked (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_check_ignore_failure_fails_closed (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_clean_fixture_is_healthy (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_committed_head_is_reported (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_complete_upgrade_does_not_suggest_commit (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_crossed_marker_blocks_are_unconfigured (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_duplicate_marker_blocks_are_unconfigured (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_exclude_negation_unignoring_managed_path_fails (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_forced_add_is_reported (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_git_failure_is_unverified (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_marker_identity_mismatch_is_unconfigured (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_missing_exclude_block_is_unconfigured (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_missing_stamp_declared_managed_copy_fails (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_monorepo_subdir_fixture_is_healthy (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_non_anchored_pattern_is_overreach (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_non_git_target_warns (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_out_of_target_pattern_is_overreach (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_overbroad_exclude_is_overreach (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_policy_without_stamp_fails_closed (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_preflight_allows_untracked_carrier_without_writes (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_preflight_git_unavailable_fails_closed (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_preflight_rejects_staged_vault_file_in_monorepo (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_preflight_rejects_tracked_agents_without_writes (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_preflight_rejects_tracked_profile_carrier_without_writes (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_preflight_rejects_tracked_vault_namespace_file (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_profile_forced_add_is_reported (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_profile_managed_paths_require_exact_ignore (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_task_lifecycle_follows_local_semantics (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_tracked_carrier_fails_closed_without_writes (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_unterminated_marker_block_is_unconfigured (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_skill_preflight_command_smoke (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_tracked_and_local_goldens_stay_clean (scripts.test_trellium.PrivateStorageModeTest) ... ok
+test_private_binding_stays_ignored_and_reuses_uuid (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_bound_missing_identity_requires_restore (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_first_binding_requires_authorization (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_forced_add_refuses_identity_writes (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_invalid_ignore_boundary_refuses_binding (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_invalid_policy_refuses_binding (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_invalid_uuid_is_not_rewritten (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_missing_or_invalid_stamp_refuses_binding (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_preflight_corrupt_metadata_refuses_before_adopt (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_preflight_unknown_head_refuses_before_adopt (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_registered_uuid_replacement_is_refused (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_registration_failure_retry_keeps_uuid (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_repeat_adopt_and_upgrade_keep_identity_protected (scripts.test_trellium.PrivateHistoryTest) ... ok
+test_private_unknown_git_evidence_refuses_binding (scripts.test_trellium.PrivateHistoryTest) ... ok
+
+----------------------------------------------------------------------
+Ran 84 tests in 12.678s
+
+OK
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpp3svj72y/legacy/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpa3wz3qnk/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpudmhg9m5/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmp6nt01ypa/identity-forced-add/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpw2rmoi62/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpaiks0vov/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpip11plgx/private/vault/project-id

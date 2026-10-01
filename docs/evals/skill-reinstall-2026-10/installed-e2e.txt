@@ -1,0 +1,8 @@
+test_installed_history_local_private_group_retry_clone_loss_recovery (__main__.InstalledE2E) ... ok
+test_new_three_modes (__main__.InstalledE2E) ... ok
+test_real_091_project_refusal_migration_and_custom_proposal (__main__.InstalledE2E) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 2.214s
+
+OK
