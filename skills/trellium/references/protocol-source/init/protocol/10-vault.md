@@ -24,6 +24,7 @@
 | 为什么中断（真实中断时） | `handoff.md`，仅当无法从 canonical 状态低成本推导 | 无中断或完全可推导时不产生条目 |
 | 不可重现的瞬态操作现场 | `handoff.md` | 消费后即删 |
 | 精确续作点 | `handoff.md`，仅当超出任务 slice 导航价值 | 恢复顺序：TASK → Git/工作区/测试 → handoff delta |
+| 项目身份（local retention 绑定） | `vault/project-id`（单行 canonical UUID） | 不复制进 policy、stamp 或历史 metadata |
 | 项目预算与 TASK storage | `index.md` 的 `trellium-policy` 策略块 | 其他文件只路由，不复制当前值 |
 
 ## 记忆分层
@@ -168,6 +169,10 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 - fresh clone 中被忽略的 local TASK 文件必然不存在；这是 storage contract，不由 `runtime.md` 提供恢复副本。继续工作必须取回原任务文件，或经 owner 批准后重建任务契约。
 - tracked 任务默认 `not_applicable`（仍可主动记录 `none`/`distilled`）；该规则只作用于新关闭或重新打开后再关闭的任务，不批量回填历史。
 
+### project-id
+
+`vault/project-id` 是项目身份的唯一 canonical owner：单行标准 UUID 加换行，首次 local 接入由 bundled 身份 helper 创建，并以 `data` role 登记进安装版本戳的 files inventory（既有 schema，不复制 UUID 值）。clone/rename/workspace relocation/remote URL 变化都不改变身份；已有绑定证据（版本戳 inventory 或 Git HEAD）而文件缺失时要求恢复原身份，不静默生成替代；升级永不重建或覆盖身份。tracked/private 项目不创建身份。fork/副本由 owner 显式决定为新项目时才 re-key，旧 Store namespace 保留。
+
 ### details/
 
 按路由读取的长上下文：
@@ -177,6 +182,28 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 - `details/api.md`：API 设计和契约。
 - `details/agent.md`：Agent、LLM、Prompt 和工具行为。
 - `details/domain.md`：领域术语和规则。
+
+## Historical Evidence 保留（local）
+
+local TASK/review 的结构化证据在 terminal 后经本机 Historical Store 获得 clone-independent retention：
+
+```text
+active local TASK
+→ work / review
+→ Durable Knowledge Disposition
+→ accepted / superseded
+→ Historical Retention
+→ Integrity Verification
+→ optional local cleanup
+```
+
+- Store 默认 root `~/.trellium/history`（必须位于工作 clone 外），layout `<project-id>/<artifact-id>/<sha256>/{artifact.md,metadata.json}`；同 digest 幂等，不同 digest 共存为不可覆盖的 immutable version。已验证环境是本机可信 POSIX filesystem 与 cooperative writers；不承诺跨设备、备份或磁盘损坏保证。
+- 每份 artifact 的 metadata 仅五项（project_id、artifact_id、digest、archived_at、source_relative_path），不复制 lifecycle、Authority 或当前项目状态；Git SHA/URL/issue 等只存引用，不复制目标。
+- Closure 在写 Store 前确定必要 artifact 集合：TASK 必选；已开展 ledger review 的相应 ledger 必选，已知必要 ledger 缺失时报材料缺口，不按“只找到 TASK”宣称整组完成。整组 put/get 验证成功才算 closure retention 完成；部分成功幂等重试，失败不回滚 accepted、不删除 source、不静默宣称完成。
+- Retention 与 Disposition 正交：`none` 只回答没有新增 Canonical Knowledge，不回答历史是否保留。
+- Review 收敛后结论可写入 TASK Execution Record，但原 ledger 保留在原路径，作为历轮 findings、处置与证据引用的历史载体。
+- 默认不 cleanup：仅 owner 明确授权且整组验证完成、source 仍与已保全版本一致时才允许删除；cleanup 失败不取消已验证的 retention。历史不进默认 cold-start、不恢复 Authority、不编译为 current TASK；回溯走新的工作与 canonical 更新。
+- `vault/tasks/archive/` 保持 repo 内 compaction 职责，与 external Store 正交；tracked/private 不因本节触发外部 retention。实施载体（`history_store.py`、身份 helper 调用路径）由双语 Skill 分发说明。
 
 ## 状态块与策略块
 

@@ -6,10 +6,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
-
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = REPO_ROOT / "init"
@@ -19,6 +18,8 @@ DEFAULT_TARGETS = (
 )
 EMBEDDED_SCRIPT_SOURCE = REPO_ROOT / "scripts" / "trellium.py"
 EMBEDDED_SCRIPT_RELATIVE = "assets/trellium.py"
+EMBEDDED_STORE_SOURCE = REPO_ROOT / "scripts" / "history_store.py"
+EMBEDDED_STORE_RELATIVE = "assets/history_store.py"
 ZH_PACKAGE_ROOT = REPO_ROOT / "skills/trellium-zh"
 ZH_PROFILE_TEMPLATE_ROOT = ZH_PACKAGE_ROOT / "assets/templates/docs/engineering/profiles"
 MANIFEST_NAME = "manifest.json"
@@ -111,10 +112,13 @@ def write_snapshot(target: Path, files: dict[str, bytes]) -> None:
     staging = target.parent / f".{target.name}.tmp"
     backup = target.parent / f".{target.name}.backup"
 
-    if staging.exists():
-        shutil.rmtree(staging)
-    if backup.exists():
-        shutil.rmtree(backup)
+    try:
+        if staging.exists():
+            shutil.rmtree(staging)
+        if backup.exists():
+            shutil.rmtree(backup)
+    except OSError as exc:
+        raise SyncError(f"could not clean staging area for {target}: {exc}") from exc
 
     try:
         for relative, content in files.items():
@@ -139,14 +143,23 @@ def write_snapshot(target: Path, files: dict[str, bytes]) -> None:
 
 def embedded_script_drift(package_root: Path) -> list[str]:
     """Report drift between scripts/trellium.py and its embedded copy."""
-    destination = package_root / EMBEDDED_SCRIPT_RELATIVE
+    return _embedded_module_drift(package_root, EMBEDDED_SCRIPT_SOURCE, EMBEDDED_SCRIPT_RELATIVE)
+
+
+def embedded_store_drift(package_root: Path) -> list[str]:
+    """Report drift between scripts/history_store.py and its embedded copy."""
+    return _embedded_module_drift(package_root, EMBEDDED_STORE_SOURCE, EMBEDDED_STORE_RELATIVE)
+
+
+def _embedded_module_drift(package_root: Path, source: Path, relative: str) -> list[str]:
+    destination = package_root / relative
     try:
         actual = destination.read_bytes()
     except OSError:
-        return [f"missing {EMBEDDED_SCRIPT_RELATIVE}"]
-    expected = EMBEDDED_SCRIPT_SOURCE.read_bytes()
+        return [f"missing {relative}"]
+    expected = source.read_bytes()
     if actual != expected:
-        return [f"changed {EMBEDDED_SCRIPT_RELATIVE}"]
+        return [f"changed {relative}"]
     return []
 
 
@@ -173,6 +186,12 @@ def write_embedded_script(package_root: Path) -> None:
     destination.write_bytes(EMBEDDED_SCRIPT_SOURCE.read_bytes())
 
 
+def write_embedded_store(package_root: Path) -> None:
+    destination = package_root / EMBEDDED_STORE_RELATIVE
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(EMBEDDED_STORE_SOURCE.read_bytes())
+
+
 def write_derived_profiles(package_root: Path) -> None:
     if package_root != ZH_PACKAGE_ROOT:
         return
@@ -193,6 +212,7 @@ def sync(source: Path, targets: list[Path], check: bool) -> int:
         drift = describe_drift(expected, collect_target_files(target))
         package_root = target.parents[1]
         drift.extend(embedded_script_drift(package_root))
+        drift.extend(embedded_store_drift(package_root))
         drift.extend(derived_profile_drift(package_root))
         if check:
             if drift:
@@ -206,6 +226,7 @@ def sync(source: Path, targets: list[Path], check: bool) -> int:
 
         write_snapshot(target, expected)
         write_embedded_script(package_root)
+        write_embedded_store(package_root)
         write_derived_profiles(package_root)
         print(f"synced {len(expected) - 1} source files and the updater script to {target}")
 

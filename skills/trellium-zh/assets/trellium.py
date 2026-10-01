@@ -4,14 +4,10 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Iterator
-from contextlib import contextmanager, suppress
-from datetime import date
 import difflib
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
 import re
 import secrets
 import shutil
@@ -21,7 +17,11 @@ import sys
 import tarfile
 import urllib.error
 import urllib.request
-
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager, suppress
+from datetime import date
+from pathlib import Path, PurePosixPath
 
 # The script runs from two layouts:
 # - repository checkout: scripts/trellium.py, templates under
@@ -322,6 +322,10 @@ RETIRED_FILE_ROLES: dict[str, str] = {}
 WRITABLE_ROLES = frozenset({"marker", "merge", "template"})
 
 STAMP_RELATIVE = "vault/.agent-init.json"
+# One canonical project-identity owner: a tracked single-line UUID bound by
+# the helper-managed local retention onboarding. Never written by adopt or
+# upgrade; never copied into policy or install stamps.
+PROJECT_IDENTITY_RELATIVE = "vault/project-id"
 PROPOSAL_DIRECTORY = "vault/.upgrade"
 BACKUP_DIRECTORY = ".agent-init-backup"
 VERSION_FILE = PROTOCOL_INIT_DIRECTORY / "VERSION"
@@ -449,10 +453,8 @@ def open_child_directory(parent_descriptor: int, name: str, create: bool) -> int
     except FileNotFoundError:
         if not create:
             raise
-        try:
+        with suppress(FileExistsError):
             os.mkdir(name, 0o777, dir_fd=parent_descriptor)
-        except FileExistsError:
-            pass
         return os.open(name, DIRECTORY_OPEN_FLAGS, dir_fd=parent_descriptor)
 def open_target_directory(target: Path, create: bool) -> int:
     """Open an absolute target from its filesystem root without following links."""
@@ -1051,6 +1053,9 @@ def managed_upgrade_file_roles(
     """Return the finite file set this installation may inspect or mutate."""
     roles = dict(RETIRED_FILE_ROLES) if include_retired else {}
     roles.update(FILE_ROLES)
+    # Helper-managed identity: stamp registration is allowed (data role), but
+    # no template exists and no upgrade path may propose or write it.
+    roles[PROJECT_IDENTITY_RELATIVE] = "data"
     if profiles:
         roles[PROFILE_RULES_RELATIVE] = "merge"
         for profile in profiles:
@@ -1433,6 +1438,12 @@ def write_adoption_stamp(
                 else:
                     entry["observed"] = True
             files[relative] = entry
+    # Helper-managed project identity: preserve an existing registration
+    # verbatim so repeat adopt/upgrade never drops the binding or the Git
+    # durability coverage that the stamp inventory provides for it.
+    preserved_identity = previous_files.get(PROJECT_IDENTITY_RELATIVE)
+    if isinstance(preserved_identity, dict) and preserved_identity.get("role") == "data":
+        files[PROJECT_IDENTITY_RELATIVE] = dict(preserved_identity)
     stamp = {
         "schema_version": 2,
         "protocol_version": read_protocol_version(),
@@ -1508,6 +1519,10 @@ def build_upgrade_plan(target: Path, stamp: dict) -> dict[str, list[dict]]:
             plan["conflict"].append({"path": relative, "role": role, "reason": "local and upstream both changed"})
 
     for relative, role in sorted(desired_roles.items()):
+        if relative == PROJECT_IDENTITY_RELATIVE:
+            # Identity is helper-managed: upgrades never propose, create, or
+            # auto-add it; first binding is an authorized semantic step.
+            continue
         if relative in entries or relative in RENDERED_FILES:
             continue
         metadata = managed_file_metadata(target, relative)
@@ -2334,6 +2349,291 @@ def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]
             " as the project owner decides, then re-run the preflight"
         )
     return []
+
+
+# --- Project identity (local historical retention onboarding) ----------------
+
+
+def project_identity_path(target: Path) -> Path:
+    """Target-relative path of the one canonical project-identity owner."""
+    return target / PROJECT_IDENTITY_RELATIVE
+
+
+def read_project_identity(target: Path, target_descriptor: int | None = None) -> str | None:
+    """Return the canonical project UUID, or None when no identity file exists.
+
+    Unsafe paths, non-regular files, and content that is not exactly one
+    canonical lowercase UUID line followed by a newline fail closed; identity
+    is never rewritten or normalized in place.
+    """
+    metadata = managed_file_metadata(target, PROJECT_IDENTITY_RELATIVE)
+    if metadata is None:
+        return None
+    text = read_managed_text(target, PROJECT_IDENTITY_RELATIVE, target_descriptor)
+    if text is None:
+        return None
+    body = text[:-1] if text.endswith("\n") else None
+    if not body or "\n" in body or body != body.strip():
+        raise AdoptionError(
+            f"{PROJECT_IDENTITY_RELATIVE} must hold exactly one UUID line and a final newline; "
+            "refusing to rewrite identity"
+        )
+    try:
+        parsed = uuid.UUID(body)
+    except ValueError as exc:
+        raise AdoptionError(
+            f"{PROJECT_IDENTITY_RELATIVE} is not a valid UUID; refusing to rewrite identity"
+        ) from exc
+    canonical = str(parsed)
+    if canonical != body:
+        raise AdoptionError(
+            f"{PROJECT_IDENTITY_RELATIVE} must hold the canonical lowercase UUID form ({canonical}); "
+            "refusing to rewrite identity"
+        )
+    return canonical
+
+
+def _git_root_prefix_strict(target: Path) -> str | None:
+    """Repo-root-relative prefix of the target, or None when Git cannot say."""
+    result = git_run(target, ["rev-parse", "--show-toplevel"])
+    if result is None or result.returncode != 0:
+        return None
+    try:
+        root = Path(result.stdout.decode("utf-8", "surrogateescape").strip())
+        relative = os.path.relpath(target.resolve(), root.resolve())
+    except (OSError, ValueError):
+        return None
+    if relative == ".":
+        return ""
+    return Path(relative).as_posix() + "/"
+
+
+def _proven_without_git_metadata(target: Path) -> bool | None:
+    """True only when target provably has no .git entry on the ancestor chain.
+
+    Git reports "not a git repository" both for a plain directory and for a
+    directory whose .git metadata is corrupt, so stderr alone cannot separate
+    "never was a repository" from "damaged repository". Only a query that
+    definitively succeeds counts as evidence: an existing entry (directory,
+    pointer file, or symlink) means damaged existing metadata, and any query
+    failure (unreadable ancestor, unresolvable symlink, non-directory
+    component) stays unknown instead of reading as absence. Only a confirmed
+    FileNotFoundError on every ancestor proves there is no repository.
+    """
+    try:
+        current = target.resolve()
+    except OSError:
+        return None
+    while True:
+        try:
+            os.lstat(current / ".git")
+        except OSError as error:
+            if not isinstance(error, FileNotFoundError):
+                return None  # the query itself failed; absence is not proven
+            # FileNotFoundError: proven absent at this level; keep probing upward.
+        else:
+            return False  # an existing entry: damaged or not, metadata is there
+        if current == current.parent:
+            return True
+        current = current.parent
+
+
+def _identity_in_head(target: Path) -> bool | None:
+    """Whether Git HEAD records the identity path, or None when Git cannot say.
+
+    Only a plain non-repository target (no .git entry on the ancestor chain)
+    and a repository whose zero-revision state Git itself confirms provably
+    have no HEAD evidence layer. Git being absent or unexecutable, existing
+    but corrupt or unreadable Git metadata (including a damaged .git/HEAD,
+    which Git reports as "not a git repository"), an unresolvable HEAD whose
+    repository still holds revisions, and any operational query failure
+    inside an existing repository (including the monorepo prefix lookup),
+    return None: unknown evidence fails closed and must never be read as
+    "unbound".
+    """
+    probe = git_run(target, ["rev-parse", "--verify", "HEAD"])
+    if probe is None:
+        return None
+    if probe.returncode != 0:
+        stderr = probe.stderr.decode("utf-8", "surrogateescape")
+        if "not a git repository" in stderr:
+            # The same error text covers a never-initialized directory, an
+            # existing repository with damaged metadata, and unqueryable
+            # ancestors; only a structurally proven absence may read as
+            # unbound, everything else stays unknown.
+            if not _proven_without_git_metadata(target):
+                return None
+            return False
+        # An unresolvable HEAD is ambiguous: an unborn branch, a corrupt ref,
+        # and a damaged object database all fail here with overlapping error
+        # text. Only Git confirming that no revision exists counts as evidence
+        # that no HEAD binding layer can exist; every other outcome stays
+        # unknown and fails closed.
+        revisions = git_run(target, ["rev-list", "-n", "1", "--all"])
+        if revisions is None or revisions.returncode != 0 or revisions.stdout.strip():
+            return None
+        return False
+    prefix = _git_root_prefix_strict(target)
+    if prefix is None:
+        return None
+    result = git_run(target, ["cat-file", "blob", f"HEAD:{prefix}{PROJECT_IDENTITY_RELATIVE}"])
+    if result is None:
+        return None
+    if result.returncode == 0:
+        return True
+    stderr = result.stderr.decode("utf-8", "surrogateescape")
+    if "does not exist" in stderr or "Not a valid object name" in stderr:
+        return False
+    return None
+
+
+def identity_binding_evidence(target: Path) -> bool:
+    """True when the stamp inventory or Git HEAD already records the identity path."""
+    stamp = read_stamp(target)
+    files = stamp.get("files") if isinstance(stamp, dict) else None
+    if isinstance(files, dict) and PROJECT_IDENTITY_RELATIVE in files:
+        return True
+    recorded = _identity_in_head(target)
+    if recorded is None:
+        raise AdoptionError(
+            "git could not verify whether a project identity was bound before; "
+            "resolve Git verification and retry instead of generating an identity"
+        )
+    return recorded
+
+
+def _require_local_policy_for_identity(target: Path) -> dict:
+    """Return the policy only under an explicit, valid local storage mode.
+
+    Parsing mirrors the canonical checker exactly (unique block,
+    ``parse_block_object`` strictness, ``validate_policy_object``): duplicate
+    keys, multiple or unterminated blocks, non-object content, and invalid
+    values are all refused — the helper must not accept a policy the checker
+    rejects, and an invalid policy never reaches the write path.
+    """
+    text, error = read_regular_text(target / "vault/index.md")
+    if text is None:
+        raise AdoptionError(
+            f"cannot read the project policy ({error}); identity onboarding requires an explicit local storage policy"
+        )
+    blocks, extract_error = extract_comment_blocks(text, POLICY_MARKER)
+    if extract_error is not None:
+        raise AdoptionError(
+            f"invalid project policy ({extract_error}); identity onboarding requires an explicit valid local policy"
+        )
+    if len(blocks) != 1:
+        raise AdoptionError(
+            f"expected exactly one {POLICY_MARKER} block, found {len(blocks)}; "
+            "identity onboarding requires an explicit valid local policy"
+        )
+    policy, parse_error = parse_block_object(blocks[0])
+    if policy is None:
+        raise AdoptionError(
+            f"invalid project policy ({parse_error}); identity onboarding requires an explicit valid local policy"
+        )
+    validation_errors = validate_policy_object(policy)
+    if validation_errors:
+        raise AdoptionError(
+            "invalid project policy (" + "; ".join(validation_errors) + "); "
+            "identity onboarding requires an explicit valid local policy"
+        )
+    if normalized_storage_mode(policy) != "local":
+        raise AdoptionError(
+            "identity onboarding runs only under an explicit local storage policy; "
+            "tracked and private projects never bind a historical store"
+        )
+    return policy
+
+
+def register_project_identity(
+    target: Path, *, created: bool, target_descriptor: int | None = None
+) -> bool:
+    """Register the identity path in the stamp inventory using the existing schema.
+
+    The entry is a plain ``{"role": "data", "baseline": <sha256>}`` record: no
+    new fields, no copy of the UUID value. Existing registrations are kept;
+    returns False in that case. A registration after an out-of-band identity
+    file is marked observed, so it stays an evidence record, never a claim of
+    authorship.
+    """
+    stamp = read_stamp(target, target_descriptor)
+    if stamp is None:
+        raise AdoptionError("no adoption stamp found; identity onboarding requires an adopted installation")
+    files = stamp["files"]
+    entry = files.get(PROJECT_IDENTITY_RELATIVE)
+    if isinstance(entry, dict) and entry.get("role") == "data":
+        return False
+    baseline = local_hash_for_role(target, PROJECT_IDENTITY_RELATIVE, "data", target_descriptor)
+    if baseline is None:
+        raise AdoptionError(
+            "the project identity disappeared before registration; retry to reuse the existing file - never generate a replacement"
+        )
+    registered: dict[str, str | bool] = {"role": "data", "baseline": baseline}
+    if not created:
+        registered["observed"] = True
+    files[PROJECT_IDENTITY_RELATIVE] = registered
+    validate_stamp_file_paths(stamp)
+    write_stamp_file(target, stamp, target_descriptor)
+    return True
+
+
+def ensure_project_identity(
+    target: Path,
+    *,
+    authorize_create: bool = False,
+    target_descriptor: int | None = None,
+) -> dict:
+    """Bundled identity helper: read, validate, recover-gate, or create and register.
+
+    Agent-native first local retention onboarding calls this after adopt and
+    the local policy/narrow-ignore setup, before check. Under an explicit
+    local policy it reuses a valid ``vault/project-id`` and completes its
+    stamp registration; a bound-but-missing identity must be restored, never
+    regenerated - even an authorized first binding cannot bypass that gate;
+    creating one requires ``authorize_create`` and leaves the identity file
+    in place if the inventory write fails, so a retry re-registers the same
+    UUID. Returns ``{"identity", "created", "registered"}``; every refusal
+    raises AdoptionError and leaves the project untouched. Upgrades and
+    repeat adopts preserve the registration; tracked and private projects
+    never reach identity creation at all.
+    """
+    target = Path(target).resolve()
+    _require_local_policy_for_identity(target)
+    identity = read_project_identity(target, target_descriptor)
+    created = False
+    if identity is None:
+        if identity_binding_evidence(target):
+            raise AdoptionError(
+                f"{PROJECT_IDENTITY_RELATIVE} is missing but a prior binding is recorded "
+                "(stamp inventory or Git HEAD); restore the original identity file - do not generate a replacement"
+            )
+        if not authorize_create:
+            raise AdoptionError(
+                f"{PROJECT_IDENTITY_RELATIVE} does not exist and no prior binding is recorded; "
+                "first binding needs explicit authorization (fresh adoption plan or owner-confirmed enablement)"
+            )
+        write_text_file(
+            project_identity_path(target),
+            f"{uuid.uuid4()}\n",
+            target,
+            force=False,
+            dry_run=False,
+            target_descriptor=target_descriptor,
+        )
+        identity = read_project_identity(target, target_descriptor)
+        if identity is None:
+            raise AdoptionError(
+                "the identity file vanished during creation; onboarding is incomplete - retry re-checks binding evidence"
+            )
+        created = True
+    try:
+        registered = register_project_identity(target, created=created, target_descriptor=target_descriptor)
+    except OSError as exc:
+        raise AdoptionError(
+            f"the identity file was kept but stamp registration failed ({exc}); "
+            "onboarding is incomplete - retry re-registers the same identity"
+        ) from exc
+    return {"identity": identity, "created": created, "registered": registered}
 
 
 def parse_private_exclude_blocks(text: str) -> tuple[list[dict], list[str]]:

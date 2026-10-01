@@ -13,6 +13,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 ## Current Progress
 
 - Round 3 review is closed: routing dedup and runtime trim retained; Level A index-skip remains No-Go, so the default reading set is unchanged. No remaining Round 3 implementation.
+- Historical Evidence Store 的正式 helper 与 closure/身份规则已同步双语分发；本仓仍为 tracked policy，未接入真实本机 Store、未执行真实 retention/cleanup。实现验收与环境证据由 TASK-0029 及 review ledger 承载。
 
 ## Constraints
 
@@ -25,6 +26,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 
 ## Recent Changes
 
+- 2026-09-30: TASK-0029 按 owner 指令在独立分支实施至 ready_for_review；D-0006 由新 D-0014 显式 superseded（原 reasoning 保留），canonical retention/身份规则落地并同步双语分发。
 - 2026-09-30: owner accepted Round 3 after independent APPROVE (review baseline `77ee022`); scoped multi-TASK commit + push executed under the same owner authorization.
 
 ## Known Risks
@@ -45,4 +47,4 @@ git diff --check
 
 ## Next Steps
 
-- Round 3 is closed (accepted, committed, pushed under owner authorization). TASK-0027/TASK-0029 remain separate owner-reviewed lines; Round 4 only on explicit owner request; releases/tag remain owner-directed.
+- TASK-0029 后续按任务及 review ledger 的当前结论推进（accept/commit 归 owner）；环境证据与 gates 不在 runtime 重复投影。Round 4 仅在 owner 显式要求时启动；releases/tag remain owner-directed.
