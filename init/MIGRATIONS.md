@@ -7,6 +7,15 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
+## Unreleased — Trellium Work rename
+
+- Changed: 现有项目 starter workflow `agent-task` 更名为 `trellium-work`，标题 `Trellium Work`，新项目唯一目标为 `skills/trellium-work/SKILL.md`。安装/接入包仍叫 `trellium` / `trellium-zh`，不增加新的 Agent 发现位置或第二入口。双语模板以不可发现名称 `TRELLIUM_WORK_SKILL.template` 分发。
+- Compatibility: 旧 `skills/agent-task/SKILL.md` stamp 条目仍为有限 allowlist 中的 template，旧 Private block 仍可只读 check。含旧文件或旧 stamp 绑定时，adopt（包括 --force）、upgrade（包括 --complete）以及无 stamp 的 baseline 在写入前拒绝，提示显式迁移；不自动 add/remove 两份工作流。
+- Agent migration: owner 确认后先核对旧文件和 stamp，使用原版本工具完成已有 pending proposal 的旧轮；新路径已有文件、旧文件丢失/非普通文件或 stamp 非法时先解决冲突/恢复，不覆盖、不补写空模板。将旧 SKILL.md 移到不存在的新路径，保留全部定制，仅更新 frontmatter `name: trellium-work`、标题和实际相关引用；旧位置不再留 SKILL.md。
+- Agent migration: stamp 存在时仅将 files 中旧路径的 template 条目改为新路径，baseline 记录迁移后文件 SHA-256，并标记 observed=true；保留 entry 的兼容信息、其他 files 条目、project-id、protocol_version、profiles 和全部其他 stamp 字段。stamp 不存在时，移动并确认名称后运行 baseline，走 unversioned proposal 保护；不得通过重跑 adopt 覆盖已有数据。对已有 pending proposal 的迁移需先完成旧轮，不携带悬空的 proposal 路径。
+- Agent migration: Private 同步将精确 `trellium-private` block 的 `/skills/agent-task/` 改为 `/skills/trellium-work/`（monorepo 保留原 prefix），保持其他边界不变；读回 check 0 errors 后再调用 identity/upgrade。Local/Tracked 由 owner 授权提交路径和 stamp 的协调变更，未提交时 HEAD Gate 如实报错；工具不执行 Git 操作。现有旧 namespace 的其他文件由 owner 按用途处置，Private 不允许将残余旧内容强制 add。
+- Verification: 完成迁移后运行 diff、按 proposal 保留定制，必要时 upgrade --complete，再 check。用户级已安装 Skill 不由项目迁移改写；需用户按现有安装方式更新包。历史讨论和已接受任务中的旧名称不回溯改写。
+
 ## 2026.10.0 — private historical retention
 
 - Changed: Private terminal TASK/review 也执行现有本机 History Store 的成组 put/get 保全；所有目标 managed material 仍不进 Git，默认仍 Local。Store 路径/格式/API 与知识处置、失败保留来源/重试、非 Authority 边界不变，不增加同步或当前 Vault 备份。

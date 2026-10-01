@@ -12,9 +12,11 @@ Agent 入口文件不应承载复杂工作流细节。当任务明显匹配本�
 
 ```text
 skills/
-  agent-task/
+  trellium-work/
     SKILL.md
 ```
+
+该工作流名为 `trellium-work`，显示标题为 **Trellium Work**；安装/接入包仍为 `trellium` / `trellium-zh`。保持既有 AGENTS.md + vault 入口，不新增 Agent 自动发现承诺。旧项目按 `init/MIGRATIONS.md` 显式改名并保留定制。
 
 任务 skill 应覆盖：
 

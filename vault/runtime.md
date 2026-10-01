@@ -6,7 +6,7 @@ Post-2026.09.9 convergence CLOSED and `2026.09.10` published tag-only; Profile k
 
 ## Focus
 
-- TASK-0028
+- TASK-0031
 
 Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or active-task inventory; `trellium status` reads TASK state directly from task files.
 
@@ -26,6 +26,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 
 ## Recent Changes
 
+- 2026-10-01: 项目 starter workflow 名称改为 Trellium Work，owner 已授权随 develop 提交推送（尚未纳入版本 tag）；安装包仍 trellium / trellium-zh，旧项目的显式迁移与检查兼容见 TASK-0031 / D-0016。
 - 2026-10-01: Private History 交付与 `2026.10.0` tag-only 发布授权已记录；版本号及双语分发随提交同步，默认仍 Local，未接入真实 Store。
 - 2026-10-01: Historical Evidence Store 经 PR #6 合入 develop；D-0014 与 canonical retention/身份规则已进入主开发线，双语分发已同步，当前协议与历史讨论应分开读取。
 - 2026-09-30: owner accepted Round 3 after independent APPROVE (review baseline `77ee022`); scoped multi-TASK commit + push executed under the same owner authorization.
@@ -48,4 +49,5 @@ git diff --check
 
 ## Next Steps
 
+- 改名与旧项目显式迁移见 TASK-0031 / D-0016；新路径与 stamp 协调提交到 develop，真实 HEAD Gate 在提交后核对。已发布 2026.10.0 不改写，新 tag 需 owner 另行授权。
 - 后续整体方向见[合并后计划建议](../docs/discussions/2026-10-01-post-history-store-next-steps.md)；默认切换与当前知识恢复分别评估。Owner 已另行授权本次 Private History 的 `2026.10.0` tag-only 发布；TASK-0027 规划审阅单独推进。

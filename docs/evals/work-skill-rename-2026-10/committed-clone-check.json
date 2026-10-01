@@ -1,0 +1,99 @@
+{
+  "check": {
+    "findings": [],
+    "measurements": {
+      "decisions": {
+        "bytes": 4755,
+        "lines": 24,
+        "max_line_bytes": 402,
+        "records": 16
+      },
+      "handoff": {
+        "bytes": 1051,
+        "entries": 0,
+        "lines": 7,
+        "max_line_bytes": 434
+      },
+      "parked": {
+        "bytes": 609,
+        "entries": 0,
+        "lines": 15,
+        "max_line_bytes": 219
+      },
+      "runtime": {
+        "bytes": 3630,
+        "lines": 52,
+        "max_line_bytes": 465,
+        "recent_entries": 4
+      },
+      "tasks": {
+        "active_tasks": 2,
+        "archive_files": 0,
+        "closed_tasks": 29,
+        "current_task_files": 31,
+        "legacy_tasks": 0,
+        "review_ledgers": 5
+      }
+    },
+    "schema_version": 1,
+    "summary": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "target": "<isolated fresh clone>"
+  },
+  "status": {
+    "findings": [],
+    "focus": [
+      {
+        "resolved": true,
+        "task_id": "TASK-0031"
+      }
+    ],
+    "schema_version": 1,
+    "summary": {
+      "active": 1,
+      "blocked": 0,
+      "closed": 29,
+      "draft": 0,
+      "ready_for_review": 1,
+      "unresolved": 0
+    },
+    "target": "<isolated fresh clone>",
+    "tasks": {
+      "active": [
+        {
+          "authority_level": 3,
+          "current_slice": "implementation",
+          "gates": {
+            "distribution_sync": "pending",
+            "implementation": "pending",
+            "owner_review": "pending",
+            "regression": "pending"
+          },
+          "lifecycle": "active",
+          "task_id": "TASK-0031",
+          "task_path": "vault/tasks/TASK-0031-trellium-work-rename.md"
+        }
+      ],
+      "blocked": [],
+      "draft": [],
+      "ready_for_review": [
+        {
+          "authority_level": 1,
+          "current_slice": "storage-mode-baseline-awaiting-owner-review",
+          "gates": {
+            "analysis": "passed",
+            "documentation_checks": "passed",
+            "owner_review": "pending",
+            "source_verification": "passed"
+          },
+          "lifecycle": "ready_for_review",
+          "task_id": "TASK-0027",
+          "task_path": "vault/tasks/TASK-0027-memory-boundary-reassessment.md"
+        }
+      ],
+      "unresolved": []
+    }
+  }
+}

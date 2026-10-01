@@ -18,7 +18,7 @@
 - `vault/parked.md`：用户挂起事项冷索引（P-xxxx 条目）；仅被提及时读取；清理只出提案。
 - `vault/collaboration.md`：协作偏好和观察模式。
 - `vault/tasks/README.md`：任务生命周期流转、`trellium-task-state` 状态块规则、任务模板和 review 台账模板。
-- `skills/agent-task/SKILL.md`：非琐碎项目任务的可复用工作流。
+- `skills/trellium-work/SKILL.md`：非琐碎项目任务的可复用工作流。
 
 ## 新项目初始化
 

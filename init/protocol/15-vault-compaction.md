@@ -37,7 +37,7 @@
 - 独立 maintenance TASK 或当前 TASK 的验收标准明确包含压缩。
 - 正确性恢复需要：热文件结构损坏导致 canonical 状态不可读或不可解析。
 
-agent-task 收尾检测到预算超出（`trellium.py check` 的 `BUDGET_EXCEEDED` warning）只报告为仓库健康信号，不自动触发压缩，也不扩大当前 TASK 的 scope。
+trellium-work 收尾检测到预算超出（`trellium.py check` 的 `BUDGET_EXCEEDED` warning）只报告为仓库健康信号，不自动触发压缩，也不扩大当前 TASK 的 scope。
 
 ## 压缩流程
 
@@ -165,7 +165,7 @@ git diff --stat HEAD
 压缩不修改治理文件，但分类阶段必须产出提案：
 
 - `governance.md` 漂移（必要检查过时、等级边界与实际不符、升级规则空白）：输出修订提案清单，按 Level C 处理。
-- `collaboration.md`：协作信号由 agent-task 工作流在任务收尾时捕获（见 `90-collaboration-profile.md`），压缩不做额外处理。
+- `collaboration.md`：协作信号由 trellium-work 工作流在任务收尾时捕获（见 `90-collaboration-profile.md`），压缩不做额外处理。
 - `project.md`：记录阶段核对当前阶段与 `runtime.md` 一致；不一致时提出修订。
 
 ## 反模式

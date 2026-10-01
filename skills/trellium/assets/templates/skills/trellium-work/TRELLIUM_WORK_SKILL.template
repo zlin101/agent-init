@@ -1,9 +1,9 @@
 ---
-name: agent-task
+name: trellium-work
 description: Use when doing non-trivial project work that requires context reading, scoped edits, verification, task records, or vault memory updates.
 ---
 
-# Agent Task Workflow
+# Trellium Work
 
 ## Steps
 

@@ -146,7 +146,7 @@ When the Skill is used, the Agent generates or merges the following into the tar
 - `vault/` project memory;
 - task-contract governance;
 - handoff and collaboration profile;
-- `skills/agent-task/SKILL.md` starter workflow.
+- `skills/trellium-work/SKILL.md` starter workflow.
 
 This Skill is suited for cross-project reuse; the full `init/protocol/` is better suited for continuing to design and maintain the protocol itself. Each Skill's `references/protocol-source/` is an authoritative snapshot generated from `init/` — do not edit it directly.
 
@@ -224,7 +224,7 @@ This creates a complete `docs/engineering/profiles/<profile>.md` for every selec
 - `AGENTS.md`
 - `vault/`
 - `vault/tasks/README.md`
-- `skills/agent-task/SKILL.md`
+- `skills/trellium-work/SKILL.md`
 
 If the target project already has an `AGENTS.md`, the script appends a marked Trellium section instead of overwriting the file. Existing `vault/*` and `skills/*` files are skipped by default; pass `--force` explicitly to replace them.
 
@@ -249,7 +249,7 @@ python3 scripts/trellium.py upgrade /path/to/project --apply   # execute the saf
 python3 scripts/trellium.py upgrade /path/to/project --complete  # finalize resolved proposals
 ```
 
-The upgrade splits collaboration files into two classes: **project data** (runtime, handoff, decisions, tasks, project, collaboration, and friends) is read-only to the upgrader and is never replaced by templates; **protocol files** (governance, index, tasks/README, skills/agent-task, the managed AGENTS.md region, and the generated engineering policy when profiles were selected) may be refreshed, but local modifications are never silently discarded — when both sides changed, a proposal is written under `vault/.upgrade/<version>/` for the Agent to merge and the user to confirm. Upgrades are per-file opt-in (`--only` / `--skip`) and produce a standalone, revertable commit.
+The upgrade splits collaboration files into two classes: **project data** (runtime, handoff, decisions, tasks, project, collaboration, and friends) is read-only to the upgrader and is never replaced by templates; **protocol files** (governance, index, tasks/README, skills/trellium-work, the managed AGENTS.md region, and the generated engineering policy when profiles were selected) may be refreshed, but local modifications are never silently discarded — when both sides changed, a proposal is written under `vault/.upgrade/<version>/` for the Agent to merge and the user to confirm. Upgrades are per-file opt-in (`--only` / `--skip`) and produce a standalone, revertable commit.
 
 `adopt` records a stamp at `vault/.agent-init.json` (the content hash of each file at install time). Projects adopted before the stamp existed should first run `baseline <target>`. Format migrations for data files are defined entry by entry in `init/MIGRATIONS.md`: content is carried over, never dropped.
 
@@ -318,6 +318,8 @@ This script is only for this repo's release maintenance; it is not an install-ti
 
 When a change affects protocol templates shipped to adopted projects, update three things in step: `FILE_ROLES` in `scripts/trellium.py` (when files are added or removed), `init/MIGRATIONS.md` (append a migration entry), and `init/VERSION` (bump as needed). When publishing a version for `--fetch`, tag it: `git tag <version> && git push origin <version>` (matching `init/VERSION`).
 
+Existing `agent-task` workflows require the explicit [Trellium Work migration](init/MIGRATIONS.md): preserve customizations and coordinate the path, stamp, and Private ignore block. Adoption/upgrade writes stop until migration is complete; read-only checks remain compatible. The installation Skills stay `trellium` / `trellium-zh`.
+
 ## Protocol philosophy
 
 ### Task contract first
@@ -370,7 +372,7 @@ When using a Skill package, the correct flow is:
 
 1. Install or copy `skills/trellium-zh/` or `skills/trellium/`;
 2. Invoke the Skill in the target project;
-3. Let the Skill generate the target project's own `AGENTS.md`, `vault/`, and `skills/agent-task/` from its built-in templates.
+3. Let the Skill generate the target project's own `AGENTS.md`, `vault/`, and `skills/trellium-work/` from its built-in templates.
 
 ## Current status
 
@@ -399,4 +401,4 @@ README.md
 scripts/
 ```
 
-Unless there is an explicit need to update the current sandbox state, do not commit artifacts such as `vault/`, `app/`, `tests/`, or a target project's generated `skills/agent-task/` as protocol source. The root `skills/trellium*` packages are distribution artifacts and may be committed alongside protocol changes.
+Unless there is an explicit need to update the current sandbox state, do not commit artifacts such as `vault/`, `app/`, `tests/`, or a target project's generated `skills/trellium-work/` as protocol source. The root `skills/trellium/` and `skills/trellium-zh/` packages are distribution artifacts and may be committed alongside protocol changes.

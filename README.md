@@ -146,7 +146,7 @@ skills/trellium-zh/
 - `vault/` 项目记忆；
 - 任务契约治理；
 - handoff 和 collaboration profile；
-- `skills/agent-task/SKILL.md` starter workflow。
+- `skills/trellium-work/SKILL.md`：**Trellium Work** 项目任务工作流；安装/接入 Skill 仍为 `trellium` / `trellium-zh`。
 
 该 Skill 适合跨项目复用；完整 `init/protocol/` 更适合继续设计和维护协议本身。每个 Skill 的 `references/protocol-source/` 是由 `init/` 自动生成的权威快照，不要直接修改。
 
@@ -226,7 +226,7 @@ python3 scripts/trellium.py adopt /path/to/project \
 - `AGENTS.md`
 - `vault/`
 - `vault/tasks/README.md`
-- `skills/agent-task/SKILL.md`
+- `skills/trellium-work/SKILL.md`
 
 如果目标项目已经有 `AGENTS.md`，脚本会追加一个带标记的 Trellium 小节，而不是覆盖原文件。已有的 `vault/*` 和 `skills/*` 文件默认跳过；需要替换时显式传入 `--force`。
 
@@ -251,7 +251,9 @@ python3 scripts/trellium.py upgrade /path/to/project --apply   # 执行安全子
 python3 scripts/trellium.py upgrade /path/to/project --complete  # 提案解决后收尾
 ```
 
-升级把协作层文件分为两类：**项目数据**（runtime、handoff、decisions、tasks、project、collaboration 等）对升级器只读，永不被模板替换；**协议文件**（governance、index、tasks/README、skills/agent-task、AGENTS.md 管理区域，以及显式选择后生成的工程规范）可刷新，但本地修改永不静默丢弃——双方都改过时生成提案到 `vault/.upgrade/<version>/`，由 Agent 合并、用户确认。升级逐文件可选（`--only` / `--skip`），产出独立提交可随时 `git revert`。
+升级把协作层文件分为两类：**项目数据**（runtime、handoff、decisions、tasks、project、collaboration 等）对升级器只读，永不被模板替换；**协议文件**（governance、index、tasks/README、skills/trellium-work、AGENTS.md 管理区域，以及显式选择后生成的工程规范）可刷新，但本地修改永不静默丢弃——双方都改过时生成提案到 `vault/.upgrade/<version>/`，由 Agent 合并、用户确认。升级逐文件可选（`--only` / `--skip`），产出独立提交可随时 `git revert`。
+
+旧项目的 `agent-task` 需按 [迁移手册](init/MIGRATIONS.md)显式迁移到 `trellium-work`：保留定制，同时更新 stamp 与 Private 忽略规则；工具会在迁移前停止安装/升级写入，旧配置仍可只读检查。
 
 `adopt` 会在 `vault/.agent-init.json` 记录版本戳（各文件安装时的内容 hash）。版本戳出现之前的存量项目先运行 `baseline <target>` 补记。数据文件的格式迁移由 `init/MIGRATIONS.md` 迁移手册逐条定义：只做内容搬运，不丢事实。
 
@@ -373,7 +375,7 @@ Agent 不按身份获得信任，而是按任务契约获得授权，并按验�
 
 1. 安装或复制 `skills/trellium-zh/` 或 `skills/trellium/`；
 2. 在目标项目调用该 Skill；
-3. 让 Skill 根据内置模板生成目标项目自己的 `AGENTS.md`、`vault/` 和 `skills/agent-task/`。
+3. 让 Skill 根据内置模板生成目标项目自己的 `AGENTS.md`、`vault/` 和 `skills/trellium-work/`。
 
 ## 当前状态
 
@@ -402,4 +404,4 @@ README.md
 scripts/
 ```
 
-除非明确需要更新当前沙盒状态，否则不要把 `vault/`、`app/`、`tests/` 或目标项目生成的 `skills/agent-task/` 等产物作为协议源提交。根目录 `skills/trellium*` 是分发包，可以随协议变化同步提交。
+除非明确需要更新当前沙盒状态，否则不要把 `vault/`、`app/`、`tests/` 或目标项目生成的 `skills/trellium-work/` 等产物作为协议源提交。根目录 `skills/trellium/` 和 `skills/trellium-zh/` 是分发包，可以随协议变化同步提交。

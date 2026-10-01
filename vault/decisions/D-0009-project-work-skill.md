@@ -17,3 +17,5 @@ TASK-0011 按预注册 A0/A1 消融（三场景 × 两臂 × 独立首答）验�
 ## Impact
 
 新项目接入只产出 AGENTS.md+vault，不为 Claude Code 复制第二份项目入口；不安装第二项目 Skill；`agent-task` 名称不再以可发现形态存在于发行包。
+
+2026-10-01 限定说明：D-0016 将已存在的 starter workflow 改名为 trellium-work；不新增第二入口或跨 Agent 自动发现机制。本决定及原实验结论保持有效，历史名称不回溯改写。

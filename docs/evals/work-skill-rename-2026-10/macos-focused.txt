@@ -1,0 +1,6 @@
+....................................................
+----------------------------------------------------------------------
+Ran 52 tests in 3.018s
+
+OK
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmp40_i0ehk/legacy/vault/project-id

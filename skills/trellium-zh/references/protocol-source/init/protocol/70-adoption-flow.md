@@ -37,7 +37,7 @@
 - `vault/tasks/.gitkeep`
 - `vault/details/*`，仅在已有项目确实需要时创建
 - `skills/`
-- `skills/agent-task/SKILL.md`
+- `skills/trellium-work/SKILL.md`
 - `docs/engineering/profiles/<profile>.md`，仅在 owner 显式选择语言 profile 时生成；每个已选 profile 一份完整工程规范
 - `docs/engineering/code-comments.md`，项目的 Comment/API Documentation Policy（注释/API 文档表达规范的唯一 owner）；它与完整 profile 都是项目工程文档，不是 Vault 数据
 
@@ -147,7 +147,7 @@ Agent 执行接入前，应只做只读扫描：
 - `vault/` 必备文件存在。
 - policy 中的 TASK storage 与 owner 选择一致；local 边界只覆盖 TASK/review/archive，tracked 不忽略这些路径。
 - `vault/governance.md` 定义任务等级、授权等级、任务契约、验收门和接力规则。
-- `skills/agent-task/SKILL.md` 存在。
+- `skills/trellium-work/SKILL.md` 存在。
 - `vault/runtime.md` 明确记录接入完成状态。
 - `vault/decisions.md` 记录接入模式决策。
 - 所有冲突和未完成事项已记录或请求确认。
@@ -182,7 +182,7 @@ python3 trellium.py adopt <target> \
 
 Private 接入的 Agent-native 顺序：
 
-1. adopt 之前调用 bundled 脚本的只读探针 `private_preflight(target, profiles)`：任一候选 managed path（AGENTS、Vault、agent-task Skill、stamp、Comment Policy、所选完整 Profile）已 tracked 或在 HEAD 中即拒绝；Git 查询失败 fail-closed；探针零写入。
+1. adopt 之前调用 bundled 脚本的只读探针 `private_preflight(target, profiles)`：任一候选 managed path（AGENTS、Vault、trellium-work Skill、stamp、Comment Policy、所选完整 Profile）已 tracked 或在 HEAD 中即拒绝；Git 查询失败 fail-closed；探针零写入。
 2. `adopt` 正常生成文件后，Agent 将 policy 写为 schema v2 `storage_mode=private`，并在 `.git/info/exclude` 维护 canonical private block（anchored patterns 精确覆盖全部 managed paths，不允许 overreach 或后置 negation）。
 3. policy/exclude 就位后调用 bundled ensure_project_identity helper（调用方法见分发 Skill），复用/登记 ignored 的 vault/project-id，只有显式首次绑定授权才能创建；helper 在写入前验证 stamp、Git 证据与 private 边界，登记 baseline 不符或已绑定身份丢失时拒绝替换。
 4. 运行 check；private storage finding 为零才算接入完成。Private TASK 使用 local lifecycle、knowledge disposition 和 terminal History 保全（见 10-vault.md）。fresh clone 不包含原协作层；找回历史须保留/恢复原 UUID，重新接入时先 get 核对已知历史、恢复该 UUID 文件、调用 helper 复用登记，不能自动创建新身份冒充旧历史；不恢复旧 Authority。
@@ -196,7 +196,7 @@ Private 接入的 Agent-native 顺序：
 | 类 | 文件 | 升级权限 |
 | --- | --- | --- |
 | 项目数据 | `runtime.md`、`handoff.md`、`decisions.md`、`decisions/`、`tasks/*`、`project.md`、`collaboration.md`、`details/*` | 只读。写入范围是硬编码白名单，数据文件不在其中，不依赖 Agent 自觉 |
-| 协议文件 | `governance.md`、`index.md`、`tasks/README.md`、`skills/agent-task/`、`AGENTS.md`、显式选择后生成的 `docs/engineering/profiles/*.md` 与兼容 `code-comments.md` | 可写。本地未改的跟进上游；本地改过且上游也改过的出冲突提案 |
+| 协议文件 | `governance.md`、`index.md`、`tasks/README.md`、`skills/trellium-work/`、`AGENTS.md`、显式选择后生成的 `docs/engineering/profiles/*.md` 与兼容 `code-comments.md` | 可写。本地未改的跟进上游；本地改过且上游也改过的出冲突提案 |
 
 `vault/.agent-init.json` 是升级器的版本戳：记录每个文件上次安装时的内容 hash，用于区分"项目自己改的"和"上游旧模板"。`AGENTS.md` 有两种形态：从模板整文件创建的按整文件对比；追加到用户已有文件的，只管理 marker 标记区域。
 

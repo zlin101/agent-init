@@ -133,7 +133,7 @@ class AgentInitTest(TargetTestCase):
         expected = {
             "AGENTS.md",
             "README.md",
-            "skills/agent-task/SKILL.md",
+            "skills/trellium-work/SKILL.md",
             "vault/.agent-init.json",
             "vault/collaboration.md",
             "vault/decisions.md",
@@ -1159,7 +1159,7 @@ class UpgradeMechanismTest(TargetTestCase):
             "vault/index.md",
             "vault/governance.md",
             "vault/tasks/README.md",
-            "skills/agent-task/SKILL.md",
+            "skills/trellium-work/SKILL.md",
         ):
             agent_init.assert_upgrade_writable(target, relative)
 
@@ -1448,6 +1448,9 @@ class EmbeddedSkillLayoutTest(TargetTestCase):
                 )
                 self.assertEqual(code, 0, err)
                 handoff = (target / "vault/handoff.md").read_text(encoding="utf-8")
+                workflow = target / embedded.WORK_SKILL_RELATIVE
+                self.assertIn("name: trellium-work", workflow.read_text(encoding="utf-8"))
+                self.assertFalse((target / embedded.LEGACY_WORK_SKILL_RELATIVE).exists())
                 self.assertEqual(agent_init.count_handoff_entries(handoff), 0)
                 runtime = (target / "vault/runtime.md").read_text(encoding="utf-8")
                 self.assertNotIn("## Active Tasks", runtime)
@@ -2744,8 +2747,8 @@ class LocalTemplateSemanticsTest(TargetTestCase):
 
     def test_agent_task_templates_carry_disposition_step(self) -> None:
         for relative in (
-            "skills/trellium-zh/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template",
-            "skills/trellium/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template",
+            "skills/trellium-zh/assets/templates/skills/trellium-work/TRELLIUM_WORK_SKILL.template",
+            "skills/trellium/assets/templates/skills/trellium-work/TRELLIUM_WORK_SKILL.template",
         ):
             text = self.read(relative)
             self.assertIn("Durable knowledge disposition", text)
@@ -2768,15 +2771,15 @@ class LocalTemplateSemanticsTest(TargetTestCase):
         "init/protocol/80-execution-patterns.md",
         "vault/governance.md",
         "vault/index.md",
-        "skills/agent-task/SKILL.md",
+        "skills/trellium-work/SKILL.md",
         "skills/trellium/references/protocol-model.md",
         "skills/trellium-zh/references/protocol-model.md",
         "skills/trellium/assets/templates/vault/governance.md",
         "skills/trellium-zh/assets/templates/vault/governance.md",
         "skills/trellium/assets/templates/vault/index.md",
         "skills/trellium-zh/assets/templates/vault/index.md",
-        "skills/trellium/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template",
-        "skills/trellium-zh/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template",
+        "skills/trellium/assets/templates/skills/trellium-work/TRELLIUM_WORK_SKILL.template",
+        "skills/trellium-zh/assets/templates/skills/trellium-work/TRELLIUM_WORK_SKILL.template",
     )
 
     SCALE_THRESHOLD_PHRASES = (
@@ -2861,14 +2864,14 @@ class LocalTemplateSemanticsTest(TargetTestCase):
 
     def test_agent_task_classification_stays_three_steps(self) -> None:
         expectations = {
-            "skills/agent-task/SKILL.md": ("三步", "风险域", "协作成本", "→ A"),
-            "skills/trellium-zh/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template": (
+            "skills/trellium-work/SKILL.md": ("三步", "风险域", "协作成本", "→ A"),
+            "skills/trellium-zh/assets/templates/skills/trellium-work/TRELLIUM_WORK_SKILL.template": (
                 "三步",
                 "风险域",
                 "协作成本",
                 "→ A",
             ),
-            "skills/trellium/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template": (
+            "skills/trellium/assets/templates/skills/trellium-work/TRELLIUM_WORK_SKILL.template": (
                 "three-step",
                 "risk domain",
                 "coordination cost",
@@ -2951,15 +2954,15 @@ class LocalTemplateSemanticsTest(TargetTestCase):
 
     def test_read_sources_delegate_entry_reading_to_agents(self) -> None:
         delegations = {
-            "skills/agent-task/SKILL.md": (
+            "skills/trellium-work/SKILL.md": (
                 "按 `AGENTS.md` 的入口规则",
                 "读取 `AGENTS.md`、`vault/index.md`（含速查表）和 `vault/runtime.md`",
             ),
-            "skills/trellium-zh/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template": (
+            "skills/trellium-zh/assets/templates/skills/trellium-work/TRELLIUM_WORK_SKILL.template": (
                 "按 `AGENTS.md` 的入口规则",
                 "读取 `AGENTS.md`、`vault/index.md`（含速查表）和 `vault/runtime.md`",
             ),
-            "skills/trellium/assets/templates/skills/agent-task/AGENT_TASK_SKILL.template": (
+            "skills/trellium/assets/templates/skills/trellium-work/TRELLIUM_WORK_SKILL.template": (
                 "Follow the `AGENTS.md` entry contract",
                 "Read `AGENTS.md`, `vault/index.md` (with the cheat sheet), and `vault/runtime.md`",
             ),
@@ -3171,8 +3174,8 @@ class StatusDefectRegressionsTest(VaultCheckMixin, TargetTestCase):
 class TemplatePackagingTest(TargetTestCase):
     """TASK-0011 No-Go stop-condition fix: the control packages must not carry
     a discoverable SKILL.md template (Codex globally discovered the nested
-    agent-task template). adopt/upgrade must still render the target project's
-    skills/agent-task/SKILL.md via the source-name override."""
+    trellium-work template). adopt/upgrade must still render the target project's
+    skills/trellium-work/SKILL.md via the source-name override."""
 
     def test_profile_routing_paragraph_parity_across_append_and_templates(self) -> None:
         """TASK-0023 review residual: the routing semantic contract lives in three
@@ -3319,7 +3322,7 @@ class TemplatePackagingTest(TargetTestCase):
             templates = repo / "skills" / package / "assets" / "templates"
             discoverable = list(templates.rglob("SKILL.md"))
             self.assertEqual(discoverable, [], f"{package} leaks a discoverable template: {discoverable}")
-            packaged = templates / "skills" / "agent-task" / "AGENT_TASK_SKILL.template"
+            packaged = templates / "skills" / "trellium-work" / "TRELLIUM_WORK_SKILL.template"
             self.assertTrue(packaged.is_file(), f"missing renamed template source: {packaged}")
 
     def test_adopt_still_renders_agent_task_skill_md(self) -> None:
@@ -3327,9 +3330,9 @@ class TemplatePackagingTest(TargetTestCase):
         target.mkdir()
         code, _, err = self.run_agent_init("adopt", str(target))
         self.assertEqual(code, 0, err)
-        rendered = target / "skills" / "agent-task" / "SKILL.md"
-        self.assertTrue(rendered.is_file(), "adopt must still render skills/agent-task/SKILL.md")
-        self.assertIn("name: agent-task", rendered.read_text(encoding="utf-8"))
+        rendered = target / "skills" / "trellium-work" / "SKILL.md"
+        self.assertTrue(rendered.is_file(), "adopt must still render skills/trellium-work/SKILL.md")
+        self.assertIn("name: trellium-work", rendered.read_text(encoding="utf-8"))
 
     def test_localized_profile_templates_have_matching_sections_and_routes(self) -> None:
         repo = Path(__file__).resolve().parents[1]
@@ -3438,7 +3441,7 @@ class AdoptionDurabilityTest(VaultCheckMixin, TargetTestCase):
         self.assertTrue(uncommitted, payload["findings"])
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         reported = self.reported_paths(uncommitted)
-        for core in ("AGENTS.md", "vault/index.md", agent_init.STAMP_RELATIVE, "skills/agent-task/SKILL.md"):
+        for core in ("AGENTS.md", "vault/index.md", agent_init.STAMP_RELATIVE, "skills/trellium-work/SKILL.md"):
             self.assertIn(core, reported)
 
     def test_profile_documents_are_core_and_survive_fresh_clone(self) -> None:
@@ -3629,7 +3632,7 @@ class AdoptionDurabilityTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         reported = self.reported_paths(ignored)
         self.assertIn("AGENTS.md", reported)
-        self.assertIn("skills/agent-task/SKILL.md", reported)
+        self.assertIn("skills/trellium-work/SKILL.md", reported)
 
     def test_repository_without_head_reports_uncommitted_core(self) -> None:
         target = self.root / "project"
@@ -4388,7 +4391,7 @@ class PrivateHistoryTest(VaultCheckMixin):
         code, _, err = self.adopt(target, *extras)
         self.assertEqual(code, 0, err)
         ProjectIdentityTest.write_policy(self, target, private_policy())
-        patterns = ["/AGENTS.md", "/vault/", "/skills/agent-task/", "/.agent-init-backup/"]
+        patterns = ["/AGENTS.md", "/vault/", "/skills/trellium-work/", "/.agent-init-backup/"]
         if profile:
             patterns += ["/docs/engineering/code-comments.md", "/docs/engineering/profiles/python-backend.md"]
         with (target / ".git/info/exclude").open("a", encoding="utf-8") as handle:
@@ -4610,6 +4613,205 @@ class PrivateHistoryTest(VaultCheckMixin):
                 self.assertEqual(self.check_json(restored)["summary"], {"errors": 0, "warnings": 0})
 
 
+
+class WorkSkillRenameTest(VaultCheckMixin):
+    """Exercise legacy installations and the explicit, customization-safe rename."""
+
+    def legacy_target(self, *, private: bool = False, customized: bool = False) -> Path:
+        target = (self.root / "legacy").resolve()
+        target.mkdir()
+        (target / "README.md").write_text("# Legacy project\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md")
+        self.git(target, "commit", "-q", "-m", "init")
+        code, _, err = self.adopt(target)
+        self.assertEqual(code, 0, err)
+        current = target / agent_init.WORK_SKILL_RELATIVE
+        legacy = target / agent_init.LEGACY_WORK_SKILL_RELATIVE
+        text = current.read_text(encoding="utf-8").replace("name: trellium-work", "name: agent-task")
+        text = text.replace("# Trellium Work", "# Agent Task Workflow")
+        legacy.parent.mkdir(parents=True)
+        current.rename(legacy)
+        legacy.write_text(text, encoding="utf-8")
+        stamp = self.read_stamp(target)
+        entry = stamp["files"].pop(agent_init.WORK_SKILL_RELATIVE)
+        entry["baseline"] = agent_init.sha256_hex(text.encode("utf-8"))
+        stamp["files"][agent_init.LEGACY_WORK_SKILL_RELATIVE] = entry
+        stamp["protocol_version"] = "2026.10.0"
+        self.write_stamp(target, stamp)
+        if customized:
+            legacy.write_text(text + "\n## Project rule\n\nKeep the custom acceptance command.\n", encoding="utf-8")
+        if private:
+            PrivateStorageModeTest.write_index_policy(self, target, private_policy())
+            (target / ".git/info/exclude").write_text(
+                "# trellium-private:start .\n/AGENTS.md\n/vault/\n"
+                "/skills/agent-task/\n/.agent-init-backup/\n# trellium-private:end .\n",
+                encoding="utf-8",
+            )
+        else:
+            self.git(target, "add", "-A")
+            self.git(target, "commit", "-q", "-m", "legacy adoption")
+        return target
+
+    def write_stamp(self, target: Path, stamp: dict) -> None:
+        (target / agent_init.STAMP_RELATIVE).write_text(
+            json.dumps(stamp, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+
+    def migrate(self, target: Path) -> None:
+        legacy = target / agent_init.LEGACY_WORK_SKILL_RELATIVE
+        current = target / agent_init.WORK_SKILL_RELATIVE
+        self.assertFalse(current.exists())
+        current.parent.mkdir(exist_ok=True)
+        legacy.rename(current)
+        text = current.read_text(encoding="utf-8").replace("name: agent-task", "name: trellium-work")
+        current.write_text(text.replace("# Agent Task Workflow", "# Trellium Work"), encoding="utf-8")
+        stamp = self.read_stamp(target)
+        entry = stamp["files"].pop(agent_init.LEGACY_WORK_SKILL_RELATIVE)
+        entry["baseline"] = agent_init.sha256_hex(current.read_bytes())
+        entry["observed"] = True
+        stamp["files"][agent_init.WORK_SKILL_RELATIVE] = entry
+        self.write_stamp(target, stamp)
+        exclude = target / ".git/info/exclude"
+        exclude.write_text(
+            exclude.read_text(encoding="utf-8").replace("/skills/agent-task/", "/skills/trellium-work/"),
+            encoding="utf-8",
+        )
+
+    def test_legacy_tracked_stamp_passes_read_only_check(self) -> None:
+        target = self.legacy_target()
+        before = self.snapshot(target)
+        payload = self.check_json(target)
+        self.assertEqual(payload["summary"]["errors"], 0, payload["findings"])
+        self.assertEqual(self.snapshot(target), before)
+
+    def test_legacy_private_stamp_and_exclude_pass_read_only_check(self) -> None:
+        target = self.legacy_target(private=True)
+        before = self.snapshot(target)
+        payload = self.check_json(target)
+        self.assertEqual(payload["summary"], {"errors": 0, "warnings": 0}, payload["findings"])
+        self.assertEqual(self.snapshot(target), before)
+
+    def test_legacy_adopt_and_upgrade_refuse_before_writes(self) -> None:
+        for private in (False, True):
+            for customized in (False, True):
+                with self.subTest(private=private, customized=customized):
+                    target = self.legacy_target(private=private, customized=customized)
+                    before = self.snapshot(target)
+                    for command in (("adopt", "--force"), ("upgrade", "--apply"), ("upgrade", "--complete")):
+                        code, _, err = self.run_agent_init(command[0], str(target), *command[1:])
+                        self.assertNotEqual(code, 0)
+                        self.assertIn("explicit work Skill migration required", err)
+                        self.assertEqual(self.snapshot(target), before)
+                    shutil.rmtree(target)
+
+    def test_missing_legacy_file_with_binding_does_not_create_replacement(self) -> None:
+        target = self.legacy_target()
+        (target / agent_init.LEGACY_WORK_SKILL_RELATIVE).unlink()
+        before = self.snapshot(target)
+        code, _, err = self.adopt(target)
+        self.assertNotEqual(code, 0)
+        self.assertIn("explicit work Skill migration required", err)
+        self.assertEqual(self.snapshot(target), before)
+
+    def test_unstamped_legacy_baseline_and_adopt_refuse_before_writes(self) -> None:
+        target = self.legacy_target()
+        (target / agent_init.STAMP_RELATIVE).unlink()
+        before = self.snapshot(target)
+        for command in ("baseline", "adopt"):
+            code, _, err = self.run_agent_init(command, str(target))
+            self.assertNotEqual(code, 0)
+            self.assertIn("explicit work Skill migration required", err)
+            self.assertEqual(self.snapshot(target), before)
+
+    def test_partial_or_colliding_migration_refuses_before_writes(self) -> None:
+        for both in (False, True):
+            with self.subTest(both=both):
+                target = self.legacy_target()
+                current = target / agent_init.WORK_SKILL_RELATIVE
+                current.write_text("# Owner content\n", encoding="utf-8")
+                if not both:
+                    (target / agent_init.LEGACY_WORK_SKILL_RELATIVE).unlink()
+                before = self.snapshot(target)
+                code, _, err = self.run_agent_init("upgrade", str(target), "--apply", "--allow-dirty")
+                self.assertNotEqual(code, 0)
+                self.assertIn("explicit work Skill migration required", err)
+                self.assertEqual(self.snapshot(target), before)
+                shutil.rmtree(target)
+
+    def test_migrated_customization_is_preserved_through_upgrade_proposal(self) -> None:
+        target = self.legacy_target(customized=True)
+        original = self.read_stamp(target)
+        self.migrate(target)
+        current = target / agent_init.WORK_SKILL_RELATIVE
+        local = current.read_bytes()
+        stamp = self.read_stamp(target)
+        self.assertEqual(
+            {k: v for k, v in original.items() if k != "files"},
+            {k: v for k, v in stamp.items() if k != "files"},
+        )
+        old_files = dict(original["files"])
+        old_files.pop(agent_init.LEGACY_WORK_SKILL_RELATIVE)
+        self.assertEqual(old_files, {k: v for k, v in stamp["files"].items() if k != agent_init.WORK_SKILL_RELATIVE})
+        self.git(target, "add", "-A")
+        self.git(target, "commit", "-q", "-m", "rename workflow")
+        code, _, err = self.run_agent_init("upgrade", str(target), "--apply")
+        self.assertEqual(code, agent_init.EXIT_CONFLICT, err)
+        self.assertEqual(current.read_bytes(), local)
+        self.assertFalse((target / agent_init.LEGACY_WORK_SKILL_RELATIVE).exists())
+        proposal = target / agent_init.proposal_relative(
+            agent_init.read_protocol_version(), agent_init.WORK_SKILL_RELATIVE
+        )
+        self.assertIn("Keep the custom acceptance command", proposal.read_text(encoding="utf-8"))
+        payload = self.check_json(target)
+        self.assertNotIn("CORE_STORAGE_INVALID", self.codes(payload))
+
+    def test_migrated_private_identity_and_ignore_remain_valid(self) -> None:
+        target = self.legacy_target(private=True)
+        result = agent_init.ensure_project_identity(target, authorize_create=True)
+        original = self.read_stamp(target)
+        self.migrate(target)
+        stamp = self.read_stamp(target)
+        self.assertEqual(
+            stamp["files"][agent_init.PROJECT_IDENTITY_RELATIVE],
+            original["files"][agent_init.PROJECT_IDENTITY_RELATIVE],
+        )
+        self.assertEqual(agent_init.ensure_project_identity(target)["identity"], result["identity"])
+        payload = self.check_json(target)
+        self.assertEqual(payload["summary"], {"errors": 0, "warnings": 0}, payload["findings"])
+        self.assertEqual(self.git(target, "ls-files").stdout, b"README.md\n")
+        plan = agent_init.build_upgrade_plan(target, self.read_stamp(target))
+        self.assertIn(agent_init.WORK_SKILL_RELATIVE, [item["path"] for item in plan["in_sync"]])
+
+    def test_private_preflight_rejects_both_workflow_namespaces(self) -> None:
+        for namespace in ("agent-task", "trellium-work"):
+            with self.subTest(namespace=namespace):
+                target = self.root / namespace
+                target.mkdir()
+                self.init_git_repo(target)
+                path = target / "skills" / namespace / "notes.txt"
+                path.parent.mkdir(parents=True)
+                path.write_text("managed namespace collision\n", encoding="utf-8")
+                self.git(target, "add", "-A")
+                self.git(target, "commit", "-q", "-m", "existing workflow")
+                before = self.snapshot(target)
+                with self.assertRaises(agent_init.AdoptionError):
+                    agent_init.private_preflight(target)
+                self.assertEqual(self.snapshot(target), before)
+
+    def test_private_checker_detects_forced_add_of_either_workflow(self) -> None:
+        for legacy in (False, True):
+            with self.subTest(legacy=legacy):
+                target = self.legacy_target(private=True)
+                if not legacy:
+                    self.migrate(target)
+                relative = agent_init.LEGACY_WORK_SKILL_RELATIVE if legacy else agent_init.WORK_SKILL_RELATIVE
+                self.git(target, "add", "-f", relative)
+                payload = self.check_json(target)
+                self.assertIn("PRIVATE_STORAGE_TRACKED", self.codes(payload))
+                shutil.rmtree(target)
+
+
 class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
     """TASK-0019 M0 contract and red tests (prereg:
     docs/superpowers/plans/2026-09-28-private-storage-mode-plan.md sections 9
@@ -4628,7 +4830,7 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
     PRIVATE_BASE_PATTERNS = (
         "/AGENTS.md",
         "/vault/",
-        "/skills/agent-task/",
+        "/skills/trellium-work/",
         "/.agent-init-backup/",
     )
 
@@ -4648,7 +4850,7 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         stamp = self.read_stamp(target)
         patterns = []
         for relative in sorted(stamp.get("files", {})):
-            if relative == "AGENTS.md" or relative.startswith(("vault/", "skills/agent-task/")):
+            if relative == "AGENTS.md" or relative.startswith(("vault/", "skills/trellium-work/")):
                 continue
             patterns.append(f"/{prefix}{relative}")
         return tuple(patterns)
@@ -4746,7 +4948,7 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         Identity is the Git-root-relative target ("." for a repo-root
         target); patterns are anchored and Git-root-relative, carrying the
         target prefix for monorepo children. Only the approved managed scope
-        is ever written: AGENTS.md, vault/, skills/agent-task/, the backup
+        is ever written: AGENTS.md, vault/, skills/trellium-work/, the backup
         directory, plus exact extra managed paths. `raw_patterns` exists for
         negative fixtures that must exercise out-of-scope lines.
         """
@@ -4781,7 +4983,7 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         self.assertEqual(payload["summary"]["warnings"], 0)
         ignored = self.reported_paths(self.findings_with(payload, "CORE_STORAGE_IGNORED"))
-        for core in ("AGENTS.md", "vault/index.md", agent_init.STAMP_RELATIVE, "skills/agent-task/SKILL.md"):
+        for core in ("AGENTS.md", "vault/index.md", agent_init.STAMP_RELATIVE, "skills/trellium-work/SKILL.md"):
             self.assertIn(core, ignored)
         overreach = self.reported_paths(self.findings_with(payload, "LOCAL_BOUNDARY_OVERREACH"))
         self.assertIn("vault/decisions/D-0000-sentinel.md", overreach)
@@ -4802,7 +5004,7 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         self.assertEqual(check_code, agent_init.CHECK_ERROR_EXIT)
         uncommitted = self.reported_paths(self.findings_with(payload, "CORE_STORAGE_UNCOMMITTED"))
         self.assertIn("AGENTS.md", uncommitted)
-        self.assertIn("skills/agent-task/SKILL.md", uncommitted)
+        self.assertIn("skills/trellium-work/SKILL.md", uncommitted)
 
     def test_tracked_and_local_goldens_stay_clean(self) -> None:
         # M0 golden freeze: canonical tracked and local adoptions are 0/0.
@@ -4967,7 +5169,7 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
         # Go Gate (prereg section 9): clean private fixture reaches 0/0 with
         # all managed material untracked, staged-free, and ignored.
         target = self.private_repo()
-        tracked = self.git(target, "ls-files", "--cached", "--", "AGENTS.md", "vault", "skills/agent-task")
+        tracked = self.git(target, "ls-files", "--cached", "--", "AGENTS.md", "vault", "skills/trellium-work")
         self.assertEqual(tracked.stdout, b"")
 
         check_code, payload = self.check_payload(target)
@@ -5139,7 +5341,7 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
                 "# trellium-private:start other\n"
                 "/vault/\n"
                 "# trellium-private:end .\n"
-                "/skills/agent-task/\n"
+                "/skills/trellium-work/\n"
                 "# trellium-private:end other\n"
             )
 
@@ -5408,7 +5610,7 @@ class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):
 
     def test_private_preflight_rejects_tracked_vault_namespace_file(self) -> None:
         # Review round 1 P1-1: the checker manages whole namespaces (vault/,
-        # skills/agent-task/, .agent-init-backup/); the preflight must reject
+        # skills/trellium-work/, .agent-init-backup/); the preflight must reject
         # ANY tracked file under them, not only its fixed file candidates.
         target = self.root / "preflight-vault-namespace"
         target.mkdir()

@@ -18,7 +18,7 @@ Do not copy placeholders as if they were facts.
 - `vault/parked.md`: cold index of user-parked items (P-xxxx entries); read only when mentioned; cleanup is proposal-only.
 - `vault/collaboration.md`: collaboration preferences and observed patterns.
 - `vault/tasks/README.md`: task lifecycle flow, `trellium-task-state` block rules, task template, and review ledger template.
-- `skills/agent-task/SKILL.md`: reusable workflow for non-trivial project tasks.
+- `skills/trellium-work/SKILL.md`: reusable workflow for non-trivial project tasks.
 
 ## New Project Initialization
 

@@ -47,17 +47,17 @@ TEMPLATE_FILES = (
     "vault/parked.md",
     "vault/collaboration.md",
     "vault/tasks/README.md",
-    "skills/agent-task/SKILL.md",
+    "skills/trellium-work/SKILL.md",
 )
 RENDERED_FILES = ("vault/project.md", "vault/runtime.md")
 
-# TASK-0011 (No-Go stop-condition fix): the agent-task template source must
-# not be named SKILL.md anywhere in the distributed packages — Codex globally
-# discovered the nested template (reproduced 2026-09-15). The packaged file
+# Starter templates must not be named SKILL.md inside control packages:
+# Codex globally discovered such a nested template (reproduced 2026-09-15).
+# The packaged file
 # uses a non-discoverable name; adopt/upgrade still render the target
-# project's skills/agent-task/SKILL.md unchanged.
+# project's skills/trellium-work/SKILL.md at the project boundary.
 TEMPLATE_SOURCE_OVERRIDE = {
-    "skills/agent-task/SKILL.md": "skills/agent-task/AGENT_TASK_SKILL.template",
+    "skills/trellium-work/SKILL.md": "skills/trellium-work/TRELLIUM_WORK_SKILL.template",
 }
 
 PROFILE_RULES_RELATIVE = "docs/engineering/code-comments.md"
@@ -313,12 +313,14 @@ FILE_ROLES = {
     "vault/project.md": "data",
     "vault/runtime.md": "data",
     "vault/tasks/README.md": "template",
-    "skills/agent-task/SKILL.md": "template",
+    "skills/trellium-work/SKILL.md": "template",
 }
 # Paths removed from future releases stay here as an explicit retirement
 # allowlist until every supported stamp version can no longer contain them.
 # A stamp is evidence about state, not authority to touch arbitrary files.
-RETIRED_FILE_ROLES: dict[str, str] = {}
+WORK_SKILL_RELATIVE = "skills/trellium-work/SKILL.md"
+LEGACY_WORK_SKILL_RELATIVE = "skills/agent-task/SKILL.md"
+RETIRED_FILE_ROLES: dict[str, str] = {LEGACY_WORK_SKILL_RELATIVE: "template"}
 WRITABLE_ROLES = frozenset({"marker", "merge", "template"})
 
 STAMP_RELATIVE = "vault/.agent-init.json"
@@ -924,7 +926,7 @@ Focus is optional navigation only. It owns no lifecycle, authority, slice,
 gate, or active-task inventory; `trellium status` reads TASK state directly
 from task files.
 
-Acceptance: `AGENTS.md`, `vault/`, and `skills/agent-task/SKILL.md` exist and route future Agents to project memory.
+Acceptance: `AGENTS.md`, `vault/`, and `skills/trellium-work/SKILL.md` exist and route future Agents to project memory.
 
 Required Check: `python3 trellium.py adopt {target} --dry-run` from a Trellium checkout or Skill package, when available.
 
@@ -1073,6 +1075,25 @@ def managed_file_metadata(target: Path, relative: str) -> os.stat_result | None:
         return None
     validate_output_metadata(metadata, path)
     return metadata
+
+
+def require_work_skill_migration(target: Path, stamp: dict | None) -> None:
+    """Refuse adoption and upgrade planning until the legacy workflow is migrated.
+
+    Even a pristine old file needs a coordinated path, stamp and privacy
+    change. Generic add/remove upgrades cannot safely perform that migration
+    or preserve a customized workflow without leaving two discoverable files.
+    """
+    entries = stamp.get("files", {}) if stamp else {}
+    if (
+        LEGACY_WORK_SKILL_RELATIVE in entries
+        or managed_file_metadata(target, LEGACY_WORK_SKILL_RELATIVE) is not None
+    ):
+        raise AdoptionError(
+            f"explicit work Skill migration required: {LEGACY_WORK_SKILL_RELATIVE} -> {WORK_SKILL_RELATIVE}; "
+            "preserve local customizations and update the stamp and private exclude together; "
+            "see MIGRATIONS.md (Trellium Work rename), then retry"
+        )
 
 
 def read_managed_bytes(
@@ -1457,6 +1478,7 @@ def write_adoption_stamp(
 
 def build_upgrade_plan(target: Path, stamp: dict) -> dict[str, list[dict]]:
     validate_stamp_file_paths(stamp)
+    require_work_skill_migration(target, stamp)
     trust = stamp.get("trust", "versioned")
     entries: dict[str, dict] = stamp["files"]
     profiles = selections_from_stamp(stamp)
@@ -2245,11 +2267,27 @@ def check_local_boundary(
             )
 
 
-PRIVATE_BASE_MANAGED_PATHS = ("AGENTS.md", "vault/", "skills/agent-task/", ".agent-init-backup/")
+PRIVATE_BASE_MANAGED_PATHS = ("AGENTS.md", "vault/", "skills/trellium-work/", ".agent-init-backup/")
+PRIVATE_WORK_NAMESPACES = ("skills/trellium-work/", "skills/agent-task/")
+
+
+def private_base_managed_paths(state: AdoptionCoreState) -> tuple[str, ...]:
+    """Use the workflow namespaces declared by the current installation.
+
+    A legacy stamp keeps its original exclude block valid for read-only
+    checks; a transitional stamp declaring both workflows must ignore both.
+    """
+    paths = state.paths or set()
+    if LEGACY_WORK_SKILL_RELATIVE not in paths:
+        return PRIVATE_BASE_MANAGED_PATHS
+    work = ("skills/agent-task/",)
+    if WORK_SKILL_RELATIVE in paths:
+        work = PRIVATE_WORK_NAMESPACES
+    return ("AGENTS.md", "vault/", *work, ".agent-init-backup/")
 
 
 def private_managed_extras(state: AdoptionCoreState) -> list[str]:
-    """Stamp-managed paths outside the four base private namespaces."""
+    """Stamp-managed paths outside the installation's base private namespaces."""
     if state.paths is None:
         return []
     return sorted(
@@ -2257,13 +2295,14 @@ def private_managed_extras(state: AdoptionCoreState) -> list[str]:
         for relative in state.paths
         if relative != STAMP_RELATIVE
         and relative != "AGENTS.md"
-        and not relative.startswith(("vault/", "skills/agent-task/", ".agent-init-backup/"))
+        and not relative.startswith(("vault/", *PRIVATE_WORK_NAMESPACES, ".agent-init-backup/"))
     )
 
 
 PRIVATE_PREFLIGHT_BASE_CANDIDATES = (
     "AGENTS.md",
-    "skills/agent-task/SKILL.md",
+    "skills/trellium-work/SKILL.md",
+    LEGACY_WORK_SKILL_RELATIVE,
     "vault/.agent-init.json",
     "vault/collaboration.md",
     "vault/decisions.md",
@@ -2315,7 +2354,7 @@ def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]
     prefix = _git_root_prefix_strict(target)
     if prefix is None:
         raise AdoptionError("private preflight failed closed: Git target prefix could not be verified")
-    namespaces = ("vault/", "skills/agent-task/", ".agent-init-backup/")
+    namespaces = ("vault/", *PRIVATE_WORK_NAMESPACES, ".agent-init-backup/")
     candidate_set = set(candidates) | {"AGENTS.md"}
 
     def collides(repo_relative: str) -> bool:
@@ -2760,7 +2799,8 @@ def check_private_boundary(run: VaultCheckRun, policy: dict | None, state: Adopt
         return
     target_identity = prefix.rstrip("/") if prefix else "."
     extras = private_managed_extras(state)
-    base = [f"/{prefix}{entry}" for entry in PRIVATE_BASE_MANAGED_PATHS]
+    base_paths = private_base_managed_paths(state)
+    base = [f"/{prefix}{entry}" for entry in base_paths]
     expected = base + [f"/{prefix}{entry}" for entry in extras]
     missing_copies = []
     for relative in extras:
@@ -2868,7 +2908,7 @@ def check_private_boundary(run: VaultCheckRun, policy: dict | None, state: Adopt
                 "the canonical private block does not cover the required managed scope; missing anchored patterns: " + ", ".join(missing),
             )
         if not parse_errors and not non_anchored and not overreach and not missing:
-            check_relatives = (*PRIVATE_BASE_MANAGED_PATHS, *extras)
+            check_relatives = (*base_paths, *extras)
             ignored = git_ignored_files(run.target, list(check_relatives))
             if ignored is None:
                 run.add(
@@ -2914,7 +2954,7 @@ def check_private_boundary(run: VaultCheckRun, policy: dict | None, state: Adopt
     def is_managed(relative: str) -> bool:
         return (
             relative == "AGENTS.md"
-            or relative.startswith(("vault/", "skills/agent-task/", ".agent-init-backup/"))
+            or relative.startswith(("vault/", *PRIVATE_WORK_NAMESPACES, ".agent-init-backup/"))
             or relative in extras_set
         )
 
@@ -4070,6 +4110,7 @@ def baseline_project(args: argparse.Namespace) -> int:
             )
         if read_stamp(target) is not None:
             raise AdoptionError(f"adoption stamp already exists: {stamp_path(target)}")
+        require_work_skill_migration(target, None)
         files: dict[str, dict] = {}
         for relative, role in sorted(FILE_ROLES.items()):
             if relative == "AGENTS.md":
@@ -4372,7 +4413,9 @@ def adopt_project(args: argparse.Namespace) -> int:
     try:
         if target_exists and not target.is_dir():
             return fail(f"target is not a directory: {target}")
-    except OSError as exc:
+        if target_exists:
+            require_work_skill_migration(target, read_stamp(target))
+    except (AdoptionError, OSError) as exc:
         return fail(f"could not inspect adoption target: {exc}")
 
     if not TEMPLATES_ROOT.is_dir():
@@ -4485,7 +4528,11 @@ def adopt_project(args: argparse.Namespace) -> int:
     print("generated does not mean durable: whether the collaboration core is persisted is a Git HEAD fact, decided by a commit and confirmed by check, not by this run")
     print("adoption durability checklist (apply applicable steps in order):")
     print("  1. review the proposed or existing collaboration files with the user and finish semantic configuration: mode choice, TASK storage decision, merging any existing agent entry")
-    print("  2. for tracked storage, ensure the collaboration core is present in Git HEAD (AGENTS.md, vault/, skills/agent-task/SKILL.md, vault/.agent-init.json); adopt never runs git add/commit/push - commits stay under the user's control")
+    print(
+        "  2. for tracked storage, ensure the collaboration core is present in Git HEAD"
+        " (AGENTS.md, vault/, skills/trellium-work/SKILL.md, vault/.agent-init.json);"
+        " adopt never runs git add/commit/push - commits stay under the user's control"
+    )
     print("  3. for tracked storage, after the commit, re-run: python3 trellium.py check <target> - adoption is complete only with 0 errors (core paths present in Git HEAD, not ignored)")
     print("  4. for local or production adoptions, verify a fresh clone of the repository passes check too")
     print("  5. for private adoptions (storage_mode=private), never commit Trellium material: keep everything untracked and covered by the trellium-private block in .git/info/exclude, then re-run check; adoption is complete only with 0 errors")

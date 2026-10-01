@@ -5,8 +5,9 @@
       "baseline": "cefd41563aa65d27a03936dfae3f4919c257adc2e1168cac5f4e1ade2a2b4c7a",
       "role": "merge"
     },
-    "skills/agent-task/SKILL.md": {
-      "baseline": "bd927b6185ea52aef9164687fe58640d18cee21a7537d0a3fc41182c8d5188f1",
+    "skills/trellium-work/SKILL.md": {
+      "baseline": "0328e91e7cdaa616c50e609edaf069e3505e3821d9e7c87b155fe82511547c17",
+      "observed": true,
       "role": "template"
     },
     "vault/collaboration.md": {

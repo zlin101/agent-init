@@ -40,6 +40,8 @@ If uncertain, choose existing project adoption. It is safer because it only adds
 
 ## Install And Upgrade (Bundled Script First)
 
+Existing `agent-task` installations must follow the explicit Trellium Work rename in `references/protocol-source/init/MIGRATIONS.md` before adoption or upgrade writes. Preserve customizations, move the sole workflow to `skills/trellium-work/SKILL.md`, update its name and stamp entry with an observed baseline, and coordinate the Private exclude block. Never overwrite a destination or leave two discoverable workflows. Read-only checks continue to accept legacy stamps and their original Private blocks. This package remains the installation Skill; the project workflow is Trellium Work.
+
 This package bundles a deterministic installer/upgrader at `assets/trellium.py`; prefer it, and layer Agent-driven semantic migration on top.
 
 - Before first adoption, ask the owner to choose TASK storage. Recommend and default to `local` when the owner does not specify: only `vault/tasks/TASK-*.md`, review ledgers, and archive entries stay local, while the collaboration core remains in Git. Choose `tracked` when the complete task trail should be shared; choose `private` when Trellium must stay out of Git entirely (flow below). After running `python3 assets/trellium.py adopt <target>`, the agent records the choice in `vault/index.md`; for local storage it also creates a narrow `vault/tasks/.gitignore` (`TASK-*.md`, `*-review.md`, `archive/`), while tracked storage adds no such ignore rules. For local/private storage, complete identity binding (after local policy/narrow ignore or the private policy/exclude below is in place, before `check`): call the bundled identity helper shipped next to `assets/trellium.py`, e.g. `python3 -c "import importlib.util as u, sys, pathlib; s = u.spec_from_file_location('trellium', 'assets/trellium.py'); m = u.module_from_spec(s); s.loader.exec_module(m); print(m.ensure_project_identity(pathlib.Path(sys.argv[1]), authorize_create=len(sys.argv) > 2 and sys.argv[2] == '--create'))" <target> [--create]` — a valid `vault/project-id` is reused and its stamp registration completed; a missing file with recorded binding evidence (stamp inventory or Git HEAD) requires restoring the original identity, and even an authorized first binding cannot bypass that gate; fresh adoptions explain identity creation in the adoption plan, and existing local/private projects get the owner's binding confirmation first. If registration fails after creation, the identity file is kept and a retry reuses the same UUID. Then run `check`; adoption completes only with 0 errors. Closure retention for local/private tasks uses `assets/history_store.py` from the same directory (standard library, no CLI; default root `~/.trellium/history`, always outside the working clone): after the terminal transition, put the TASK and any executed review ledgers as a group and verify each with a read-back; the whole group must verify before claiming completion; on failure keep sources and retry idempotently — acceptance never rolls back; cleanup stays unauthorized by default. Private project-id stays ignored; the helper verifies the private boundary before writing and refuses a registered UUID whose bytes differ from its baseline. tracked never binds an identity or runs external retention. The script only adds missing files by default; an existing `AGENTS.md` gets a marked section appended, never overwritten. When languages are known, repeat `--profile go-backend=<root>` / `--profile python-backend=<root>`; each selected profile becomes a complete project-local document under `docs/engineering/profiles/` with a one-hop root-scoped AGENTS route; `docs/engineering/code-comments.md` is the project's Comment/API Documentation Policy (sole owner of comment/API-documentation expression; full rules in `references/protocol-source/init/protocol/70-adoption-flow.md`, “Profile 工程规范”). Languages are never guessed automatically. For private storage (`storage_mode=private`), keep all target managed material out of Git, while terminal TASK/review evidence can be retained in the local Store: before `adopt`, call the bundled script's read-only `private_preflight(target, profiles)` probe - e.g. `python3 -c "import importlib.util as u, sys, pathlib; s = u.spec_from_file_location('trellium', 'assets/trellium.py'); m = u.module_from_spec(s); s.loader.exec_module(m); print(m.private_preflight(pathlib.Path(sys.argv[1]), profiles=tuple(sys.argv[2:])))" <target> [profile-id ...]` (any printed path or raised error stops the adoption; Git query failures fail closed); after `adopt`, write the schema v2 private policy and maintain the canonical `trellium-private` block in `.git/info/exclude` (anchored patterns, target identity, no overreach or later negation); never commit target Trellium material; then call the identity helper above with project-id kept ignored; run `check` — adoption completes only with 0 errors. Private TASKs use local lifecycle semantics; a fresh clone is expected to be Trellium-free.
@@ -110,7 +112,7 @@ Create the smallest useful project:
 
 1. Add Agent entry files such as `AGENTS.md`; add tool-specific companions only when useful.
 2. Add the required `vault/` files.
-3. Add `skills/agent-task/SKILL.md`.
+3. Add `skills/trellium-work/SKILL.md`.
 4. Add source, tests, dependencies, and README only if the user requested a concrete project type.
 5. Run the smallest meaningful check.
 6. Record current state in `vault/runtime.md` and durable choices in `vault/decisions.md`.
@@ -124,7 +126,7 @@ Preserve the existing project:
 1. Read-only scan first: root files, Agent entry files, README/docs, source layout, dependency files, tests, build/deploy/CI files, existing memory or decision records, and dirty worktree state.
 2. Present an adoption plan listing only Agent collaboration layer changes.
 3. Merge existing Agent entry rules instead of overwriting them.
-4. Create or merge `vault/` files and `skills/agent-task/SKILL.md`.
+4. Create or merge `vault/` files and `skills/trellium-work/SKILL.md`.
 5. Record in `vault/project.md` that this is adoption into an existing project.
 6. Record adoption state, risks, and next steps in `vault/runtime.md`.
 
@@ -141,7 +143,7 @@ Check:
 - Agent entry file routes non-trivial tasks to `vault/index.md` and `vault/runtime.md`, with full `vault/governance.md` for Level B/C work, unclear classification, or governance-rule changes.
 - Required vault files exist.
 - Governance covers task levels, authority levels, task contract fields, acceptance gates, escalation, and handoff.
-- `skills/agent-task/SKILL.md` exists and is focused on task execution.
+- `skills/trellium-work/SKILL.md` exists and is focused on task execution.
 - `vault/runtime.md` is short current state, not a long log.
 - `vault/decisions.md` captures durable choices.
 - `vault/collaboration.md` exists when collaboration preferences are useful.

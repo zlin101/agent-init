@@ -1,9 +1,9 @@
 ---
-name: agent-task
+name: trellium-work
 description: 用于执行需要上下文读取、限定范围修改、验证、任务记录或 vault 记忆更新的非琐碎项目任务。
 ---
 
-# Agent Task Workflow
+# Trellium Work
 
 ## Steps
 
