@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Post-2026.09.9 convergence CLOSED and `2026.09.10` published tag-only; Profile knowledge ablation committed as `77ee022`. Round 3 hot-path routing ablation accepted and closed out: scoped multi-TASK commit + push executed under explicit owner authorization (TASK-0028 plus parallel tracked materials). TASK-0027/TASK-0029 committed at their current tracked state as separate lines; releases stay tag-only under owner direction.
+Post-2026.09.9 convergence CLOSED and `2026.09.10` published tag-only; Profile knowledge ablation committed as `77ee022`. Round 3 hot-path routing ablation accepted and closed out: scoped multi-TASK commit + push executed under explicit owner authorization (TASK-0028 plus parallel tracked materials). TASK-0029 is merged into develop; owner accepted Private History delivery and authorized the `2026.10.0` tag-only publication. TASK-0027 planning remains separate.
 
 ## Focus
 
@@ -13,7 +13,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 ## Current Progress
 
 - Round 3 review is closed: routing dedup and runtime trim retained; Level A index-skip remains No-Go, so the default reading set is unchanged. No remaining Round 3 implementation.
-- Historical Evidence Store 的正式 helper 与 closure/身份规则已同步双语分发；本仓仍为 tracked policy，未接入真实本机 Store、未执行真实 retention/cleanup。实现验收与环境证据由 TASK-0029 及 review ledger 承载。
+- Local/Private 已共享本机 History Store：Private 身份 ignored、显式恢复 UUID，目标 managed material 不进 Git；双语已同步，默认仍 Local。本仓仍 tracked，未接入真实 Store；实现与验证证据见 TASK-0029/0030。
 
 ## Constraints
 
@@ -26,7 +26,8 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 
 ## Recent Changes
 
-- 2026-09-30: TASK-0029 按 owner 指令在独立分支实施至 ready_for_review；D-0006 由新 D-0014 显式 superseded（原 reasoning 保留），canonical retention/身份规则落地并同步双语分发。
+- 2026-10-01: Private History 交付与 `2026.10.0` tag-only 发布授权已记录；版本号及双语分发随提交同步，默认仍 Local，未接入真实 Store。
+- 2026-10-01: Historical Evidence Store 经 PR #6 合入 develop；D-0014 与 canonical retention/身份规则已进入主开发线，双语分发已同步，当前协议与历史讨论应分开读取。
 - 2026-09-30: owner accepted Round 3 after independent APPROVE (review baseline `77ee022`); scoped multi-TASK commit + push executed under the same owner authorization.
 
 ## Known Risks
@@ -47,4 +48,4 @@ git diff --check
 
 ## Next Steps
 
-- TASK-0029 后续按任务及 review ledger 的当前结论推进（accept/commit 归 owner）；环境证据与 gates 不在 runtime 重复投影。Round 4 仅在 owner 显式要求时启动；releases/tag remain owner-directed.
+- 后续整体方向见[合并后计划建议](../docs/discussions/2026-10-01-post-history-store-next-steps.md)；默认切换与当前知识恢复分别评估。Owner 已另行授权本次 Private History 的 `2026.10.0` tag-only 发布；TASK-0027 规划审阅单独推进。

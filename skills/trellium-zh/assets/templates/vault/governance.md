@@ -77,6 +77,8 @@ lifecycle、Authority、当前 slice 与 Gate 结果只由任务文件的 `trell
 
 采用 local lifecycle 的任务（`storage_mode=local` 或 `private`）进入 `accepted` 前还必须完成 Durable Knowledge Disposition（Memory Updates 中的 `none — <理由>` 或 `distilled — <canonical 目标文件>`；未填写视为 `pending`，不得进入 `ready_for_review` 或 `accepted`）。契约错误走 `superseded` 立即废止，不受该 gate 阻塞。tracked 任务默认 `not_applicable`。
 
+local/private terminal TASK 与必要 review 台账随后按 canonical History 契约成组 put/get 保全；失败保留来源、幂等重试，不回滚 accepted，默认不 cleanup。Private 身份及来源仍 ignored，外部 Store 不进入项目 Git；tracked 不触发。
+
 ## Escalation
 
 需求有歧义、范围扩大、涉及高影响文件、必要检查失败、文档与实现冲突或用户改动与计划冲突时，升级或询问用户。

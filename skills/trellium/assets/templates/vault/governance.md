@@ -82,6 +82,12 @@ and blocks `ready_for_review` and `accepted`). Wrong contracts go to
 `superseded` immediately — the gate never blocks that. Tracked tasks default
 to `not_applicable`.
 
+After local/private tasks become terminal, retain the TASK and required review
+ledgers as a group in the local History Store and verify each with get. Failures
+keep sources for idempotent retry and never roll back acceptance; no cleanup by
+default. Private identity and sources remain ignored, and the external Store
+stays outside project Git. Tracked tasks do not trigger retention.
+
 ## Escalation
 
 Escalate or ask the user when requirements are ambiguous, scope expands, high-impact files are involved, required checks fail, docs conflict with implementation, or user changes conflict with the plan.

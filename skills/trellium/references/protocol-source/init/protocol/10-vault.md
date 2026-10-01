@@ -24,7 +24,7 @@
 | 为什么中断（真实中断时） | `handoff.md`，仅当无法从 canonical 状态低成本推导 | 无中断或完全可推导时不产生条目 |
 | 不可重现的瞬态操作现场 | `handoff.md` | 消费后即删 |
 | 精确续作点 | `handoff.md`，仅当超出任务 slice 导航价值 | 恢复顺序：TASK → Git/工作区/测试 → handoff delta |
-| 项目身份（local retention 绑定） | `vault/project-id`（单行 canonical UUID） | 不复制进 policy、stamp 或历史 metadata |
+| 项目身份（local/private retention 绑定） | `vault/project-id`（单行 canonical UUID） | 不复制进 policy 或 stamp；metadata 只绑定历史记录 |
 | 项目预算与 TASK storage | `index.md` 的 `trellium-policy` 策略块 | 其他文件只路由，不复制当前值 |
 
 ## 记忆分层
@@ -158,7 +158,7 @@ TASK lifecycle 使用统一枚举（定义见 `20-governance.md`）：`draft | a
 
 Level B/C 任务文件在标题之后、叙事正文之前放置 `trellium-task-state` 状态块，是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner（schema 见下方"状态块与策略块"）。`TASK-*-review.md` 台账与 `tasks/archive/` 是冷历史，不需要状态块。
 
-TASK storage 由 policy 块的 `storage_mode` 决定：`local` 时任务文件、review 台账与 archive 不 tracked、不 staged，Accepted 后的结论必须先蒸馏进 `decisions.md` 等公开位置；`tracked` 时完整任务流水纳入版本控制；`private` 时全部 managed material 留在当前 clone，TASK 采用 local lifecycle 语义（不 tracked、不 staged，Accepted 后蒸馏，fresh clone 不提供恢复承诺）。Skill/Agent 首次接入前询问 owner 并推荐 `local`，owner 未指定时按 local 执行。Agent 在 local 模式创建 `vault/tasks/.gitignore` 的窄规则，不修改项目根 `.gitignore`；private 模式改为维护 `.git/info/exclude` 的 canonical trellium-private block；storage 迁移由 owner 决定，工具不自动 untrack。
+TASK storage 由 policy 块的 `storage_mode` 决定：`local` 时任务文件、review 台账与 archive 不 tracked、不 staged，Accepted 后的结论必须先蒸馏进 `decisions.md` 等公开位置；`tracked` 时完整任务流水纳入版本控制；`private` 时全部 managed material 留在当前 clone，TASK 采用 local lifecycle 语义（不 tracked、不 staged，Accepted 后蒸馏，fresh clone 不包含原协作层，已验证 TASK/review 可按下方 History 契约找回）。Skill/Agent 首次接入前询问 owner 并推荐 `local`，owner 未指定时按 local 执行。Agent 在 local 模式创建 `vault/tasks/.gitignore` 的窄规则，不修改项目根 `.gitignore`；private 模式改为维护 `.git/info/exclude` 的 canonical trellium-private block；storage 迁移由 owner 决定，工具不自动 untrack。
 
 local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 而非机器校验）：
 
@@ -171,7 +171,7 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 
 ### project-id
 
-`vault/project-id` 是项目身份的唯一 canonical owner：单行标准 UUID 加换行，首次 local 接入由 bundled 身份 helper 创建，并以 `data` role 登记进安装版本戳的 files inventory（既有 schema，不复制 UUID 值）。clone/rename/workspace relocation/remote URL 变化都不改变身份；已有绑定证据（版本戳 inventory 或 Git HEAD）而文件缺失时要求恢复原身份，不静默生成替代；升级永不重建或覆盖身份。tracked/private 项目不创建身份。fork/副本由 owner 显式决定为新项目时才 re-key，旧 Store namespace 保留。
+`vault/project-id` 是项目身份的唯一 canonical owner：单行标准 UUID 加换行，Local tracked、Private ignored/untracked，首次 local/private 接入由 bundled 身份 helper 创建，并以 `data` role 登记进安装版本戳的 files inventory（既有 schema，不复制 UUID 值）。clone/rename/workspace relocation/remote URL 变化都不改变身份；已有绑定证据（版本戳 inventory 或 Git HEAD）而文件缺失时要求恢复原身份，不静默生成替代；升级永不重建或覆盖身份。tracked 项目不创建身份。Private 登记后的身份 bytes 必须与 stamp baseline 一致，改变或丢失时恢复原 UUID；新的 private clone 须由 owner 显式恢复已知 UUID，不能从目录或 remote 猜测、不能自动替换。fork/副本由 owner 显式决定为新项目时才 re-key，旧 Store namespace 保留。
 
 ### details/
 
@@ -183,12 +183,12 @@ local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 
 - `details/agent.md`：Agent、LLM、Prompt 和工具行为。
 - `details/domain.md`：领域术语和规则。
 
-## Historical Evidence 保留（local）
+## Historical Evidence 保留（local/private）
 
-local TASK/review 的结构化证据在 terminal 后经本机 Historical Store 获得 clone-independent retention：
+local/private TASK/review 的结构化证据在 terminal 后经本机 Historical Store 获得 clone-independent retention：
 
 ```text
-active local TASK
+active local/private TASK
 → work / review
 → Durable Knowledge Disposition
 → accepted / superseded
@@ -203,7 +203,7 @@ active local TASK
 - Retention 与 Disposition 正交：`none` 只回答没有新增 Canonical Knowledge，不回答历史是否保留。
 - Review 收敛后结论可写入 TASK Execution Record，但原 ledger 保留在原路径，作为历轮 findings、处置与证据引用的历史载体。
 - 默认不 cleanup：仅 owner 明确授权且整组验证完成、source 仍与已保全版本一致时才允许删除；cleanup 失败不取消已验证的 retention。历史不进默认 cold-start、不恢复 Authority、不编译为 current TASK；回溯走新的工作与 canonical 更新。
-- `vault/tasks/archive/` 保持 repo 内 compaction 职责，与 external Store 正交；tracked/private 不因本节触发外部 retention。实施载体（`history_store.py`、身份 helper 调用路径）由双语 Skill 分发说明。
+- `vault/tasks/archive/` 保持 repo 内 compaction 职责，与 external Store 正交；tracked 不因本节触发外部 retention；Private 的外部 Store 不属于目标项目 Git，不备份整个 Vault。实施载体（`history_store.py`、身份 helper 调用路径）由双语 Skill 分发说明。
 
 ## 状态块与策略块
 
@@ -252,7 +252,7 @@ active local TASK
 ```
 
 - 必填：`schema_version`（整数 `2`）、`storage_mode`（`tracked | local | private`）。`budgets` 可选；v2 内不得出现 `task_storage`。
-- `storage_mode` 语义：`tracked` 协作核心与任务流水都进 Git；`local` 仅 TASK/review/archive 留本地；`private` 全部 managed material 只留在当前 clone（完整语义见 `70-adoption-flow.md`「Private 存储模式」）。
+- `storage_mode` 语义：`tracked` 协作核心与任务流水都进 Git；`local` 仅 TASK/review/archive 留本地；`private` 的 managed 文件不进 Git，terminal TASK/review 可经本机 Store 保全（完整语义见 `70-adoption-flow.md`「Private 存储模式」）。
 - legacy schema v1（`task_storage: tracked | local`）继续可解析并归一化到同一 mode 概念；既有 v1 不自动改写。
 - 预算是可选正整数；键或对象缺失表示"不设该上限"。模板中的数字是初始化默认值，不是猜测出的普适阈值。
 - 本协议与模板其他位置出现的预算数字都是初始化默认值；项目当前预算以该块为唯一来源。缺失策略块的项目是 legacy：人工判断按初始化默认值，机械校验只测量、不套用默认值。

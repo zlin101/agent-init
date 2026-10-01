@@ -1,0 +1,11 @@
+.......................................create /tmp/tmpgo__wj9d/private/vault/project-id
+create /tmp/tmphlh770s7/private/vault/project-id
+create /tmp/tmpybinvrhq/identity-forced-add/vault/project-id
+create /tmp/tmpfp3g1zjo/private/vault/project-id
+create /tmp/tmpn4hyfqgi/private/vault/project-id
+create /tmp/tmp0s78irdh/private/vault/project-id
+................
+----------------------------------------------------------------------
+Ran 55 tests in 3.304s
+
+OK

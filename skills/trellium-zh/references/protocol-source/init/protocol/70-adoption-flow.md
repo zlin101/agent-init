@@ -32,7 +32,7 @@
 - `vault/governance.md`
 - `vault/decisions.md`
 - `vault/handoff.md`
-- `vault/project-id`，仅由 local 接入的 bundled 身份 helper 创建或校验（单行项目身份；升级永不重建或覆盖；tracked/private 不创建）
+- `vault/project-id`，仅由 local/private 接入的 bundled 身份 helper 创建或校验（Local tracked、Private ignored；升级永不重建或覆盖；tracked 不创建）
 - `vault/tasks/README.md`
 - `vault/tasks/.gitkeep`
 - `vault/details/*`，仅在已有项目确实需要时创建
@@ -128,7 +128,7 @@ Agent 执行接入前，应只做只读扫描：
 7. 执行接入前扫描。
 8. 输出接入计划，说明将创建或修改哪些协作层文件。
 9. 合并或创建 Agent 入口文件。
-10. 合并或创建 `vault/`；local 模式由 Agent 生成窄范围 `vault/tasks/.gitignore`，只忽略 `TASK-*.md`、`*-review.md` 与 `archive/`，不修改项目根 `.gitignore`。local 模式在 policy 与窄范围 ignore 就位后调用 bundled 身份 helper 完成首次身份绑定：fresh 接入在接入计划中说明身份创建，存量 local 首次启用须取得 owner 确认绑定；helper 将 `vault/project-id` 以 `data` role 登记进版本戳，绑定丢失或登记失败按 helper 报告恢复/重试；随后运行 check，0 error 才算接入完成。tracked/private 不触发身份创建。
+10. 合并或创建 `vault/`；local 模式由 Agent 生成窄范围 `vault/tasks/.gitignore`，只忽略 `TASK-*.md`、`*-review.md` 与 `archive/`，不修改项目根 `.gitignore`。local 模式在 policy 与窄范围 ignore 就位后调用 bundled 身份 helper 完成首次身份绑定：fresh 接入在接入计划中说明身份创建，存量 local 首次启用须取得 owner 确认绑定；helper 将 `vault/project-id` 以 `data` role 登记进版本戳，绑定丢失或登记失败按 helper 报告恢复/重试；随后运行 check，0 error 才算接入完成。Private 完成下方 policy/exclude 后也调用该 helper，保持身份 ignored；tracked 不触发身份创建。
 11. 合并或创建 `skills/`。
 12. 在 `vault/project.md` 记录“这是既有项目接入，不是新项目初始化”。
 13. 在 `vault/runtime.md` 记录接入状态、风险和下一步。
@@ -178,13 +178,14 @@ python3 trellium.py adopt <target> \
 
 ### Private 存储模式
 
-`storage_mode=private`（schema v2 policy）让全部 Trellium managed material 只存在于当前 clone：untracked、由 Git root `.git/info/exclude` 中带 target identity 的 canonical `# trellium-private:start/end` block 精确忽略，不进入 Git index、HEAD 或远端。Private 是显式选择，不自动迁移既有 tracked/local 项目。
+`storage_mode=private`（schema v2 policy）让目标项目的全部 Trellium managed material 不进入 Git：untracked、由 Git root `.git/info/exclude` 中带 target identity 的 canonical `# trellium-private:start/end` block 精确忽略，不进入 Git index、HEAD 或远端；terminal TASK/review 可另存本机 History Store，当前 Vault 不因此获得备份。Private 是显式选择，不自动迁移既有 tracked/local 项目。
 
 Private 接入的 Agent-native 顺序：
 
 1. adopt 之前调用 bundled 脚本的只读探针 `private_preflight(target, profiles)`：任一候选 managed path（AGENTS、Vault、agent-task Skill、stamp、Comment Policy、所选完整 Profile）已 tracked 或在 HEAD 中即拒绝；Git 查询失败 fail-closed；探针零写入。
 2. `adopt` 正常生成文件后，Agent 将 policy 写为 schema v2 `storage_mode=private`，并在 `.git/info/exclude` 维护 canonical private block（anchored patterns 精确覆盖全部 managed paths，不允许 overreach 或后置 negation）。
-3. 运行 check；private storage finding 为零才算接入完成。Private TASK 使用 local lifecycle 与 knowledge disposition 语义；fresh clone 没有 Trellium 属于预期，不提供恢复承诺。
+3. policy/exclude 就位后调用 bundled ensure_project_identity helper（调用方法见分发 Skill），复用/登记 ignored 的 vault/project-id，只有显式首次绑定授权才能创建；helper 在写入前验证 stamp、Git 证据与 private 边界，登记 baseline 不符或已绑定身份丢失时拒绝替换。
+4. 运行 check；private storage finding 为零才算接入完成。Private TASK 使用 local lifecycle、knowledge disposition 和 terminal History 保全（见 10-vault.md）。fresh clone 不包含原协作层；找回历史须保留/恢复原 UUID，重新接入时先 get 核对已知历史、恢复该 UUID 文件、调用 helper 复用登记，不能自动创建新身份冒充旧历史；不恢复旧 Authority。
 
 升级语义：upgrade/diff/proposal 不执行 Git 写入；untracked managed 文件不视为 dirty；Private 完成提示是保持 untracked/ignored 并重跑 check，不得提示 commit。Checker 反向 privacy Gate：`PRIVATE_STORAGE_TRACKED`（含 `git add -f`）、`PRIVATE_STORAGE_UNCONFIGURED`（block 缺失/畸形/重复，或按实际 `git check-ignore` 结果未被 ignore）、`PRIVATE_STORAGE_OVERREACH`、`PRIVATE_STORAGE_UNVERIFIED`（Git 查询失败、缺 stamp、managed 唯一副本缺失或非普通文件）全部 error fail-closed；非 Git 目标为 warning。
 

@@ -24,6 +24,12 @@ delete its related transient deltas from `vault/handoff.md`; durable
 conclusions live in canonical files first. Tracked tasks default to
 `not_applicable`.
 
+Local/Private terminal TASKs and required review ledgers follow the distributed
+Skill's History workflow: retain and verify the whole group, keep sources on
+failure, never roll back acceptance, and do not clean up by default. Private
+identity stays ignored and recovery uses the known original UUID explicitly;
+tracked tasks do not trigger retention.
+
 ## Task State Block
 
 Level B/C task files carry a `trellium-task-state` block right after the

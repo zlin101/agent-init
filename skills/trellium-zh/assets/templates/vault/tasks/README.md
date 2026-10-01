@@ -17,6 +17,8 @@ local 或 private 任务（local lifecycle 语义）进入 `accepted` 前必须�
 
 ## 任务状态块
 
+Local/Private terminal TASK 与必要 review 台账按分发 Skill 的 History 流程成组保全/get 校验；失败保留来源，accepted 不回滚，默认不 cleanup。Private 身份保持 ignored，恢复时显式使用原 UUID；tracked 不触发。
+
 Level B/C 任务文件在标题之后携带 `trellium-task-state` 状态块。它是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner（可选字段：`current_slice`、`gates`）。每次状态变化只更新状态块；`runtime.md` 不保存 TASK 投影。未定义字段非法；改变字段含义必须提升 `schema_version`。状态块不授予批准：Allowed、Requires Approval、Forbidden 与验收仍由任务正文与用户指令决定。
 
 没有状态块的任务文件是 legacy：下次接触该任务时补上，不批量迁移历史。`TASK-xxxx-review.md` 台账与 `tasks/archive/` 是冷历史，不带状态块。

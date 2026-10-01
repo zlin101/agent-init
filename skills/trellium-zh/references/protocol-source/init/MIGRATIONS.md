@@ -7,20 +7,27 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
-## Unreleased — local historical evidence store
+## 2026.10.0 — private historical retention
+
+- Changed: Private terminal TASK/review 也执行现有本机 History Store 的成组 put/get 保全；所有目标 managed material 仍不进 Git，默认仍 Local。Store 路径/格式/API 与知识处置、失败保留来源/重试、非 Authority 边界不变，不增加同步或当前 Vault 备份。
+- Changed: ensure_project_identity 接受显式 local/private policy；Private 在写入前验证有效 stamp 与 Git/private 边界，vault/project-id 随 Vault ignored，登记 data role，已登记 UUID 改变或丢失时拒绝替换。Local 的 tracked 身份不变；HEAD 路径有无改用 ls-tree 的结构结果，不再解释 cat-file 的“文件只在工作树”错误文本。
+- Fixed: Private preflight 不再仅凭 not-a-repository stderr 放行，须结构证明祖先没有 .git；损坏 HEAD/ref、未知 Git 证据和 prefix 查询失败拒绝。Private checker 同样将既有 metadata 的查询失败报告为 error，普通非仓库仍为 warning。
+- Agent migration: 存量 Private 启用时由 owner 确认首次绑定或恢复已知原 UUID；不自动回填历史、不清理 source、不自动切换模式或写 Git index。新 Private clone 先完成接入/ignore，再按已知 UUID/artifact/digest get 核对历史，恢复原 UUID 文件并运行 helper 复用登记；原 UUID 丢失时不猜项目、不将新绑定当旧历史。跨机器需要自行迁移 Store 与身份，没有自动同步。协议与实际命令见分发 Skill。
+
+## 2026.10.0 — local historical evidence store
 
 - Added: bundled identity helper `ensure_project_identity(target, authorize_create=...)`（不注册 CLI）：仅在显式 local policy 下执行；复用并严格校验 `vault/project-id`，已有绑定证据（版本戳 inventory 或 Git HEAD）而文件缺失时要求恢复，仅授权的首次绑定可创建，创建后登记失败保留身份文件、重试复用同一 UUID；以既有 `data` role 登记进版本戳 files inventory（既有 schema，不复制 UUID 值）。该路径加入 stamp 管理集，沿用现有 Git durability 检查保护；重复 adopt/baseline/upgrade 保留登记条目，upgrade 永不提案、创建或改写该文件。
 - Added: 正式历史证据模块 `scripts/history_store.py`（标准库、Python ≥ 3.9、无 CLI）：put/get/list + 最小 `retain_terminal` 适配，原子目录发布、per-artifact flock、SHA-256 不可变版本、fail-closed 完整性读取；经 sync-skills 以 `assets/history_store.py` 分发并纳入 drift 检查；现有安装方式可直接调用，无新增依赖。
 - Changed: review 台账收敛后不再删除——结论归档进 TASK Execution Record，原台账文件保留在原路径作为历史载体；local 任务 terminal 时 TASK 与已开展 review 的台账成组写入本机 Store 并逐份 get 验证，整组成功才算 retention 完成；失败保留 source、不回滚 accepted、幂等重试；默认不 cleanup。canonical 依据见 `10-vault.md`「Historical Evidence 保留（local）」与 `20-governance.md` 验收门。
 - Agent migration: 存量项目不自动回填——local 接入按 policy → 身份 helper → check 顺序接入；既有 terminal local TASK 仅在 owner 授权后回填，不批量删除、不宣称丢失材料可恢复；D-0006 由新 decision 显式 superseded，原 reasoning 保留；本仓 `vault/collaboration.md` 中与「可丢弃」直接冲突的现行表述由 Agent 按 D-0014 更新，历史观察记录不改写。
 
-## Unreleased — hot-path routing ablation (Round 3)
+## 2026.10.0 — hot-path routing ablation (Round 3)
 
 - Changed: entry-reading contract single-sourced in `30-agent-entry.md`; `10-vault.md` no longer restates the default-read flow (points at 30; storage/information duties kept); `80-execution-patterns.md`, `40-skills.md`, the `agent-task` Skill (repo copy + bilingual templates) and bilingual `protocol-model` references now delegate context reading to the project `AGENTS.md` entry instead of prescribing their own pre-read group.
 - Removed: the standalone `## 默认读取` / `## Default Reading` section from `vault/index.md` and both index templates, plus update-rule bullets duplicated from AGENTS/governance. Kept verbatim: `trellium-policy` block, task/authority cheat sheet, file-responsibility and detail-routing catalog, policy-related update rules (local/private storage contract, budget single-source).
 - Unchanged: `AGENTS.md`/bilingual templates and `agent_entry_section()` read sets (the S2 Level A index-skip candidate was killed by kill-gate evidence; no light-read behavior change for existing projects), markers, three-way profile routing, customization/proposal protection, upgrade and data semantics; runtime/project/data remain script-read-only data surfaces. The local `vault/runtime.md` present-tense trim is a manual Agent data move with cold provenance recorded in TASK-0028; no runtime template changed.
 
-## Unreleased — profile knowledge ablation (Round 2)
+## 2026.10.0 — profile knowledge ablation (Round 2)
 
 - Changed: Go/Python canonical profiles and English templates ablated of teaching payload (command tutorials, directory skeletons, code examples, basic-syntax facts); decision constraints, risk constraints, toolchain/stack preferences, local-contract-first and no-config fallbacks are preserved. File paths, roots, CLI, stamp schema, routing, Comment ownership, upgrade/proposal/storage semantics unchanged; customization protection unchanged (existing local profile edits still take the upgrade proposal path).
 

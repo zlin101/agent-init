@@ -4,6 +4,8 @@ Status: Active
 
 ## Background
 
+后续扩展：2026-10-01 owner 授权 Private History，[D-0015](D-0015-private-historical-retention.md)扩展本文原 Private 不触发的范围；以下 Local 设计与当时 reasoning 保留，Local 的 tracked 身份规则不变。
+
 TASK-0027 记忆边界复评与定位讨论确认：Operational State、Canonical Knowledge、Historical Evidence 三类职责中，历史证据尚未获得贯穿关闭、保全、查找与恢复的持久性契约。D-0006 曾把 local TASK 定义为私有、可丢弃的工作日志，并以"制造第二事实源"为由否决自动发布/归档。其仓库负担与防越权目标仍然成立，但两条推导不充分：私有与低仓库负担不推出允许丢失历史材料；保留带时间与来源的历史版本也不必然建立第二个当前事实 owner。
 
 ## Decision

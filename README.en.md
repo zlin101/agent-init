@@ -199,6 +199,8 @@ If the repository has not been pushed to GitHub yet, first push a commit that in
 
 ### Using the script to adopt a project
 
+Local and Private terminal TASK/review groups can be retained in the local `~/.trellium/history` Store through the Skill workflow; failures keep sources, and completion requires read-back verification. Local project identity is tracked; Private `vault/project-id` stays ignored and requires a verified privacy boundary before writes. Missing or changed registered Private identity must be restored. After clone deletion, retrieve history using the retained original UUID, artifact id and digest; a new private adoption restores that UUID explicitly, never infers it from paths/remotes. A new machine requires manual transfer of the Store and UUID; there is no automatic sync or current-Vault backup. See the [English Skill](skills/trellium/SKILL.md) for executable retention and recovery steps. Local remains the default; existing projects never migrate automatically.
+
 `trellium.py` is the deterministic installer/upgrader and runs from two locations: `assets/trellium.py` inside a Skill package (the regular path for end users, distributed with the package), or `scripts/trellium.py` in a checkout of this repo (for protocol development and maintenance). `sync-skills.py` keeps the two identical; the commands below use the repo path.
 
 To add the Agent collaboration layer to an existing project:
@@ -262,7 +264,7 @@ python3 scripts/trellium.py check /path/to/project --format json  # stable JSON
 
 - `trellium-task-state` blocks: the strict JSON block at the top of Level B/C task files, the single owner of lifecycle, authority level, current slice, and gate results;
 - the `trellium-policy` block: project policy in `vault/index.md`, the single source for budgets and TASK storage (`tracked | local | private`);
-- `runtime.md`: project-global current state plus an optional navigation Focus; it owns no TASK lifecycle, authority, or projection, and `status` reads TASK state blocks directly. In `local` or `private` projects an absent task file in a fresh clone follows the storage contract (no recovery copy);
+- `runtime.md`: project-global current state plus an optional navigation Focus; it owns no TASK lifecycle, authority, or projection, and `status` reads TASK state blocks directly. In `local` or `private` projects an absent task file in a fresh clone follows the storage contract; runtime has no recovery copy, and verified terminal history is retrieved separately;
 - budget measurements: hot-file lines, UTF-8 bytes, max line size, and entry counts are always reported; only explicitly configured policy thresholds raise `BUDGET_EXCEEDED` warnings (repository-health signals that never block acceptance);
 - TASK storage: actual Git state compared against the configured strategy (tracked/local/private). In `private` projects the forward HEAD-durability gate is replaced by the reverse privacy gate: all managed material must stay untracked and precisely ignored via the trellium-private block, with local-lifecycle TASK semantics.
 

@@ -322,9 +322,8 @@ RETIRED_FILE_ROLES: dict[str, str] = {}
 WRITABLE_ROLES = frozenset({"marker", "merge", "template"})
 
 STAMP_RELATIVE = "vault/.agent-init.json"
-# One canonical project-identity owner: a tracked single-line UUID bound by
-# the helper-managed local retention onboarding. Never written by adopt or
-# upgrade; never copied into policy or install stamps.
+# One canonical UUID owner: tracked for local, ignored for private retention.
+# Never written by adopt or upgrade, or copied into policy or install stamps.
 PROJECT_IDENTITY_RELATIVE = "vault/project-id"
 PROPOSAL_DIRECTORY = "vault/.upgrade"
 BACKUP_DIRECTORY = ".agent-init-backup"
@@ -2305,13 +2304,17 @@ def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]
             "private preflight failed closed: git is unavailable; the private boundary cannot be verified"
         )
     if probe.returncode != 0:
-        if b"not a git repository" in probe.stderr:
+        if b"not a git repository" in probe.stderr and _proven_without_git_metadata(target) is True:
             return []
         raise AdoptionError(
             "private preflight failed closed: git rev-parse failed: "
             + probe.stderr.decode("utf-8", "surrogateescape").strip()
         )
-    prefix = git_root_prefix(target)
+    if _identity_in_head(target) is None:
+        raise AdoptionError("private preflight failed closed: Git HEAD evidence could not be verified")
+    prefix = _git_root_prefix_strict(target)
+    if prefix is None:
+        raise AdoptionError("private preflight failed closed: Git target prefix could not be verified")
     namespaces = ("vault/", "skills/agent-task/", ".agent-init-backup/")
     candidate_set = set(candidates) | {"AGENTS.md"}
 
@@ -2351,7 +2354,7 @@ def private_preflight(target: Path, profiles: tuple[str, ...] = ()) -> list[str]
     return []
 
 
-# --- Project identity (local historical retention onboarding) ----------------
+# --- Project identity (local/private historical retention onboarding) --------
 
 
 def project_identity_path(target: Path) -> Path:
@@ -2476,15 +2479,12 @@ def _identity_in_head(target: Path) -> bool | None:
     prefix = _git_root_prefix_strict(target)
     if prefix is None:
         return None
-    result = git_run(target, ["cat-file", "blob", f"HEAD:{prefix}{PROJECT_IDENTITY_RELATIVE}"])
-    if result is None:
+    # A working-tree-only file changes cat-file's missing-path error text.
+    # ls-tree proves HEAD presence/absence without interpreting that stderr.
+    result = git_run(target, ["ls-tree", "--full-tree", "-z", "HEAD", "--", prefix + PROJECT_IDENTITY_RELATIVE])
+    if result is None or result.returncode != 0:
         return None
-    if result.returncode == 0:
-        return True
-    stderr = result.stderr.decode("utf-8", "surrogateescape")
-    if "does not exist" in stderr or "Not a valid object name" in stderr:
-        return False
-    return None
+    return bool(result.stdout)
 
 
 def identity_binding_evidence(target: Path) -> bool:
@@ -2502,8 +2502,8 @@ def identity_binding_evidence(target: Path) -> bool:
     return recorded
 
 
-def _require_local_policy_for_identity(target: Path) -> dict:
-    """Return the policy only under an explicit, valid local storage mode.
+def _require_history_policy_for_identity(target: Path) -> dict:
+    """Return the policy only under an explicit local or private storage mode.
 
     Parsing mirrors the canonical checker exactly (unique block,
     ``parse_block_object`` strictness, ``validate_policy_object``): duplicate
@@ -2514,35 +2514,61 @@ def _require_local_policy_for_identity(target: Path) -> dict:
     text, error = read_regular_text(target / "vault/index.md")
     if text is None:
         raise AdoptionError(
-            f"cannot read the project policy ({error}); identity onboarding requires an explicit local storage policy"
+            f"cannot read the project policy ({error}); "
+            "identity onboarding requires an explicit local or private storage policy"
         )
     blocks, extract_error = extract_comment_blocks(text, POLICY_MARKER)
     if extract_error is not None:
         raise AdoptionError(
-            f"invalid project policy ({extract_error}); identity onboarding requires an explicit valid local policy"
+            f"invalid project policy ({extract_error}); "
+            "identity onboarding requires an explicit valid local or private policy"
         )
     if len(blocks) != 1:
         raise AdoptionError(
             f"expected exactly one {POLICY_MARKER} block, found {len(blocks)}; "
-            "identity onboarding requires an explicit valid local policy"
+            "identity onboarding requires an explicit valid local or private policy"
         )
     policy, parse_error = parse_block_object(blocks[0])
     if policy is None:
         raise AdoptionError(
-            f"invalid project policy ({parse_error}); identity onboarding requires an explicit valid local policy"
+            f"invalid project policy ({parse_error}); "
+            "identity onboarding requires an explicit valid local or private policy"
         )
     validation_errors = validate_policy_object(policy)
     if validation_errors:
         raise AdoptionError(
             "invalid project policy (" + "; ".join(validation_errors) + "); "
-            "identity onboarding requires an explicit valid local policy"
+            "identity onboarding requires an explicit valid local or private policy"
         )
-    if normalized_storage_mode(policy) != "local":
+    if normalized_storage_mode(policy) not in ("local", "private"):
         raise AdoptionError(
-            "identity onboarding runs only under an explicit local storage policy; "
-            "tracked and private projects never bind a historical store"
+            "identity onboarding runs only under an explicit local or private storage policy; "
+            "tracked projects do not bind a historical store"
         )
     return policy
+
+
+def _verify_private_identity_boundary(target: Path, policy: dict) -> AdoptionCoreState:
+    """Verify private Git visibility before writing an identity or its inventory.
+
+    Unlike local onboarding, no committed identity can recover this file.
+    An unreadable HEAD is not evidence of a private boundary, even when the
+    existing inventory is enough to establish a previous identity binding.
+    """
+    state = adoption_core_paths(target)
+    if state.error is not None or state.stamp is None:
+        raise AdoptionError(
+            "private history onboarding requires a valid adoption stamp: "
+            + (state.error or "no adoption stamp found")
+        )
+    if _identity_in_head(target) is None:
+        raise AdoptionError("Git could not verify the private history boundary; restore Git metadata and retry")
+    run = VaultCheckRun(target)
+    check_private_boundary(run, policy, state)
+    errors = [finding[1]["message"] for finding in run.findings if finding[1]["severity"] == "error"]
+    if errors:
+        raise AdoptionError("private history boundary is invalid: " + "; ".join(errors))
+    return state
 
 
 def register_project_identity(
@@ -2585,21 +2611,34 @@ def ensure_project_identity(
 ) -> dict:
     """Bundled identity helper: read, validate, recover-gate, or create and register.
 
-    Agent-native first local retention onboarding calls this after adopt and
-    the local policy/narrow-ignore setup, before check. Under an explicit
-    local policy it reuses a valid ``vault/project-id`` and completes its
+    Local/private onboarding calls this after adopt and policy/ignore setup,
+    before check. Private first verifies its Git boundary; the identity stays
+    ignored, and a registered identity whose bytes changed is refused. Under
+    either policy it reuses a valid ``vault/project-id`` and completes its
     stamp registration; a bound-but-missing identity must be restored, never
     regenerated - even an authorized first binding cannot bypass that gate;
     creating one requires ``authorize_create`` and leaves the identity file
     in place if the inventory write fails, so a retry re-registers the same
-    UUID. Returns ``{"identity", "created", "registered"}``; every refusal
-    raises AdoptionError and leaves the project untouched. Upgrades and
-    repeat adopts preserve the registration; tracked and private projects
-    never reach identity creation at all.
+    UUID. Returns ``{"identity", "created", "registered"}``. Precondition
+    refusals raise AdoptionError without writes. Upgrades and repeat adopts
+    preserve registration; tracked projects never create an identity. A new
+    private clone must explicitly restore the known original UUID to reuse
+    its historical namespace; this helper never discovers or guesses one.
     """
     target = Path(target).resolve()
-    _require_local_policy_for_identity(target)
+    policy = _require_history_policy_for_identity(target)
+    private_state = (
+        _verify_private_identity_boundary(target, policy)
+        if normalized_storage_mode(policy) == "private" else None
+    )
     identity = read_project_identity(target, target_descriptor)
+    if identity is not None and private_state is not None:
+        assert private_state.stamp is not None
+        entry = private_state.stamp["files"].get(PROJECT_IDENTITY_RELATIVE)
+        if isinstance(entry, dict) and entry.get("baseline") != sha256_hex((identity + "\n").encode("utf-8")):
+            raise AdoptionError(
+                "private project identity differs from its registered binding; restore the original UUID"
+            )
     created = False
     if identity is None:
         if identity_binding_evidence(target):
@@ -2691,9 +2730,10 @@ def check_private_boundary(run: VaultCheckRun, policy: dict | None, state: Adopt
         run.add(
             "storage",
             "PRIVATE_STORAGE_UNVERIFIED",
-            "warning",
+            "warning" if _proven_without_git_metadata(run.target) is True else "error",
             STAMP_RELATIVE,
-            "not a Git worktree or Git is unavailable; there is no Git upload surface, but the private boundary was not verified",
+            "Git worktree status could not be verified; "
+            "only proven absence of Git metadata is a non-repository warning",
         )
         return
     if state.stamp is None:
@@ -2705,7 +2745,19 @@ def check_private_boundary(run: VaultCheckRun, policy: dict | None, state: Adopt
             "storage_mode=private requires the adoption stamp, but vault/.agent-init.json is missing; the managed-file inventory cannot be read and the private boundary cannot be verified",
         )
         return
-    prefix = git_root_prefix(run.target)
+    if _identity_in_head(run.target) is None:
+        run.add(
+            "storage", "PRIVATE_STORAGE_UNVERIFIED", "error", STAMP_RELATIVE,
+            "Git HEAD evidence could not be verified; the private boundary was not verified",
+        )
+        return
+    prefix = _git_root_prefix_strict(run.target)
+    if prefix is None:
+        run.add(
+            "storage", "PRIVATE_STORAGE_UNVERIFIED", "error", STAMP_RELATIVE,
+            "Git could not verify the target prefix; the private boundary was not verified",
+        )
+        return
     target_identity = prefix.rstrip("/") if prefix else "."
     extras = private_managed_extras(state)
     base = [f"/{prefix}{entry}" for entry in PRIVATE_BASE_MANAGED_PATHS]

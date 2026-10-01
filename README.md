@@ -209,6 +209,8 @@ python3 scripts/trellium.py adopt /path/to/project
 
 首次使用 Skill 时，Agent 会询问 TASK storage，并推荐/默认 `local`：只有 `vault/tasks/TASK-*.md`、review 台账和 archive 留在本地，协作核心仍进入 Git；需要共享完整任务流水时选择 `tracked`。这是 Agent 工作流，不新增 CLI 参数：Agent 在 adopt 后把选择写入 policy，并在 local 模式补充窄范围 `vault/tasks/.gitignore`。重复接入与升级保持已有选择，storage 迁移不会自动执行。
 
+`local` 与 `private` 的 terminal TASK/review 都可按 Skill 流程成组保全到本机 `~/.trellium/history`，失败保留来源、读回校验后才算完成。Local 的 `vault/project-id` 进入 Git，Private 的身份文件随 Vault ignored；Private 写入前必须通过 privacy 边界校验，已登记身份丢失或改变时要求恢复。删 clone 后按保留的原 UUID、artifact id、digest 找回历史；新 private 接入显式恢复原 UUID，不从路径/remote 猜身份。换机器需迁移 Store 与 UUID，没有自动同步，也不备份当前 Vault。完整调用和恢复流程见 [中文 Skill](skills/trellium-zh/SKILL.md)。默认仍 Local，不自动迁移既有项目。
+
 项目语言已明确时，用可重复的 `--profile PROFILE[=ROOT]` 显式声明作用域；同语言可有多个 root，多语言各自使用独立项目文档：
 
 ```bash

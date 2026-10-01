@@ -1,0 +1,13 @@
+.........................................F........................................................................................................................................................................................................................
+======================================================================
+FAIL: test_keeps_original_target_when_ancestor_is_swapped_after_open (scripts.test_trellium.AgentInitTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/zlin/Developer/git/trellium/scripts/test_trellium.py", line 577, in test_keeps_original_target_when_ancestor_is_swapped_after_open
+    self.assertTrue((moved_container / "project/AGENTS.md").is_file())
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 258 tests in 14.589s
+
+FAILED (failures=1)

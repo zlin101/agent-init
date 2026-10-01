@@ -80,7 +80,7 @@ Agent 不应把“我能做到”误认为“这是应该做的”。
 - 每轮一次批量写入，替代逐条消息往返：reviewer 全量写入 findings，执行者批量处理后批量回写状态，reviewer 只看增量；
 - review checklist 优先用任务文件的 Acceptance Criteria——按契约审，不只按 diff 审；
 - `wont-fix` 与 `needs-discussion` 条目交还用户判断；
-- 清单收敛（无 `open` 与 `needs-discussion`）后，结论归档进该任务文件的 Execution Record；原台账文件保留在原路径，作为历轮 findings、处置、理由与证据引用的历史载体，local 任务 terminal 时随 TASK 成组保全（见 `10-vault.md`）。
+- 清单收敛（无 `open` 与 `needs-discussion`）后，结论归档进该任务文件的 Execution Record；原台账文件保留在原路径，作为历轮 findings、处置、理由与证据引用的历史载体，local/private 任务 terminal 时随 TASK 成组保全（见 `10-vault.md`）。
 
 台账是瞬态工作文件：收敛前的中间状态不属于项目记忆，归档内容以结论为准。
 

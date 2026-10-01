@@ -42,7 +42,7 @@ description: 用于为新项目或既有软件项目添加或升级持久的 Age
 
 本包自带确定性安装/升级脚本 `assets/trellium.py`，优先使用；Agent 语义迁移在脚本之上叠加。
 
-- 新项目或既有项目首次接入前，先询问 owner 选择 TASK storage，推荐并默认 `local`；owner 未指定时按 local 执行。local 只把 `vault/tasks/TASK-*.md`、review 台账和 archive 留在本地，协作核心仍进入 Git；需要共享完整任务流水时选择 `tracked`；需要 Trellium 完全不进 Git 时选择 `private`（流程见本条后半）。Agent 运行 `python3 assets/trellium.py adopt <target>` 后，把选择写入 `vault/index.md`；local 模式再创建窄范围 `vault/tasks/.gitignore`（`TASK-*.md`、`*-review.md`、`archive/`），tracked 模式不添加这些 ignore 规则。local 接入接着完成身份绑定（在 policy 与窄范围 ignore 就位后、check 之前）：调用与 `assets/trellium.py` 同目录的 bundled 身份 helper，例如 `python3 -c "import importlib.util as u, sys, pathlib; s = u.spec_from_file_location('trellium', 'assets/trellium.py'); m = u.module_from_spec(s); s.loader.exec_module(m); print(m.ensure_project_identity(pathlib.Path(sys.argv[1]), authorize_create=len(sys.argv) > 2 and sys.argv[2] == '--create'))" <target> [--create]`——有有效 `vault/project-id` 时复用并补登记；缺失但已有绑定证据（版本戳 inventory 或 Git HEAD）时要求恢复原身份，首次绑定授权也不得绕过；fresh 接入在接入计划中说明身份创建，存量 local 首次启用先取得 owner 绑定确认；身份创建后登记失败会保留身份文件，重试复用同一 UUID。随后运行 check，0 error 才算接入完成。local 任务的 closure retention 使用同目录的 `assets/history_store.py`（标准库模块，无 CLI；默认 root `~/.trellium/history`，必须位于工作 clone 外）：terminal 后把 TASK 与已开展的 review ledger 成组分别 `put` 并 `get` 验证，整组成功才算 retention 完成；失败保留 source 幂等重试，accepted 不回滚；默认不 cleanup，删 source 需 owner 明确授权。tracked/private 不做身份绑定与外部 retention。脚本默认只补缺失文件；已有 `AGENTS.md` 时追加标记区块，不覆盖。语言已明确时重复传入 `--profile go-backend=<root>` / `--profile python-backend=<root>`；每个已选 profile 在 `docs/engineering/profiles/` 生成完整项目文档，并由 AGENTS 按 root 一跳路由；`docs/engineering/code-comments.md` 是项目的 Comment/API Documentation Policy（注释/API 文档表达规范的唯一 owner，重叠规则以它为准；完整规则见 `references/protocol-source/init/protocol/70-adoption-flow.md`「Profile 工程规范」）。不自动猜测语言。Private 存储（policy `storage_mode=private`）让全部 Trellium material 只留在当前 clone：`adopt` 之前先调用 bundled 脚本的只读 `private_preflight(target, profiles)` 探针——例如 `python3 -c "import importlib.util as u, sys, pathlib; s = u.spec_from_file_location('trellium', 'assets/trellium.py'); m = u.module_from_spec(s); s.loader.exec_module(m); print(m.private_preflight(pathlib.Path(sys.argv[1]), profiles=tuple(sys.argv[2:])))" <target> [profile-id ...]`（输出路径或抛错即中止；Git 查询失败 fail-closed）；`adopt` 之后写入 schema v2 private policy，并在 `.git/info/exclude` 维护 canonical `trellium-private` block（anchored patterns、target identity、不允许 overreach 或后置 negation）；永不提交 Trellium material；运行 `check`，0 error 才算接入完成。Private TASK 使用 local lifecycle 语义；fresh clone 没有 Trellium 属于预期。
+- 新项目或既有项目首次接入前，先询问 owner 选择 TASK storage，推荐并默认 `local`；owner 未指定时按 local 执行。local 只把 `vault/tasks/TASK-*.md`、review 台账和 archive 留在本地，协作核心仍进入 Git；需要共享完整任务流水时选择 `tracked`；需要 Trellium 完全不进 Git 时选择 `private`（流程见本条后半）。Agent 运行 `python3 assets/trellium.py adopt <target>` 后，把选择写入 `vault/index.md`；local 模式再创建窄范围 `vault/tasks/.gitignore`（`TASK-*.md`、`*-review.md`、`archive/`），tracked 模式不添加这些 ignore 规则。local/private 接入完成身份绑定（local 的 policy/窄范围 ignore 或下述 private 的 policy/exclude 就位后、check 之前）：调用与 `assets/trellium.py` 同目录的 bundled 身份 helper，例如 `python3 -c "import importlib.util as u, sys, pathlib; s = u.spec_from_file_location('trellium', 'assets/trellium.py'); m = u.module_from_spec(s); s.loader.exec_module(m); print(m.ensure_project_identity(pathlib.Path(sys.argv[1]), authorize_create=len(sys.argv) > 2 and sys.argv[2] == '--create'))" <target> [--create]`——有有效 `vault/project-id` 时复用并补登记；缺失但已有绑定证据（版本戳 inventory 或 Git HEAD）时要求恢复原身份，首次绑定授权也不得绕过；fresh 接入在接入计划中说明身份创建，存量 local/private 首次启用先取得 owner 绑定确认；身份创建后登记失败会保留身份文件，重试复用同一 UUID。随后运行 check，0 error 才算接入完成。local/private 任务的 closure retention 使用同目录的 `assets/history_store.py`（标准库模块，无 CLI；默认 root `~/.trellium/history`，必须位于工作 clone 外）：terminal 后把 TASK 与已开展的 review ledger 成组分别 `put` 并 `get` 验证，整组成功才算 retention 完成；失败保留 source 幂等重试，accepted 不回滚；默认不 cleanup，删 source 需 owner 明确授权。Private 的 project-id 保持 ignored，并在 helper 写入前校验 private 边界；登记后 UUID bytes 与 baseline 不符时要求恢复。tracked 不做身份绑定与外部 retention。脚本默认只补缺失文件；已有 `AGENTS.md` 时追加标记区块，不覆盖。语言已明确时重复传入 `--profile go-backend=<root>` / `--profile python-backend=<root>`；每个已选 profile 在 `docs/engineering/profiles/` 生成完整项目文档，并由 AGENTS 按 root 一跳路由；`docs/engineering/code-comments.md` 是项目的 Comment/API Documentation Policy（注释/API 文档表达规范的唯一 owner，重叠规则以它为准；完整规则见 `references/protocol-source/init/protocol/70-adoption-flow.md`「Profile 工程规范」）。不自动猜测语言。Private 存储（policy `storage_mode=private`）让全部目标 managed material 不进 Git，terminal TASK/review 的历史副本可保全到本机 Store：`adopt` 之前先调用 bundled 脚本的只读 `private_preflight(target, profiles)` 探针——例如 `python3 -c "import importlib.util as u, sys, pathlib; s = u.spec_from_file_location('trellium', 'assets/trellium.py'); m = u.module_from_spec(s); s.loader.exec_module(m); print(m.private_preflight(pathlib.Path(sys.argv[1]), profiles=tuple(sys.argv[2:])))" <target> [profile-id ...]`（输出路径或抛错即中止；Git 查询失败 fail-closed）；`adopt` 之后写入 schema v2 private policy，并在 `.git/info/exclude` 维护 canonical `trellium-private` block（anchored patterns、target identity、不允许 overreach 或后置 negation）；永不提交目标 Trellium material；接着调用上面的身份 helper，保持 project-id ignored；运行 `check`，0 error 才算接入完成。Private TASK 使用 local lifecycle 语义；fresh clone 没有 Trellium 属于预期。
 - 协议内容更新无需重装本 Skill：adopt/diff/upgrade 命令加 `--fetch` 即从 GitHub 拉取最新 tag release 并以该版本的脚本与模板执行（缓存于 `~/.cache/trellium/`，降级会被拒绝）。重装 Skill 仅在 SKILL 工作流或脚本自身变化时需要。
 - 已接入项目的升级：
   1. `python3 assets/trellium.py diff <target>`——只读报告：会动什么、绝不动什么、待执行迁移手册。
@@ -54,6 +54,41 @@ description: 用于为新项目或既有软件项目添加或升级持久的 Age
 - 数据保护：runtime、handoff、decisions、tasks 等项目数据对脚本只读，永不被模板替换；数据文件的格式迁移按 `references/protocol-source/init/MIGRATIONS.md` 语义执行，只做内容搬运，不丢事实。
 - 版本判断：目标项目 `vault/.agent-init.json` 的 `protocol_version` 低于 `references/protocol-source/init/VERSION` 时提议升级。
 - 脚本无法运行时（缺少 python3 等），回退为本 SKILL 的 Agent 驱动流程：按 `references/protocol-source/` 的协议规则手工合并模板与执行迁移，遵守相同的数据保护边界。
+
+## History 保全与 Private 恢复
+
+Local/Private terminal TASK 与必要 review 台账使用同一 Store。先确定完整的成组来源并冻结内容；从本包目录执行下面的 Python 调用（替换项目与来源路径；只处理已 terminal 的任务，未开展 ledger review 时不要虚构台账）：
+
+```python
+import importlib.util
+from pathlib import Path
+
+def load(name, filename):
+    spec = importlib.util.spec_from_file_location(name, filename)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+trellium = load("trellium", "assets/trellium.py")
+history = load("history_store", "assets/history_store.py")
+clone = Path("/path/to/project").resolve()
+project_id = trellium.ensure_project_identity(clone)["identity"]
+store = history.Store(Path.home() / ".trellium/history")
+sources = (
+    (clone / "vault/tasks/TASK-0001-example.md", "TASK-0001"),
+    (clone / "vault/tasks/TASK-0001-review.md", "TASK-0001-review"),
+)
+results = [history.retain_terminal(store, project_id, source, clone, artifact_id)
+           for source, artifact_id in sources]
+if not all(result["retained"] for result in results):
+    raise RuntimeError("Incomplete group retention; keep every source and retry")
+```
+
+逐份 put/get 成功才算整组保全完成。任何失败保留全部 source，幂等重试；默认不 cleanup。历史不恢复任务状态或 Authority，不进入默认读取，不备份当前 Vault。
+
+Private 的 `vault/project-id` 随 Vault ignored，没有 Git 恢复副本；owner 必须保留原 UUID。删除 clone 后仅按已知 UUID、artifact id 和 digest 调用 `store.get(project_id, artifact_id, digest)`，返回原始 bytes 并校验内容；UUID namespace/metadata 是历史归属，不自动成为当前项目身份。重建 private 接入时先完成 preflight/adopt/policy/exclude，由 owner 确认项目并 get 核对历史，再以独占创建（`open("x")`，不覆盖已有文件）恢复原 UUID 加换行到 `vault/project-id`，调用上面的 identity helper **不加 --create** 复用并登记；原 stamp 仍有绑定时也必须恢复同一 UUID。身份已登记但缺失或 baseline 不符时拒绝替换。
+
+没有原 UUID 或确定的项目证据时停止恢复，不按目录、remote 或“最新历史”猜测，也不通过新 UUID 冒充旧绑定。新机器的默认位置仍为该机器用户的 `~/.trellium/history`；迁移 Store 和原 UUID 是显式手工迁移，没有自动同步。存量 Private 首次启用/旧记录回填由 owner 决定；默认仍 Local。
 
 ## 任务契约
 

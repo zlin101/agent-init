@@ -16,7 +16,7 @@
 }
 -->
 
-上方策略块是项目预算与 TASK storage 的唯一来源。`storage_mode: tracked` 表示任务文件纳入版本控制；`local` 表示任务文件、review 台账与 archive 不进 Git（Accepted 后的结论必须蒸馏进 `decisions.md` 等公开位置）；`private` 表示全部 Trellium managed material 不进 Git，只留在当前 clone（由 `.git/info/exclude` 的 canonical trellium-private block 强制）。协议其他位置的预算数字是初始化默认值，不是项目当前策略。策略块缺失即 legacy 项目：如实报告，不用隐藏默认值替代。
+上方策略块是项目预算与 TASK storage 的唯一来源。`storage_mode: tracked` 表示任务文件纳入版本控制；`local` 表示任务文件、review 台账与 archive 不进 Git（Accepted 后的结论必须蒸馏进 `decisions.md` 等公开位置）；`private` 表示目标项目的全部 Trellium managed material 不进 Git，terminal TASK/review 可另存本机 History Store（由 `.git/info/exclude` 的 canonical trellium-private block 强制）。协议其他位置的预算数字是初始化默认值，不是项目当前策略。策略块缺失即 legacy 项目：如实报告，不用隐藏默认值替代。
 
 ## 任务与授权速查表
 

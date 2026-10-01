@@ -3958,7 +3958,7 @@ class ProjectIdentityTest(VaultCheckMixin):
     def identity_entry(self, target: Path) -> dict:
         return self.read_stamp(target)["files"][agent_init.PROJECT_IDENTITY_RELATIVE]
 
-    def test_requires_explicit_local_policy(self) -> None:
+    def test_requires_explicit_history_policy(self) -> None:
         target = (self.root / "project").resolve()
         target.mkdir()
         code, _, err = self.adopt(target)
@@ -3967,7 +3967,7 @@ class ProjectIdentityTest(VaultCheckMixin):
         with self.assertRaises(agent_init.AdoptionError):
             self.ensure(target)
         self.assertFalse((target / "vault/project-id").exists())
-        for policy in (tracked_policy(), v2_policy("tracked"), private_policy()):
+        for policy in (tracked_policy(), v2_policy("tracked")):
             with self.subTest(policy=policy):
                 self.write_policy(target, policy)
                 with self.assertRaises(agent_init.AdoptionError):
@@ -4058,6 +4058,21 @@ class ProjectIdentityTest(VaultCheckMixin):
             self.ensure(head_case, authorize_create=True)
         self.assertIn("restore", str(caught.exception))
         self.assertNotEqual(head_identity, identity)
+
+    def test_monorepo_head_binding_survives_worktree_loss(self) -> None:
+        repo = self.root / "repo"
+        (repo / "packages").mkdir(parents=True)
+        target = self.adopt_local(name="repo/packages/api")
+        identity = target / "vault/project-id"
+        original = f"{uuid.uuid4()}\n"
+        identity.write_text(original, encoding="utf-8")
+        self.init_git_repo(repo)
+        self.git(repo, "add", "-A")
+        self.git(repo, "commit", "-qm", "bind nested identity")
+        identity.unlink()
+        with self.assertRaisesRegex(agent_init.AdoptionError, "restore the original identity"):
+            self.ensure(target, authorize_create=True)
+        self.assertFalse(identity.exists())
 
     def test_git_query_failure_fails_closed(self) -> None:
         target = self.adopt_local()
@@ -4357,6 +4372,242 @@ class ProjectIdentityTest(VaultCheckMixin):
                 if finding["code"].startswith("CORE_STORAGE_")
             ],
         )
+
+
+class PrivateHistoryTest(VaultCheckMixin):
+    """Private retention identity, write refusals and packaged recovery."""
+
+    def private_project(self, name: str = "private", *, profile: bool = False) -> Path:
+        target = (self.root / name).resolve()
+        target.mkdir()
+        (target / "README.md").write_text("# Private demo\n", encoding="utf-8")
+        self.init_git_repo(target)
+        self.git(target, "add", "README.md")
+        self.git(target, "commit", "-qm", "init")
+        extras = ("--profile", "python-backend=src") if profile else ()
+        code, _, err = self.adopt(target, *extras)
+        self.assertEqual(code, 0, err)
+        ProjectIdentityTest.write_policy(self, target, private_policy())
+        patterns = ["/AGENTS.md", "/vault/", "/skills/agent-task/", "/.agent-init-backup/"]
+        if profile:
+            patterns += ["/docs/engineering/code-comments.md", "/docs/engineering/profiles/python-backend.md"]
+        with (target / ".git/info/exclude").open("a", encoding="utf-8") as handle:
+            handle.write("\n".join(["# trellium-private:start .", *patterns, "# trellium-private:end ."]) + "\n")
+        return target
+
+    def assert_refused_without_identity(self, target: Path) -> None:
+        stamp = target / agent_init.STAMP_RELATIVE
+        original = stamp.read_bytes() if stamp.exists() else None
+        with self.assertRaises(agent_init.AdoptionError):
+            agent_init.ensure_project_identity(target, authorize_create=True)
+        self.assertFalse((target / "vault/project-id").exists())
+        self.assertEqual(stamp.read_bytes() if stamp.exists() else None, original)
+
+    def test_private_binding_stays_ignored_and_reuses_uuid(self) -> None:
+        target = self.private_project(profile=True)
+        first = agent_init.ensure_project_identity(target, authorize_create=True)
+        second = agent_init.ensure_project_identity(target)
+        self.assertTrue(first["created"])
+        self.assertEqual(second, {"identity": first["identity"], "created": False, "registered": False})
+        entry = self.read_stamp(target)["files"]["vault/project-id"]
+        self.assertEqual(entry["role"], "data")
+        self.assertNotIn(first["identity"], json.dumps(self.read_stamp(target)))
+        self.assertEqual(self.git(target, "ls-files").stdout, b"README.md\n")
+        self.assertEqual(self.git(target, "status", "--porcelain").stdout, b"")
+        self.assertEqual(self.git(target, "check-ignore", "vault/project-id").returncode, 0)
+        self.assertEqual(self.check_json(target)["summary"], {"errors": 0, "warnings": 0})
+
+    def test_private_first_binding_requires_authorization(self) -> None:
+        target = self.private_project()
+        stamp = (target / agent_init.STAMP_RELATIVE).read_bytes()
+        with self.assertRaises(agent_init.AdoptionError):
+            agent_init.ensure_project_identity(target)
+        self.assertFalse((target / "vault/project-id").exists())
+        self.assertEqual((target / agent_init.STAMP_RELATIVE).read_bytes(), stamp)
+
+    def test_private_bound_missing_identity_requires_restore(self) -> None:
+        target = self.private_project()
+        original = agent_init.ensure_project_identity(target, authorize_create=True)["identity"]
+        identity = target / "vault/project-id"
+        identity.unlink()
+        self.assert_refused_without_identity(target)
+        identity.write_text(original + "\n", encoding="utf-8")
+        self.assertEqual(agent_init.ensure_project_identity(target)["identity"], original)
+
+    def test_private_registered_uuid_replacement_is_refused(self) -> None:
+        target = self.private_project()
+        agent_init.ensure_project_identity(target, authorize_create=True)
+        identity = target / "vault/project-id"
+        changed = f"{uuid.uuid4()}\n"
+        identity.write_text(changed, encoding="utf-8")
+        stamp = (target / agent_init.STAMP_RELATIVE).read_bytes()
+        with self.assertRaisesRegex(agent_init.AdoptionError, "restore the original UUID"):
+            agent_init.ensure_project_identity(target, authorize_create=True)
+        self.assertEqual(identity.read_text(encoding="utf-8"), changed)
+        self.assertEqual((target / agent_init.STAMP_RELATIVE).read_bytes(), stamp)
+
+    def test_private_invalid_uuid_is_not_rewritten(self) -> None:
+        target = self.private_project()
+        identity = target / "vault/project-id"
+        identity.write_text("invalid\n", encoding="utf-8")
+        with self.assertRaises(agent_init.AdoptionError):
+            agent_init.ensure_project_identity(target, authorize_create=True)
+        self.assertEqual(identity.read_bytes(), b"invalid\n")
+
+    def test_private_registration_failure_retry_keeps_uuid(self) -> None:
+        target = self.private_project()
+        with patch.object(agent_init, "write_stamp_file", side_effect=OSError("disk full")):
+            with self.assertRaises(agent_init.AdoptionError):
+                agent_init.ensure_project_identity(target, authorize_create=True)
+        original = (target / "vault/project-id").read_text(encoding="utf-8").strip()
+        result = agent_init.ensure_project_identity(target)
+        self.assertEqual(result, {"identity": original, "created": False, "registered": True})
+
+    def test_private_repeat_adopt_and_upgrade_keep_identity_protected(self) -> None:
+        target = self.private_project()
+        original = agent_init.ensure_project_identity(target, authorize_create=True)
+        code, _, err = self.adopt(target)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(agent_init.ensure_project_identity(target)["identity"], original["identity"])
+        plan = agent_init.build_upgrade_plan(target, self.read_stamp(target))
+        self.assertIn("vault/project-id", [item["path"] for item in plan["protected"]])
+        for section, items in plan.items():
+            if section != "protected":
+                self.assertNotIn("vault/project-id", [item["path"] for item in items])
+
+    def test_private_invalid_ignore_boundary_refuses_binding(self) -> None:
+        for name, block in (
+            ("missing", ""),
+            ("overreach", "# trellium-private:start .\n/docs/\n# trellium-private:end .\n"),
+        ):
+            with self.subTest(name=name):
+                target = self.private_project(name)
+                (target / ".git/info/exclude").write_text(block, encoding="utf-8")
+                self.assert_refused_without_identity(target)
+        target = self.private_project("profile-missing", profile=True)
+        exclude = target / ".git/info/exclude"
+        exclude.write_text(
+            exclude.read_text(encoding="utf-8").replace("/docs/engineering/profiles/python-backend.md\n", ""),
+            encoding="utf-8",
+        )
+        self.assert_refused_without_identity(target)
+
+    def test_private_forced_add_refuses_identity_writes(self) -> None:
+        target = self.private_project()
+        self.git(target, "add", "-f", "AGENTS.md")
+        self.assert_refused_without_identity(target)
+        other = self.private_project("identity-forced-add")
+        agent_init.ensure_project_identity(other, authorize_create=True)
+        self.git(other, "add", "-f", "vault/project-id")
+        stamp = (other / agent_init.STAMP_RELATIVE).read_bytes()
+        with self.assertRaises(agent_init.AdoptionError):
+            agent_init.ensure_project_identity(other)
+        self.assertEqual((other / agent_init.STAMP_RELATIVE).read_bytes(), stamp)
+        self.assertIn("PRIVATE_STORAGE_TRACKED", [item["code"] for item in self.check_json(other)["findings"]])
+
+    def test_private_unknown_git_evidence_refuses_binding(self) -> None:
+        target = self.private_project()
+        with patch.object(agent_init, "git_run", return_value=None):
+            self.assert_refused_without_identity(target)
+        (target / ".git/HEAD").write_text("corrupt head\n", encoding="utf-8")
+        self.assert_refused_without_identity(target)
+
+    def test_private_missing_or_invalid_stamp_refuses_binding(self) -> None:
+        target = self.private_project()
+        stamp = target / agent_init.STAMP_RELATIVE
+        stamp.unlink()
+        self.assert_refused_without_identity(target)
+        stamp.write_text("{broken", encoding="utf-8")
+        self.assert_refused_without_identity(target)
+
+    def test_private_preflight_corrupt_metadata_refuses_before_adopt(self) -> None:
+        target = self.private_project()
+        (target / ".git/HEAD").write_text("corrupt head\n", encoding="utf-8")
+        original = self.snapshot(target)
+        with self.assertRaises(agent_init.AdoptionError):
+            agent_init.private_preflight(target)
+        self.assertEqual(self.snapshot(target), original)
+        payload = self.check_json(target)
+        self.assertTrue(any(
+            item["code"] == "PRIVATE_STORAGE_UNVERIFIED" and item["severity"] == "error"
+            for item in payload["findings"]
+        ))
+
+    def test_private_preflight_unknown_head_refuses_before_adopt(self) -> None:
+        target = self.private_project()
+        head = (target / ".git/HEAD").read_text(encoding="utf-8").strip()
+        ref = target / ".git" / head.split("ref: ", 1)[1]
+        ref.write_text("corrupt ref\n", encoding="utf-8")
+        original = self.snapshot(target)
+        with self.assertRaises(agent_init.AdoptionError):
+            agent_init.private_preflight(target)
+        self.assertEqual(self.snapshot(target), original)
+        payload = self.check_json(target)
+        self.assertTrue(any(
+            item["code"] == "PRIVATE_STORAGE_UNVERIFIED" and item["severity"] == "error"
+            for item in payload["findings"]
+        ))
+
+    def test_private_invalid_policy_refuses_binding(self) -> None:
+        target = self.private_project()
+        for body in (
+            '{"schema_version":2,"storage_mode":"private","storage_mode":"private"}',
+            '{"schema_version":2,"storage_mode":"private","budgets":NaN}',
+            '[]',
+        ):
+            with self.subTest(body=body):
+                ProjectIdentityTest.write_policy(self, target, policy_block(text=body))
+                self.assert_refused_without_identity(target)
+
+    def test_packaged_private_history_and_explicit_uuid_recovery(self) -> None:
+        for package in ("trellium", "trellium-zh"):
+            with self.subTest(package=package):
+                skill = SCRIPT_PATH.parents[1] / "skills" / package
+                commands = re.findall(r'python3 -c "([^"]+)"', (skill / "SKILL.md").read_text(encoding="utf-8"))
+                command = next(value for value in commands if "ensure_project_identity" in value)
+                target = self.private_project(package)
+                result = subprocess.run(
+                    ["python3", "-B", "-c", command, str(target), "--create"],
+                    cwd=skill, capture_output=True, text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                identity = (target / "vault/project-id").read_text(encoding="utf-8").strip()
+                store_spec = importlib.util.spec_from_file_location("packaged_store", skill / "assets/history_store.py")
+                self.assertIsNotNone(store_spec)
+                module = importlib.util.module_from_spec(store_spec)
+                store_spec.loader.exec_module(module)
+                store = module.Store(self.root / f"external-history-{package}")
+                task = target / "vault/tasks/TASK-0030.md"
+                ledger = target / "vault/tasks/TASK-0030-review.md"
+                task.write_text("# TASK-0030\n" + state_block(valid_state("TASK-0030", "accepted")), encoding="utf-8")
+                ledger.write_text("# Review\nF001 fixed; evidence retained.\n", encoding="utf-8")
+                contents = [task.read_bytes(), ledger.read_bytes()]
+                saved = module.retain_terminal(store, identity, task, target, "TASK-0030")
+                with patch.object(store, "put", side_effect=OSError("disk full")):
+                    failed = module.retain_terminal(store, identity, ledger, target, "TASK-0030-review")
+                self.assertTrue(saved["retained"])
+                self.assertFalse(failed["retained"])
+                self.assertTrue(task.exists() and ledger.exists())
+                retried = module.retain_terminal(store, identity, ledger, target, "TASK-0030-review")
+                self.assertTrue(retried["retained"])
+                self.assertEqual(self.git(target, "ls-files").stdout, b"README.md\n")
+                self.assertEqual(self.git(target, "status", "--porcelain").stdout, b"")
+                shutil.rmtree(target)  # only the isolated test clone
+                for artifact_id, digest, content in (
+                    ("TASK-0030", saved["digest"], contents[0]),
+                    ("TASK-0030-review", retried["digest"], contents[1]),
+                ):
+                    self.assertEqual(store.get(identity, artifact_id, digest)[digest], content)
+                restored = self.private_project(f"restored-{package}")
+                (restored / "vault/project-id").write_text(identity + "\n", encoding="utf-8")
+                result = subprocess.run(
+                    ["python3", "-B", "-c", command, str(restored)], cwd=skill, capture_output=True, text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("'created': False", result.stdout)
+                self.assertIn("'registered': True", result.stdout)
+                self.assertEqual((restored / "vault/project-id").read_text(encoding="utf-8"), identity + "\n")
+                self.assertEqual(self.check_json(restored)["summary"], {"errors": 0, "warnings": 0})
 
 
 class PrivateStorageModeTest(VaultCheckMixin, TargetTestCase):

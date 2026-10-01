@@ -22,8 +22,9 @@ The block above is the single source for project budgets and TASK storage.
 `storage_mode: tracked` keeps task files in version control; `local` keeps
 task files, review ledgers, and archive out of Git (Accepted conclusions must
 then be distilled into `decisions.md` or other published truth); `private`
-keeps every Trellium-managed file out of Git entirely (clone-only, enforced
-by the canonical trellium-private block in `.git/info/exclude`). Budget
+keeps every target-project Trellium-managed file out of Git (enforced by
+the canonical trellium-private block in `.git/info/exclude`); terminal TASK/review
+evidence is retained in the local History Store. Budget
 numbers elsewhere in the protocol are initialization defaults, not project
 policy. A missing policy block means a legacy project: report it, and do not
 substitute hidden defaults.

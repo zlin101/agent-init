@@ -1,4 +1,4 @@
-"""Historical evidence store for terminal local Trellium artifacts.
+"""Historical evidence store for terminal local/private Trellium artifacts.
 
 Verified, clone-independent retention for structured evidence (terminal TASK
 files, review ledgers). One immutable version per SHA-256 content digest; the
@@ -264,7 +264,7 @@ def retain_terminal(store: Store, project_id: str, source: Path, clone: Path,
                     artifact_id: str, cleanup: bool = False) -> dict:
     """Minimal closure adapter: retain opaque terminal bytes, verify, optionally unlink.
 
-    The caller supplies a terminal immutable source and local mode. This adapter
+    The caller supplies a terminal immutable source in local/private mode. This adapter
     does not parse or change lifecycle, canonical knowledge or authority, and it
     never deletes a source that has not been fully retained and verified. The
     store root must live outside the working clone. Failure is a transient
