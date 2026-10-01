@@ -7,7 +7,7 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
-## Unreleased — 首次接入明确选择存储模式
+## 2026.10.2 — 首次接入明确选择存储模式
 
 - Changed: Skill/Agent 首次给项目接入时，storage 未明确则询问 Private/Local/Tracked 并等待回答；期间仅可只读扫描，不运行 adopt、不创建目标 TASK 契约、不写目标文件。Local 仍推荐，未回答/预选/超时不构成写入授权。
 - Agent migration: 已明确选择直接复用、不重复询问；已接入项目保留有效 policy，缺失/无效/冲突时先澄清，不自动迁移。仅安装机器级包且无目标项目时，问题留到首次接入。canonical 规则见 `70-adoption-flow.md`「存储模式选择门」。
