@@ -71,9 +71,19 @@ Agent 执行接入前，应只做只读扫描：
 5. 识别项目类型和技术栈，但不改依赖或代码。
 6. 如需语言工程规范，明确 profile 与适用根目录；多语言或同语言多根目录使用重复选择，不自动猜测。
 7. 检查工作区是否已有未说明的变更。
-8. 首次接入由 Agent 询问 owner 选择存储模式：推荐 `local`，owner 未指定时按 local 执行；需要共享完整任务流水时选 `tracked`；需要 Trellium 完全不进 Git 时选 `private`（语义与接入顺序见「Private 存储模式」）。
+8. 在任何目标写入前通过下方「存储模式选择门」；未明确模式时等待回答，已有明确选择或既有有效 policy 则复用。
 
 扫描后，Agent 应给出接入计划，列出将创建或修改的协作层文件。
+
+## 存储模式选择门
+
+安装 Skill 包与接入具体项目是两个阶段；storage 只写入目标项目的 `vault/index.md` policy，不设全局模式。只安装包且目标项目未知时，模式问题留到首次项目接入。
+
+首次项目接入没有 owner 对本项目的明确选择时，问一个问题：“这个项目采用 Private、Local 还是 Tracked？”并说明 Git 可见性：Private 的全部目标 managed material 留在本机；Local 的协作核心进 Git、TASK/review/archive 留本机；Tracked 的协作核心与完整任务流水进 Git。Private/Local 可按 History 契约在本机保全 terminal TASK/review，默认 root `~/.trellium/history`，不自动备份当前 Vault或跨机器同步。
+
+推荐 Local 只作为建议；预选、未回答或等待超时不算选择。等待期间仅可继续只读扫描：不运行 adopt、不创建接入 TASK 契约、不写任何目标项目文件。当前对话或既有授权已明确本项目模式时，接入摘要说明并直接复用，不重复询问。
+
+已接入项目先读取有效 policy，重复接入/升级保留模式。policy 缺失、无效或与当前请求冲突时，先澄清再写入；不能把既有项目当作全新项目套默认值，不能自动迁移或 untrack。此门是 Skill/Agent 接入契约，不新增 CLI 参数，裸调用低层 adopt 不提供交互式选择保证。
 
 ## 冲突处理
 

@@ -1,0 +1,20 @@
+.........................................F..................................................................................................................................................................................................................................create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmp5myo3uwz/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmphncmdm_4/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmps5pzkpy6/identity-forced-add/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpnisxj9aa/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpvp_91g6b/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmp6u4hcqhb/private/vault/project-id
+create /private/var/folders/rj/xccb7g5d3gv67sxr0dkkslhm0000gn/T/tmpx1qpv07a/legacy/vault/project-id
+................
+======================================================================
+FAIL: test_keeps_original_target_when_ancestor_is_swapped_after_open (scripts.test_trellium.AgentInitTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "~/Developer/git/trellium/scripts/test_trellium.py", line 577, in test_keeps_original_target_when_ancestor_is_swapped_after_open
+    self.assertTrue((moved_container / "project/AGENTS.md").is_file())
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 284 tests in 21.978s
+
+FAILED (failures=1)

@@ -7,6 +7,12 @@
 - `Added` / `Removed` / `Breaking` / `Auto`：模板与文件层面的机械变化，由 `trellium.py diff` 报告、`upgrade --apply` 执行；
 - `Agent migration`：需要 Agent 语义执行、用户确认的迁移动作。数据文件（runtime、handoff、decisions 等）的格式迁移一律属于此类：只做内容搬运，不丢事实，不做"判断不重要然后丢弃"。
 
+## Unreleased — 首次接入明确选择存储模式
+
+- Changed: Skill/Agent 首次给项目接入时，storage 未明确则询问 Private/Local/Tracked 并等待回答；期间仅可只读扫描，不运行 adopt、不创建目标 TASK 契约、不写目标文件。Local 仍推荐，未回答/预选/超时不构成写入授权。
+- Agent migration: 已明确选择直接复用、不重复询问；已接入项目保留有效 policy，缺失/无效/冲突时先澄清，不自动迁移。仅安装机器级包且无目标项目时，问题留到首次接入。canonical 规则见 `70-adoption-flow.md`「存储模式选择门」。
+- Auto: 无项目 schema、CLI、模板 policy 默认值或数据迁移变化；既有项目与已发布 tag 不变。此项属于 Skill 工作流更新，需要新版 Skill 包才能获得，不以裸 adopt 的非交互执行冒充该选择门。
+
 ## 2026.10.1 — Trellium Work rename
 
 - Changed: 现有项目 starter workflow `agent-task` 更名为 `trellium-work`，标题 `Trellium Work`，新项目唯一目标为 `skills/trellium-work/SKILL.md`。安装/接入包仍叫 `trellium` / `trellium-zh`，不增加新的 Agent 发现位置或第二入口。双语模板以不可发现名称 `TRELLIUM_WORK_SKILL.template` 分发。

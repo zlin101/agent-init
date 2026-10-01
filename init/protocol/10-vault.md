@@ -158,7 +158,7 @@ TASK lifecycle 使用统一枚举（定义见 `20-governance.md`）：`draft | a
 
 Level B/C 任务文件在标题之后、叙事正文之前放置 `trellium-task-state` 状态块，是 lifecycle、authority_level、当前 slice 与 Gate 结果的唯一 owner（schema 见下方"状态块与策略块"）。`TASK-*-review.md` 台账与 `tasks/archive/` 是冷历史，不需要状态块。
 
-TASK storage 由 policy 块的 `storage_mode` 决定：`local` 时任务文件、review 台账与 archive 不 tracked、不 staged，Accepted 后的结论必须先蒸馏进 `decisions.md` 等公开位置；`tracked` 时完整任务流水纳入版本控制；`private` 时全部 managed material 留在当前 clone，TASK 采用 local lifecycle 语义（不 tracked、不 staged，Accepted 后蒸馏，fresh clone 不包含原协作层，已验证 TASK/review 可按下方 History 契约找回）。Skill/Agent 首次接入前询问 owner 并推荐 `local`，owner 未指定时按 local 执行。Agent 在 local 模式创建 `vault/tasks/.gitignore` 的窄规则，不修改项目根 `.gitignore`；private 模式改为维护 `.git/info/exclude` 的 canonical trellium-private block；storage 迁移由 owner 决定，工具不自动 untrack。
+TASK storage 由 policy 块的 `storage_mode` 决定：`local` 时任务文件、review 台账与 archive 不 tracked、不 staged，Accepted 后的结论必须先蒸馏进 `decisions.md` 等公开位置；`tracked` 时完整任务流水纳入版本控制；`private` 时全部 managed material 留在当前 clone，TASK 采用 local lifecycle 语义（不 tracked、不 staged，Accepted 后蒸馏，fresh clone 不包含原协作层，已验证 TASK/review 可按下方 History 契约找回）。Skill/Agent 首次接入前按 `70-adoption-flow.md`「存储模式选择门」明确 owner 选择；推荐 Local 不构成未回答时的写入授权。Agent 在 local 模式创建 `vault/tasks/.gitignore` 的窄规则，不修改项目根 `.gitignore`；private 模式改为维护 `.git/info/exclude` 的 canonical trellium-private block；storage 迁移由 owner 决定，工具不自动 untrack。
 
 local 任务的生命周期边界（Durable Knowledge Disposition，人工 gate 而非机器校验）：
 
@@ -256,7 +256,7 @@ active local/private TASK
 - legacy schema v1（`task_storage: tracked | local`）继续可解析并归一化到同一 mode 概念；既有 v1 不自动改写。
 - 预算是可选正整数；键或对象缺失表示"不设该上限"。模板中的数字是初始化默认值，不是猜测出的普适阈值。
 - 本协议与模板其他位置出现的预算数字都是初始化默认值；项目当前预算以该块为唯一来源。缺失策略块的项目是 legacy：人工判断按初始化默认值，机械校验只测量、不套用默认值。
-- 新接入项目由 Agent 先询问 owner并推荐 `local`；owner 未指定时默认 local。`tracked` 用于需要共享完整任务流水的项目。
+- 新接入项目必须先明确 owner 的模式选择；推荐 Local 只是建议，未回答时仅可只读扫描（见 `70-adoption-flow.md`「存储模式选择门」）。`tracked` 用于需要共享完整任务流水的项目。
 - 重复接入与升级保持既有选择；`storage_mode` 迁移（含 private）由 owner 单独评审，工具不自动 untrack 或改写既有 storage。
 
 `python3 trellium.py check <target>` 对以上结构与投影做只读确定性校验。

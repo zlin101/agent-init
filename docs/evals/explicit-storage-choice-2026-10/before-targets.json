@@ -1,0 +1,121 @@
+{
+  "explicit-local": {
+    "files": {
+      "README.md": "62b837325f28b4a6100d12949057af46e9e9d69ef5d7cd4e35dbd2fb332ee332"
+    },
+    "index": "100644 6f070b13527d59858673bd9f86791db5173e7dbb 0\tREADME.md\n",
+    "head": "1f8efafa3d74377ef525ee75ac9574a497d7e4f0",
+    "exclude": "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n# For a project mostly in C, the following would be a good set of\n# exclude patterns (uncomment them if you want to use them):\n# *.[oa]\n# *~\n"
+  },
+  "missing-existing-policy": {
+    "files": {
+      "README.md": "62b837325f28b4a6100d12949057af46e9e9d69ef5d7cd4e35dbd2fb332ee332",
+      "AGENTS.md": "63ca64665a1de37220d9ef21b352d52b37b3ae96c931070e416a145af486db93",
+      "skills/trellium-work/SKILL.md": "9a6aa46644df64be020a170708c416528df6752a9ef4794ce713f86403e06987",
+      "vault/collaboration.md": "dbcdb8f28a0c4c83da7954c8414ded636897b9e20c22f8f4d425deb1a271c849",
+      "vault/parked.md": "a38d8b61f39ff776a1e612a7ea5ca100911340afb59a200ead6f252cc153673f",
+      "vault/governance.md": "02f066c6c853cdfb41303ec800a208719e640d984482dc70aac64a53b6e2e180",
+      "vault/project.md": "279d1ab575386d9ac5bd6e887405d538d8bfd3478a56f6ba7e55894a61a0c6be",
+      "vault/project-id": "4a612ea8dbc2cb539ec872bbe7621d35f0617a11cafa8f5b3b3465c18e4b58df",
+      "vault/index.md": "4f6fe29bd3df2825ab7f038e8d549d1fc44c375b32fe544fcd26f84dac6119ef",
+      "vault/.agent-init.json": "1b3e90f37ece41abd19033fa86fe5e349bbf6bd002eb9d80cdd567508b15768b",
+      "vault/runtime.md": "d64fa63776e1a9bd65cef4357ae0ccdf42e5082ebc23c626076443c8ad596132",
+      "vault/handoff.md": "ce371120c79c0970c8b14f41daa3c836ec8caa1bcc6a41c1af57f39849d12143",
+      "vault/decisions.md": "c030eca45107c300ebb32d90a51abcbd0707804f57cb1966fe13409cf23622c7",
+      "vault/tasks/README.md": "fdd4b6bc8ace34e96cfbed6dcb4f5d09124a43f4e279da7174e15192d294ca2b",
+      "vault/tasks/.gitignore": "b9a24cba7e444f5ba981402b326fb3649f1ab642e411f2a62f56f733ea290845"
+    },
+    "index": "100644 b8758372944ad8714ad32893fb54b221b18f4246 0\tAGENTS.md\n100644 6f070b13527d59858673bd9f86791db5173e7dbb 0\tREADME.md\n100644 f43a076a1369fe249cc627d7aec76d5dfa91da87 0\tskills/trellium-work/SKILL.md\n100644 9274e195f62d2bb00c7ca839a1a7fe921474d8a2 0\tvault/.agent-init.json\n100644 eaa4ab0c74439b795a3d8bd51f63092b829fe463 0\tvault/collaboration.md\n100644 3a4b70580751cbb07587863cb4a041ed1d9b2748 0\tvault/decisions.md\n100644 aa0a7c90fb8cc39dc8a65130c977a7d4f5cc070b 0\tvault/governance.md\n100644 e470df6a0dcb210622a883c9fd17b8da04acb93c 0\tvault/handoff.md\n100644 37fa5807f15816cd0263f6f8bfef2505789087da 0\tvault/index.md\n100644 b3fd98fd837b744744d403223b96273906793b75 0\tvault/parked.md\n100644 e1d79774abfec7fdeb1408a78d1dfc61923ff875 0\tvault/project-id\n100644 e7d21ad850a01e5e76bdda623281f2024b21713c 0\tvault/project.md\n100644 ca953cfc80703d34748215413e09d9c65a82151a 0\tvault/runtime.md\n100644 c35e529597c8cb37302f3834bb3250a5bd597fe7 0\tvault/tasks/.gitignore\n100644 499cf5f105350c0667ef28bce0f6120af54d1f5b 0\tvault/tasks/README.md\n",
+    "head": "bb4c4d2510abbbdda32989310d1495859811e76e",
+    "exclude": "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n# For a project mostly in C, the following would be a good set of\n# exclude patterns (uncomment them if you want to use them):\n# *.[oa]\n# *~\n"
+  },
+  "unspecified": {
+    "files": {
+      "README.md": "62b837325f28b4a6100d12949057af46e9e9d69ef5d7cd4e35dbd2fb332ee332"
+    },
+    "index": "100644 6f070b13527d59858673bd9f86791db5173e7dbb 0\tREADME.md\n",
+    "head": "1f8efafa3d74377ef525ee75ac9574a497d7e4f0",
+    "exclude": "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n# For a project mostly in C, the following would be a good set of\n# exclude patterns (uncomment them if you want to use them):\n# *.[oa]\n# *~\n"
+  },
+  "explicit-private": {
+    "files": {
+      "README.md": "62b837325f28b4a6100d12949057af46e9e9d69ef5d7cd4e35dbd2fb332ee332"
+    },
+    "index": "100644 6f070b13527d59858673bd9f86791db5173e7dbb 0\tREADME.md\n",
+    "head": "1f8efafa3d74377ef525ee75ac9574a497d7e4f0",
+    "exclude": "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n# For a project mostly in C, the following would be a good set of\n# exclude patterns (uncomment them if you want to use them):\n# *.[oa]\n# *~\n"
+  },
+  "conflicting-existing-policy": {
+    "files": {
+      "README.md": "62b837325f28b4a6100d12949057af46e9e9d69ef5d7cd4e35dbd2fb332ee332",
+      "AGENTS.md": "63ca64665a1de37220d9ef21b352d52b37b3ae96c931070e416a145af486db93",
+      "skills/trellium-work/SKILL.md": "9a6aa46644df64be020a170708c416528df6752a9ef4794ce713f86403e06987",
+      "vault/collaboration.md": "dbcdb8f28a0c4c83da7954c8414ded636897b9e20c22f8f4d425deb1a271c849",
+      "vault/parked.md": "a38d8b61f39ff776a1e612a7ea5ca100911340afb59a200ead6f252cc153673f",
+      "vault/governance.md": "02f066c6c853cdfb41303ec800a208719e640d984482dc70aac64a53b6e2e180",
+      "vault/project.md": "6a1e51b778a0928783b32ef6f549bc358c57dc6eef7eb2e6e837ae19e2cf6199",
+      "vault/project-id": "c2a8cd8f684a26366638cd0a8404ae7135281839f26f58bcf917abfeeb5a92bc",
+      "vault/index.md": "13b0d37e2e7f66e291f5081af77e80fc6baf46043bfe5e88faf6c0e17be83eb0",
+      "vault/.agent-init.json": "1fc8c9cd6886ab4bcf804922f077e745f30131832b79a525f3169bdf80f6dbd9",
+      "vault/runtime.md": "5dddec76ade1117aac7cf7c5d9f067284686d3dda2e7ee5ad96881891ee4f4c4",
+      "vault/handoff.md": "ce371120c79c0970c8b14f41daa3c836ec8caa1bcc6a41c1af57f39849d12143",
+      "vault/decisions.md": "c030eca45107c300ebb32d90a51abcbd0707804f57cb1966fe13409cf23622c7",
+      "vault/tasks/README.md": "fdd4b6bc8ace34e96cfbed6dcb4f5d09124a43f4e279da7174e15192d294ca2b",
+      "vault/tasks/.gitignore": "b9a24cba7e444f5ba981402b326fb3649f1ab642e411f2a62f56f733ea290845"
+    },
+    "index": "100644 b8758372944ad8714ad32893fb54b221b18f4246 0\tAGENTS.md\n100644 6f070b13527d59858673bd9f86791db5173e7dbb 0\tREADME.md\n100644 f43a076a1369fe249cc627d7aec76d5dfa91da87 0\tskills/trellium-work/SKILL.md\n100644 35b2a52da74ce9c550c96d62afe4e37de6a0d891 0\tvault/.agent-init.json\n100644 eaa4ab0c74439b795a3d8bd51f63092b829fe463 0\tvault/collaboration.md\n100644 3a4b70580751cbb07587863cb4a041ed1d9b2748 0\tvault/decisions.md\n100644 aa0a7c90fb8cc39dc8a65130c977a7d4f5cc070b 0\tvault/governance.md\n100644 e470df6a0dcb210622a883c9fd17b8da04acb93c 0\tvault/handoff.md\n100644 ab8300d6f9e3777afd91663bc646ce092bd247c0 0\tvault/index.md\n100644 b3fd98fd837b744744d403223b96273906793b75 0\tvault/parked.md\n100644 283d3f862d6589605790b3e70423106d7025d414 0\tvault/project-id\n100644 2cb8323ba9057343fb2dc95d8c7cafc8abc45c3e 0\tvault/project.md\n100644 5ccbc74ca824f7e9fc16a8896ea08b5a2e0cea20 0\tvault/runtime.md\n100644 c35e529597c8cb37302f3834bb3250a5bd597fe7 0\tvault/tasks/.gitignore\n100644 499cf5f105350c0667ef28bce0f6120af54d1f5b 0\tvault/tasks/README.md\n",
+    "head": "fe2c54e54207b12660580f8486e9ccba2305021e",
+    "exclude": "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n# For a project mostly in C, the following would be a good set of\n# exclude patterns (uncomment them if you want to use them):\n# *.[oa]\n# *~\n"
+  },
+  "invalid-existing-policy": {
+    "files": {
+      "README.md": "62b837325f28b4a6100d12949057af46e9e9d69ef5d7cd4e35dbd2fb332ee332",
+      "AGENTS.md": "63ca64665a1de37220d9ef21b352d52b37b3ae96c931070e416a145af486db93",
+      "skills/trellium-work/SKILL.md": "9a6aa46644df64be020a170708c416528df6752a9ef4794ce713f86403e06987",
+      "vault/collaboration.md": "dbcdb8f28a0c4c83da7954c8414ded636897b9e20c22f8f4d425deb1a271c849",
+      "vault/parked.md": "a38d8b61f39ff776a1e612a7ea5ca100911340afb59a200ead6f252cc153673f",
+      "vault/governance.md": "02f066c6c853cdfb41303ec800a208719e640d984482dc70aac64a53b6e2e180",
+      "vault/project.md": "659383696a84299a290fa0154f91b77ae9df4dc51a538027dc4ef35f70c97104",
+      "vault/project-id": "db6df8ebd48d35af2b7a843d6aac5bbf181db4e0dd8f364e2a73b741f70a06d4",
+      "vault/index.md": "3cf797a1887b489d502d196a3bfbf655d65335e717f80303c7d88c5d8b61c414",
+      "vault/.agent-init.json": "e0f2a610a6275fe8bfe865f01c172130fce440430c63d72c4c15b0b1caa8409c",
+      "vault/runtime.md": "712713d4686dc2acb0e27d8d088b8c4ac8512b1588e5c5d997c25b34847922e5",
+      "vault/handoff.md": "ce371120c79c0970c8b14f41daa3c836ec8caa1bcc6a41c1af57f39849d12143",
+      "vault/decisions.md": "c030eca45107c300ebb32d90a51abcbd0707804f57cb1966fe13409cf23622c7",
+      "vault/tasks/README.md": "fdd4b6bc8ace34e96cfbed6dcb4f5d09124a43f4e279da7174e15192d294ca2b",
+      "vault/tasks/.gitignore": "b9a24cba7e444f5ba981402b326fb3649f1ab642e411f2a62f56f733ea290845"
+    },
+    "index": "100644 b8758372944ad8714ad32893fb54b221b18f4246 0\tAGENTS.md\n100644 6f070b13527d59858673bd9f86791db5173e7dbb 0\tREADME.md\n100644 f43a076a1369fe249cc627d7aec76d5dfa91da87 0\tskills/trellium-work/SKILL.md\n100644 49ef4d78892bf1b9b31308b776f996f98771b5de 0\tvault/.agent-init.json\n100644 eaa4ab0c74439b795a3d8bd51f63092b829fe463 0\tvault/collaboration.md\n100644 3a4b70580751cbb07587863cb4a041ed1d9b2748 0\tvault/decisions.md\n100644 aa0a7c90fb8cc39dc8a65130c977a7d4f5cc070b 0\tvault/governance.md\n100644 e470df6a0dcb210622a883c9fd17b8da04acb93c 0\tvault/handoff.md\n100644 4b3b7b62b479366dead18c2e0499fe1d261ee68d 0\tvault/index.md\n100644 b3fd98fd837b744744d403223b96273906793b75 0\tvault/parked.md\n100644 ec081eca14a5f72f9ebfc5be8c0162a18d1bf236 0\tvault/project-id\n100644 66867b0d38cecfb5e3a5ab4b4298101a01750e3c 0\tvault/project.md\n100644 456450bfcbb8cd841ddbcdf38d5c0915eea739da 0\tvault/runtime.md\n100644 c35e529597c8cb37302f3834bb3250a5bd597fe7 0\tvault/tasks/.gitignore\n100644 499cf5f105350c0667ef28bce0f6120af54d1f5b 0\tvault/tasks/README.md\n",
+    "head": "96cd591fae63b80d0f2c0b9aa79c826cc8c6590c",
+    "exclude": "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n# For a project mostly in C, the following would be a good set of\n# exclude patterns (uncomment them if you want to use them):\n# *.[oa]\n# *~\n"
+  },
+  "valid-existing-private": {
+    "files": {
+      "README.md": "62b837325f28b4a6100d12949057af46e9e9d69ef5d7cd4e35dbd2fb332ee332",
+      "AGENTS.md": "63ca64665a1de37220d9ef21b352d52b37b3ae96c931070e416a145af486db93",
+      "skills/trellium-work/SKILL.md": "9a6aa46644df64be020a170708c416528df6752a9ef4794ce713f86403e06987",
+      "vault/collaboration.md": "dbcdb8f28a0c4c83da7954c8414ded636897b9e20c22f8f4d425deb1a271c849",
+      "vault/parked.md": "a38d8b61f39ff776a1e612a7ea5ca100911340afb59a200ead6f252cc153673f",
+      "vault/governance.md": "02f066c6c853cdfb41303ec800a208719e640d984482dc70aac64a53b6e2e180",
+      "vault/project.md": "8850fc588a8cd25f85b26fffe69ebfda134e97ca140d1b2bd058f5246b339135",
+      "vault/project-id": "555491edcd39fb2b6972a85d77c07dfc97d6f28fb7b42bf3b4acfa97a99ff27f",
+      "vault/index.md": "75be74eec1999eb86da624ca9d1b09584b812bd12948e2b6fe1b5480e52aed6a",
+      "vault/.agent-init.json": "28ad649f156b774794aa17f2941c1f4076b7aafa72c6859b9055f8bb3cac1492",
+      "vault/runtime.md": "c0685caae9dc8e4af72604adb61aa781ee00d6441eb4de110c88ef40fd915786",
+      "vault/handoff.md": "ce371120c79c0970c8b14f41daa3c836ec8caa1bcc6a41c1af57f39849d12143",
+      "vault/decisions.md": "c030eca45107c300ebb32d90a51abcbd0707804f57cb1966fe13409cf23622c7",
+      "vault/tasks/README.md": "fdd4b6bc8ace34e96cfbed6dcb4f5d09124a43f4e279da7174e15192d294ca2b"
+    },
+    "index": "100644 6f070b13527d59858673bd9f86791db5173e7dbb 0\tREADME.md\n",
+    "head": "1f8efafa3d74377ef525ee75ac9574a497d7e4f0",
+    "exclude": "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n# For a project mostly in C, the following would be a good set of\n# exclude patterns (uncomment them if you want to use them):\n# *.[oa]\n# *~\n\n# trellium-private:start .\n/AGENTS.md\n/vault/\n/skills/trellium-work/\n/.agent-init-backup/\n# trellium-private:end .\n"
+  },
+  "explicit-tracked": {
+    "files": {
+      "README.md": "62b837325f28b4a6100d12949057af46e9e9d69ef5d7cd4e35dbd2fb332ee332"
+    },
+    "index": "100644 6f070b13527d59858673bd9f86791db5173e7dbb 0\tREADME.md\n",
+    "head": "1f8efafa3d74377ef525ee75ac9574a497d7e4f0",
+    "exclude": "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n# For a project mostly in C, the following would be a good set of\n# exclude patterns (uncomment them if you want to use them):\n# *.[oa]\n# *~\n"
+  }
+}

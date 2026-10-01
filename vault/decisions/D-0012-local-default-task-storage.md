@@ -1,8 +1,10 @@
 # D-0012 - 首次接入默认 local TASK storage
 
-Status: Active
+Status: Superseded by D-0017
 
 Date: 2026-09-28
+
+2026-10-01：Owner 同意 D-0017 的明确选择门，取消下文“未指定时按 Local”行为；Local 推荐与文件边界保留，下文作为历史问题和推理证据。
 
 ## Background
 

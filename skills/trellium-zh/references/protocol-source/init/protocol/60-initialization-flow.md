@@ -14,7 +14,7 @@
 2. 按顺序读取协议模块。
 3. 如果项目类型明确，显式选择一个或多个 profile 及其目标根目录；不自动猜测。
 4. 明确项目名称、项目类型和当前阶段。
-5. 询问 owner 选择存储模式（schema v2 `storage_mode`）：`local`（默认）、`tracked`（共享完整 TASK 流水）、`private`（managed 文件不进 Git，terminal 历史可另存本机；语义与接入顺序见 `70-adoption-flow.md`「Private 存储模式」，adopt 前须通过只读 `private_preflight` 探针）。
+5. 在任何目标写入前通过 `70-adoption-flow.md`「存储模式选择门」：首次接入未明确模式则询问 Private/Local/Tracked 并等待，推荐 Local 不是默认写入授权；已有明确选择直接复用，既有有效 policy 保留。Private 的接入顺序见同文「Private 存储模式」。
 6. 创建或更新 `AGENTS.md`。
 7. 创建 `vault/`。
 8. 创建 `vault/index.md`，写入已选 storage；local 模式由 Agent 同时创建只覆盖 TASK/review/archive 的 `vault/tasks/.gitignore`；private 模式不创建 tasks/.gitignore，改为维护 `.git/info/exclude` 的 canonical trellium-private block。

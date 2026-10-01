@@ -6,14 +6,14 @@ Post-2026.09.9 convergence CLOSED and `2026.09.10` published tag-only; Profile k
 
 ## Focus
 
-- TASK-0032
+- TASK-0033
 
 Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or active-task inventory; `trellium status` reads TASK state directly from task files.
 
 ## Current Progress
 
 - Round 3 review is closed: routing dedup and runtime trim retained; Level A index-skip remains No-Go, so the default reading set is unchanged. No remaining Round 3 implementation.
-- Local/Private 已共享本机 History Store：Private 身份 ignored、显式恢复 UUID，目标 managed material 不进 Git；双语已同步，默认仍 Local。本仓仍 tracked，未接入真实 Store；实现与验证证据见 TASK-0029/0030。
+- Local/Private 已共享本机 History Store：Private 身份 ignored、显式恢复 UUID，目标 managed material 不进 Git；Local仍为推荐，首次接入明确选择门见D-0017（尚未发布）。本仓仍 tracked，未接入真实 Store；History实现与验证证据见 TASK-0029/0030。
 
 ## Constraints
 
@@ -26,6 +26,7 @@ Focus is navigation only. It owns no lifecycle, Authority, slice, Gate, or activ
 
 ## Recent Changes
 
+- 2026-10-01: Owner 接受首次项目接入明确选择storage的交付并授权提交/推送任务分支；未答只读、已有选择复用、既有policy保留，Local仍推荐，无全局模式；D-0017与证据见TASK-0033，新版Skill尚未发布。
 - 2026-10-01: 2026.10.1 新 tag 已发布；Codex 中文 Skill 已从该 tag 重装，旧09.1外置备份，实际包84项聚焦+3项E2E通过；原10.0保留，证据及发现边界见 TASK-0032。
 - 2026-10-01: 项目 starter workflow 名称改为 Trellium Work，已随 develop 推送并纳入2026.10.1 tag；安装包仍 trellium / trellium-zh，旧项目的显式迁移与检查兼容见 TASK-0031 / D-0016。
 - 2026-10-01: Private History 交付与 `2026.10.0` tag-only 发布授权已记录；版本号及双语分发随提交同步，默认仍 Local，未接入真实 Store。

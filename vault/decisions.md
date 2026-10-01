@@ -17,8 +17,9 @@
 - D-0009 · 项目工作 Skill 方向关闭 · Active · `trellium-work` No-Go；AGENTS.md + vault 为项目底座，控制面保持用户级 Skill · 2026-09-18 · 正文见 `vault/decisions/D-0009-project-work-skill.md`
 - D-0010 · Git 接入持久性 Gate · Active · checker 对协作核心的 HEAD、ignore 与 local 边界 fail-closed；不自动执行 Git 写操作 · 2026-09-18 · 正文见 `vault/decisions/D-0010-git-durability-gate.md`
 - D-0011 · 完整语言 Profile 的项目级持久化 · Active · 显式选择的完整 profile 进入项目 core 和 upgrade/diff 管理，不自动猜语言 · 2026-09-18 · 正文见 `vault/decisions/D-0011-durable-language-profiles.md`
-- D-0012 · 首次接入默认 local TASK storage · Active · Skill/Agent 先询问并推荐 local，未指定时按 local 执行；只有 TASK/review/archive 留在本地，核心仍 tracked；不新增 CLI API，存量策略不自动迁移 · 2026-09-28 · 正文见 `vault/decisions/D-0012-local-default-task-storage.md`
+- D-0012 · 首次接入默认 local TASK storage · Superseded by D-0017 · 取消未指定时的写入fallback，Local推荐与文件边界保留；历史问题和推理原文保留 · 2026-09-28 · 正文见 `vault/decisions/D-0012-local-default-task-storage.md`
 - D-0013 · Trellium 静默发布仅推送 tag · Active · 后续版本不创建 GitHub Release，也不生成 release 文本；`--fetch` 与显式 `install.sh --version` 已支持 tag；未指定版本的安装已改为 fail-closed（TASK-0024 移除 latest-release 解析） · 2026-09-28 · 正文见 `vault/decisions/D-0013-tag-only-releases.md`
 - D-0014 · Local Historical Evidence Store · Active · local 描述仓库可见性而非保留策略：terminal local TASK/review 经本机 Store 成组保全并可按项目/逻辑身份找回核验；身份唯一 owner 为 tracked `vault/project-id`；disposition 与 retention 正交；历史不授予 Authority · 2026-09-30 · 正文见 `vault/decisions/D-0014-local-historical-evidence-store.md`
 - D-0015 · Private Historical Retention · Active · Private terminal TASK/review 复用本机 Store；身份仍由 ignored project-id 唯一持有，inventory/baseline 保护绑定，新 clone 显式恢复已知 UUID；当前知识不自动备份，默认仍 Local · 2026-10-01 · 正文见 `vault/decisions/D-0015-private-historical-retention.md`
 - D-0016 · Trellium Work 命名 · Active · 既有 starter 从 agent-task 改为 trellium-work，安装包名称不变；显式路径/stamp/Private 迁移保留定制，D-0009 发现机制 No-Go 不重开 · 2026-10-01 · 正文见 `vault/decisions/D-0016-trellium-work-naming.md`
+- D-0017 · 首次项目接入明确选择存储模式 · Active · 未明确则询问等待、未答零目标写入；已有选择复用、既有有效policy保留；Local仅推荐，无全局模式 · 2026-10-01 · 正文见 `vault/decisions/D-0017-explicit-first-adoption-mode.md`
